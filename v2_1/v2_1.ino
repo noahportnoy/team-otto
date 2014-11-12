@@ -58,11 +58,11 @@ void setup()
   hal.rcout->enable_mask(0xFF);
 
   // PID Configuration
-  pids[PID_PITCH_RATE].kP(0.5);
+  pids[PID_PITCH_RATE].kP(0.45);
   pids[PID_PITCH_RATE].kI(0.0);
   pids[PID_PITCH_RATE].imax(50);
   
-  pids[PID_ROLL_RATE].kP(0.5);
+  pids[PID_ROLL_RATE].kP(0.45);
   pids[PID_ROLL_RATE].kI(0.0);
   pids[PID_ROLL_RATE].imax(50);
   
