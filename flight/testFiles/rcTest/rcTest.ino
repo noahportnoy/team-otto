@@ -36,15 +36,16 @@ void loop()
   hal.rcin->read(channels, 8);
   
   // Copy from channels array to something human readable - array entry 0 = input 1, etc.
-  uint16_t rcthr, rcyaw, rcpit, rcroll;   // Variables to store rc input
+  uint16_t rcthr, rcyaw, rcpit, rcroll, safety;   // Variables to store rc input
   rcthr = channels[2];
   rcyaw = map(channels[3], RC_YAW_MIN, RC_YAW_MAX, -180, 180);
   rcpit = map(channels[0], RC_PIT_MIN, RC_PIT_MAX, -45, 45);
   rcroll = map(channels[1], RC_ROL_MIN, RC_ROL_MAX, -45, 45);
+  safety = channels[4];
   
   hal.console->printf_P(
-            PSTR("individual read THR %d YAW %d PIT %d ROLL %d\r\n"),
-            rcthr, rcyaw, rcpit, rcroll);
+            PSTR("individual read THR %d YAW %d PIT %d ROLL %d, SAFE %d\r\n"),
+            rcthr, rcyaw, rcpit, rcroll, safety);
 
   hal.scheduler->delay(500);  //Wait 50ms 
 }
