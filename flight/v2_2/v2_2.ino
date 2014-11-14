@@ -97,23 +97,27 @@ void loop()
   // Wait until new orientation data (normally 5ms max)
   while (ins.num_samples_available() == 0);
   
+  // Copy from channels array to something human readable - array entry 0 = input 1, etc.
+  uint16_t channels[8];  // array for raw channel values
+  hal.rcin->read(channels, 8);  
+  long rcthr, rcyaw, rcpit, rcroll, safety;  // Variables to store radio in
+  safety = channels[4];
+  
   //Check off switch, kills motors otherwise
   float AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
-  while(AVG_OFF_BUTTON_VALUE < 1.0 ){
+  while( (AVG_OFF_BUTTON_VALUE < 1.0) || (safety < 1500) ){
     hal.rcout->write(MOTOR_FL, 1000);
     hal.rcout->write(MOTOR_BL, 1000);
     hal.rcout->write(MOTOR_FR, 1000);
     hal.rcout->write(MOTOR_BR, 1000);    
     //hal.console->printf_P(PSTR("Voltage ch0:%.2f\n"), AVG_OFF_BUTTON_VALUE);
     //hal.scheduler->delay(500);
+    hal.rcin->read(channels, 8);
+    safety = channels[4];
     AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
-  }  
-
-  // Copy from channels array to something human readable - array entry 0 = input 1, etc.
-  uint16_t channels[8];  // array for raw channel values
-  hal.rcin->read(channels, 8);
-  
-  long rcthr, rcyaw, rcpit, rcroll;  // Variables to store radio in 
+//    hal.console->println("SAFE");
+//    hal.scheduler->delay(1000);
+  }     
 
   rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MIN, 1500);
   rcyaw = map(channels[3], RC_YAW_MIN, RC_YAW_MAX, -180, 180);
