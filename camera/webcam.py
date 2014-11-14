@@ -8,7 +8,7 @@ imgCount = 0
 def stopRecording():
 	# When everything is done, release the capture
 	video_capture.release()
-	out.release()
+	#out.release()
 	cv2.destroyAllWindows()
 
 def startRecordingNoMyo():
@@ -19,10 +19,10 @@ def startRecordingNoMyo():
 		# print ser.readline()
 
 		# Write frame to video file
-		out.write(frame)
+		#out.write(frame)
 
 		gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
+		
 		faces = faceCascade.detectMultiScale(
 			gray,
 			scaleFactor=1.1,
@@ -90,7 +90,7 @@ cascPath = sys.argv[1]
 faceCascade = cv2.CascadeClassifier(cascPath)
 
 video_capture = cv2.VideoCapture(0)     # may want to change paramater number to get proper webcam
-out = cv2.VideoWriter('output.avi',-1, 20, (640,480))
+#out = cv2.VideoWriter('output.avi',-1, 20, (640,480))
 
 ser = serial.Serial(15, 9600)
 x_queue = deque()
