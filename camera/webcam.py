@@ -1,5 +1,6 @@
 import cv2
-import sys
+# import sys
+import numpy as np
 import serial
 from collections import deque
 
@@ -8,91 +9,109 @@ imgCount = 0
 def stopRecording():
 	# When everything is done, release the capture
 	video_capture.release()
-	#out.release()
-	cv2.destroyAllWindows()
+	cv2.destroyWindow("Video")
 
 def startRecordingNoMyo():
 	while True:
 		# Capture frame-by-frame
-		ret, frame = video_capture.read()   # frame is single frame, ignore ret
+		ret, frame = video_capture.read()   														# frame is single frame, ignore ret
+		frame = cv2.flip(frame, 1)
 
 		# print ser.readline()
 
-		# Write frame to video file
-		#out.write(frame)
+		# img = cv2.GaussianBlur(frame, (5,5), 0)													# blur frame
+		img = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-		gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+		# img = cv2.resize(img, (len(frame[0]) / scale_down, len(frame) / scale_down))				# scaling
 		
-		faces = faceCascade.detectMultiScale(
-			gray,
-			scaleFactor=1.1,
-			minNeighbors=5,
-			minSize=(125, 125),
-			flags=cv2.cv.CV_HAAR_SCALE_IMAGE		# CV_HAAR_SCALE_IMAGE
-		)
+		red_lower = np.array([0, 150, 0], np.uint8)													# red color range in hsv
+		red_upper = np.array([5, 255, 255], np.uint8)
+			
+		mask = cv2.inRange(img, red_lower, red_upper)												# mask = pixels that fall within the red color range
 
-		# Draw a rectangle around the faces
-		for (x, y, w, h) in faces:
-			cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-			x_face = x+w/2
-			y_face = y+h/2
+		dilation = np.ones((15, 15), "uint8")
+		mask = cv2.dilate(mask, dilation)															# dilate the mask
+		
+		contours, hierarchy = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)		# find contours in the mask
+		
+		max_area = 0
+		largest_contour = None
 
+		for idx, contour in enumerate(contours):													# find the largest contour
+			area = cv2.contourArea(contour)
+			if area > max_area:
+				max_area = area
+				largest_contour = contour
+		
+		if not largest_contour == None:																# if there is a largest contour
+			moment = cv2.moments(largest_contour)
 
-			x_queue.append(x_face)
-			if( len(x_queue) > 10 ):
-				x_queue.popleft()
+			if moment["m00"] > 1000 / scale_down:													# if the first moment of the contour is greater than 1000
+				coordinates = cv2.boundingRect(largest_contour)										# create rectange bounding the largest contour
 
-			y_queue.append(y_face)
-			if( len(y_queue) > 10 ):
-				y_queue.popleft()
+				for value in coordinates:															# scale the bounding box
+					value = value * scale_down
+				
+				x = coordinates[0]
+				y = coordinates[1]
+				w = coordinates[2]
+				h = coordinates[3]
 
-			x_total = 0
-			y_total = 0
+				cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)							# draw the bounding box
 
-			for x_value in x_queue:
-				x_total = x_total + x_value
+				x_object = x+w/2
+				y_object = y+h/2
 
-			for y_value in y_queue:
-				y_total = y_total + y_value
+				x_queue.append(x_object)
+				if( len(x_queue) > 10 ):
+					x_queue.popleft()
 
-			x_avg = x_total/len(x_queue)
-			y_avg = y_total/len(y_queue)
+				y_queue.append(y_object)
+				if( len(y_queue) > 10 ):
+					y_queue.popleft()
 
-			# print x_avg, ", ", y_avg
+				x_total = 0
+				y_total = 0
 
-			# detect leaving frame along x direction
-			if( abs(x_ctr - x_face) > x_offset ):
-				cv2.rectangle(frame, (x_ctr-x_offset, y_ctr-y_offset), (x_ctr+x_offset, y_ctr+y_offset), (0, 0, 255), 2)
-				servoRotateDeg = ((x_face - x_ctr))/pixelToServoScale;
-				# print servoRotateDeg
+				for x_value in x_queue:
+					x_total = x_total + x_value
 
-				if(servoRotateDeg > 0):
-					# servoRotateString = '+' + str(servoRotateDeg);
-					servoRotateString = '+1'
-					ser.write(servoRotateString)
-				elif(servoRotateDeg < 0):
-					# servoRotateString = '-' + str(servoRotateDeg);
-					servoRotateString = '-1'
-					ser.write(servoRotateString)
-				else:
-					servoRotateString = '+0'
-					ser.write(servoRotateString)
+				for y_value in y_queue:
+					y_total = y_total + y_value
 
-		# Display the resulting frame
-		cv2.imshow('Video', frame)
+				x_avg = x_total/len(x_queue)
+				y_avg = y_total/len(y_queue)
 
-		if cv2.waitKey(1) & 0xFF == ord('q'):   # if q is pressed
-			ser.close()
+				if( abs(x_ctr - x_object) > x_offset ):												# detect leaving frame along x direction
+					cv2.rectangle(frame, (x_ctr-x_offset, y_ctr-y_offset), (x_ctr+x_offset, y_ctr+y_offset), (0, 0, 255), 2)
+					servoRotateDeg = ((x_object - x_ctr))/pixelToServoScale;
+					# print servoRotateDeg
+
+					if(servoRotateDeg > 0):
+						# servoRotateString = '+' + str(servoRotateDeg);
+						servoRotateString = '+1'
+						#ser.write(servoRotateString)
+					elif(servoRotateDeg < 0):
+						# servoRotateString = '-' + str(servoRotateDeg);
+						servoRotateString = '-1'
+						#ser.write(servoRotateString)
+					else:
+						servoRotateString = '+0'
+						#ser.write(servoRotateString)
+			 
+		cv2.imshow("Video", frame)
+
+		if cv2.waitKey(1) & 0xFF == ord('q'):														# if q is pressed, quit
+			# ser.close()
 			stopRecording()
 			break
 
-cascPath = sys.argv[1]
-faceCascade = cv2.CascadeClassifier(cascPath)
 
-video_capture = cv2.VideoCapture(0)     # may want to change paramater number to get proper webcam
-#out = cv2.VideoWriter('output.avi',-1, 20, (640,480))
 
-ser = serial.Serial(15, 9600)
+video_capture = cv2.VideoCapture(0)
+scale_down = 1
+
+#ser = serial.Serial(15, 9600)
 x_queue = deque()
 y_queue = deque()
 
