@@ -1,5 +1,4 @@
 import cv2
-# import sys
 import numpy as np
 import serial
 from collections import deque
@@ -7,13 +6,11 @@ from collections import deque
 imgCount = 0
 
 def stopRecording():
-	# When everything is done, release the capture
 	video_capture.release()
 	cv2.destroyWindow("Video")
 
-def startRecordingNoMyo():
+def startRecording():
 	while True:
-		# Capture frame-by-frame
 		ret, frame = video_capture.read()   														# frame is single frame, ignore ret
 		frame = cv2.flip(frame, 1)
 
@@ -22,7 +19,7 @@ def startRecordingNoMyo():
 		# img = cv2.GaussianBlur(frame, (5,5), 0)													# blur frame
 		img = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-		# img = cv2.resize(img, (len(frame[0]) / scale_down, len(frame) / scale_down))				# scaling
+		img = cv2.resize(img, (len(frame[0]) / scale_down, len(frame) / scale_down))				# scaling
 		
 		red_lower = np.array([0, 150, 0], np.uint8)													# red color range in hsv
 		red_upper = np.array([5, 255, 255], np.uint8)
@@ -48,14 +45,11 @@ def startRecordingNoMyo():
 
 			if moment["m00"] > 1000 / scale_down:													# if the first moment of the contour is greater than 1000
 				coordinates = cv2.boundingRect(largest_contour)										# create rectange bounding the largest contour
-
-				for value in coordinates:															# scale the bounding box
-					value = value * scale_down
 				
-				x = coordinates[0]
-				y = coordinates[1]
-				w = coordinates[2]
-				h = coordinates[3]
+				x = coordinates[0] * scale_down
+				y = coordinates[1] * scale_down
+				w = coordinates[2] * scale_down
+				h = coordinates[3] * scale_down
 
 				cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)							# draw the bounding box
 
@@ -100,6 +94,10 @@ def startRecordingNoMyo():
 						#ser.write(servoRotateString)
 			 
 		cv2.imshow("Video", frame)
+		
+		global frameCount
+		frameCount = frameCount + 1
+		print frameCount
 
 		if cv2.waitKey(1) & 0xFF == ord('q'):														# if q is pressed, quit
 			# ser.close()
@@ -107,8 +105,9 @@ def startRecordingNoMyo():
 			break
 
 video_capture = cv2.VideoCapture(0)
-scale_down = 1
+scale_down = 4
 dilation_amount = 15
+frameCount = 0
 
 #ser = serial.Serial(15, 9600)
 x_queue = deque()
@@ -122,4 +121,4 @@ y_ctr = 240
 x_offset = 100
 y_offset = 100
 
-startRecordingNoMyo()
+startRecording()
