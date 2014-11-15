@@ -29,7 +29,7 @@ def startRecordingNoMyo():
 			
 		mask = cv2.inRange(img, red_lower, red_upper)												# mask = pixels that fall within the red color range
 
-		dilation = np.ones((15, 15), "uint8")
+		dilation = np.ones((dilation_amount, dilation_amount), "uint8")
 		mask = cv2.dilate(mask, dilation)															# dilate the mask
 		
 		contours, hierarchy = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)		# find contours in the mask
@@ -106,10 +106,9 @@ def startRecordingNoMyo():
 			stopRecording()
 			break
 
-
-
 video_capture = cv2.VideoCapture(0)
 scale_down = 1
+dilation_amount = 15
 
 #ser = serial.Serial(15, 9600)
 x_queue = deque()
