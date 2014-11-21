@@ -1,4 +1,4 @@
-Attempt to fix yaw. Untested flight code.
+Attempt to fix yaw. Positive tests via console commands. Untested on drone. 
 
 NON WORKING FLIGHT CODE.
 

@@ -41,7 +41,7 @@ void loop(void)
     }
 	
 	while ( hal.console->available() ){
-		user_input = hal.console->txspace();
+		user_input = hal.console->read();
 		hal.console->print("Input received: ");
 		hal.console->println(user_input);
 	}

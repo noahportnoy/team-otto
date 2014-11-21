@@ -10,6 +10,9 @@
 
 #include <PID.h>
 
+#include <AP_Declination.h>
+#include <AP_Compass.h> // Compass Library
+
 // ArduPilot Hardware Abstraction Layer
 const AP_HAL::HAL& hal = AP_HAL_AVR_APM2;
 
@@ -35,6 +38,13 @@ AP_InertialSensor_MPU6000 ins;
 #define OFF_BUTTON 0
 AP_HAL::AnalogSource* OFF_BUTTON_VALUE;
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+AP_Compass_PX4 compass;
+#else
+AP_Compass_HMC5843 compass;
+#endif
+uint32_t timer;
+
 // Arduino map function
 long map(long x, long in_min, long in_max, long out_min, long out_max){
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -51,6 +61,73 @@ PID pids[6];
 #define PID_YAW_RATE 4
 #define PID_YAW_STAB 5
 
+int startup = 0;
+float originalOrientation = 0.0;
+float currentOrientation = 0.0;
+
+float calculateYaw(){
+ 
+    static float min[3], max[3], offset[3];
+    float heading;
+
+    compass.accumulate();
+
+    if((hal.scheduler->micros()- timer) > 100000L)
+    {
+      timer = hal.scheduler->micros();
+      compass.read();
+      unsigned long read_time = hal.scheduler->micros() - timer;
+      
+
+      if (!compass.healthy) {
+          hal.console->println("not healthy");
+          return 0;
+      }
+      heading = compass.calculate_heading(0,0); // roll = 0, pitch = 0 for this example
+      compass.null_offsets();
+
+      // capture min
+      if( compass.mag_x < min[0] )
+          min[0] = compass.mag_x;
+      if( compass.mag_y < min[1] )
+          min[1] = compass.mag_y;
+      if( compass.mag_z < min[2] )
+          min[2] = compass.mag_z;
+
+      // capture max
+      if( compass.mag_x > max[0] )
+          max[0] = compass.mag_x;
+      if( compass.mag_y > max[1] )
+          max[1] = compass.mag_y;
+      if( compass.mag_z > max[2] )
+          max[2] = compass.mag_z;
+
+      // calculate offsets
+      offset[0] = -(max[0]+min[0])/2;
+      offset[1] = -(max[1]+min[1])/2;
+      offset[2] = -(max[2]+min[2])/2;
+    } else {
+	    hal.scheduler->delay(1);
+    }  
+ 
+ currentOrientation = ToDeg(heading);
+ 
+ if(currentOrientation < 0){
+   currentOrientation = 360 + currentOrientation;
+ }
+ 
+ if(startup == 1 ){
+   originalOrientation = currentOrientation;
+   startup = 2;
+ }
+
+ if(startup == 0)
+   startup = 1;
+  
+ return wrap_180( currentOrientation - originalOrientation ); 
+  
+}
+
 void setup() 
 {
   // Enable the motors and set at 490Hz update
@@ -66,7 +143,7 @@ void setup()
   pids[PID_ROLL_RATE].kI(0.0);
   pids[PID_ROLL_RATE].imax(50);
   
-  pids[PID_YAW_RATE].kP(2.7);
+  pids[PID_YAW_RATE].kP(0.7);
   pids[PID_YAW_RATE].kI(1.0);
   pids[PID_YAW_RATE].imax(50);
   
@@ -89,6 +166,40 @@ void setup()
   hal.scheduler->resume_timer_procs();
   
   OFF_BUTTON_VALUE = hal.analogin->channel(OFF_BUTTON);
+  
+  hal.console->println("Compass library test");
+
+  if (!compass.init()) {
+      hal.console->println("compass initialisation failed!");
+      while (1) ;
+  }
+  hal.console->println("init done");
+
+  compass.set_orientation(AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD); // set compass's orientation on aircraft.
+  compass.set_offsets(0,0,0); // set offsets to account for surrounding interference
+  compass.set_declination(ToRad(0.0)); // set local difference between magnetic north and true north
+
+  hal.console->print("Compass auto-detected as: ");
+  switch( compass.product_id ) {
+  case AP_COMPASS_TYPE_HIL:
+      hal.console->println("HIL");
+      break;
+  case AP_COMPASS_TYPE_HMC5843:
+      hal.console->println("HMC5843");
+      break;
+  case AP_COMPASS_TYPE_HMC5883L:
+      hal.console->println("HMC5883L");
+      break;
+  case AP_COMPASS_TYPE_PX4:
+      hal.console->println("PX4");
+      break;
+  default:
+      hal.console->println("unknown");
+      break;
+  }
+
+  hal.scheduler->delay(1000);
+  timer = hal.scheduler->micros();
 }
 
 void loop() 
@@ -102,7 +213,8 @@ void loop()
   hal.rcin->read(channels, 8);  
   long rcthr, rcyaw, rcpit, rcroll, safety;  // Variables to store radio in
   safety = channels[4];
-  
+
+/*  
   //Check off switch, kills motors otherwise
   float AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
   while( (AVG_OFF_BUTTON_VALUE < 1.0) || (safety < 1500) ){
@@ -118,6 +230,7 @@ void loop()
 //    hal.console->println("SAFE");
 //    hal.scheduler->delay(1000);
   }     
+*/
 
   rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MIN, 1500);
   rcyaw = map(channels[3], RC_YAW_MIN, RC_YAW_MAX, -180, 180);
@@ -131,7 +244,7 @@ void loop()
   ins.quaternion.to_euler(&roll, &pitch, &yaw);
   roll = ToDeg(roll) ;
   pitch = ToDeg(pitch) ;
-  yaw = ToDeg(yaw) ;
+  yaw = calculateYaw();
   
   // Ask MPU6050 for gyro data
   Vector3f gyro = ins.get_gyro();
@@ -164,10 +277,10 @@ void loop()
 //    hal.scheduler->delay(1000);
 
     // mix pid outputs and send to the motors.
-    hal.rcout->write(MOTOR_FL, rcthr + roll_output + pitch_output);// - yaw_output);
-    hal.rcout->write(MOTOR_BL, rcthr + roll_output - pitch_output);// + yaw_output);
-    hal.rcout->write(MOTOR_FR, rcthr - roll_output + pitch_output);// + yaw_output);
-    hal.rcout->write(MOTOR_BR, rcthr - roll_output - pitch_output);// - yaw_output);
+    hal.rcout->write(MOTOR_FL, rcthr + roll_output + pitch_output - yaw_output);
+    hal.rcout->write(MOTOR_BL, rcthr + roll_output - pitch_output + yaw_output);
+    hal.rcout->write(MOTOR_FR, rcthr - roll_output + pitch_output + yaw_output);
+    hal.rcout->write(MOTOR_BR, rcthr - roll_output - pitch_output - yaw_output);
   } else {
     // motors off
     hal.rcout->write(MOTOR_FL, 1000);
