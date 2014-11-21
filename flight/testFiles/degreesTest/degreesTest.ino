@@ -50,6 +50,8 @@ PID pids[6];
 
 float roll, yaw, pitch;
 
+Vector3f accel;
+
 void setup() 
 {
   
@@ -89,6 +91,8 @@ void setup()
   hal.scheduler->resume_timer_procs();
   
   
+  
+  
 }
 
 void loop(){
@@ -97,17 +101,17 @@ void loop(){
   
   
   ins.update(); 
-  ins.quaternion.to_euler(&roll, &pitch, &yaw);
-  roll = ToDeg(roll) ;
-  pitch = ToDeg(pitch) ;
-  yaw = ToDeg(yaw) ;
+  accel = ins.get_accel();
+  roll = ToDeg(accel.x) ;
+  pitch = ToDeg(accel.y) ;
+  yaw = ToDeg(accel.z) ;
   hal.console->printf_P(
-    PSTR("P:%4.1f  R:%4.1f Y:%4.1f\n"),
+    PSTR("P:%4.1f  R:%4.1f Y:%4.4f\n"),
     pitch,
     roll,
     yaw);
     
-  hal.scheduler->delay(2000);
+  hal.scheduler->delay(500);
     
 }
  
