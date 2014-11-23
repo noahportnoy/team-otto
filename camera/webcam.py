@@ -1,19 +1,21 @@
 import cv2
 import numpy as np
 import serial
+import time
 from collections import deque
-
-imgCount = 0
 
 def stopRecording():
 	video_capture.release()
 	cv2.destroyWindow("Video")
 
 def startRecording():
+	frameCount = 0
+	startTime = time.time()
+	
 	while True:
 		ret, frame = video_capture.read()   														# frame is single frame, ignore ret
 		frame = cv2.flip(frame, 1)
-
+		
 		# print ser.readline()
 
 		# img = cv2.GaussianBlur(frame, (5,5), 0)													# blur frame
@@ -83,21 +85,23 @@ def startRecording():
 
 					if(servoRotateDeg > 0):
 						# servoRotateString = '+' + str(servoRotateDeg);
-						servoRotateString = '+1'
-						#ser.write(servoRotateString)
+						servoRotateString = '-1'
+						ser.write(servoRotateString)
 					elif(servoRotateDeg < 0):
 						# servoRotateString = '-' + str(servoRotateDeg);
-						servoRotateString = '-1'
-						#ser.write(servoRotateString)
+						servoRotateString = '+1'
+						ser.write(servoRotateString)
 					else:
 						servoRotateString = '+0'
-						#ser.write(servoRotateString)
+						ser.write(servoRotateString)
 			 
 		cv2.imshow("Video", frame)
 		
-		global frameCount
 		frameCount = frameCount + 1
-		print frameCount
+		if(frameCount % 50 == 0):
+			stopTime = time.time()
+			print "average fps: ", (50 / (stopTime - startTime))
+			startTime = time.time()
 
 		if cv2.waitKey(1) & 0xFF == ord('q'):														# if q is pressed, quit
 			# ser.close()
@@ -107,9 +111,8 @@ def startRecording():
 video_capture = cv2.VideoCapture(0)
 scale_down = 4
 dilation_amount = 15
-frameCount = 0
 
-#ser = serial.Serial(15, 9600)
+ser = serial.Serial('/dev/ttyUSB0', 9600)
 x_queue = deque()
 y_queue = deque()
 
