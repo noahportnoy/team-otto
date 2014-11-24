@@ -51,6 +51,8 @@ PID pids[6];
 #define PID_YAW_RATE 4
 #define PID_YAW_STAB 5
 
+long rcroll = 0;
+
 long getConsoleValue(){
   int16_t input;
   
@@ -142,7 +144,7 @@ void loop()
   // Copy from channels array to something human readable - array entry 0 = input 1, etc.
   uint16_t channels[8];  // array for raw channel values
   hal.rcin->read(channels, 8);  
-  long rcthr, rcyaw, rcpit, rcroll, safety;  // Variables to store radio in
+  long rcthr, rcyaw, rcpit, safety;  // Variables to store radio in
   safety = channels[4];
  
   //Check off switch, kills motors otherwise
@@ -166,11 +168,14 @@ void loop()
   rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, -45, 45);
   
   //rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, -45, 45);
- 
+  //rcroll = 0;
   while(hal.console->available()){
     rcroll = getConsoleValue();
+    hal.console->print("Console Value:");
     hal.console->println(rcroll);
   }
+  //hal.console->println(rcroll);
+  //hal.scheduler->delay(500);
   
   // Ask MPU6050 for orientation
   ins.update();
