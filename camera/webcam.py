@@ -25,6 +25,9 @@ def startRecording():
 		
 		red_lower = np.array([0, 150, 0], np.uint8)													# red color range in hsv
 		red_upper = np.array([5, 255, 255], np.uint8)
+		
+		green_lower = np.array([35, 100, 125], np.uint8)											# green shirt color range in hsv
+		green_upper = np.array([80, 255, 255], np.uint8)
 			
 		mask = cv2.inRange(img, red_lower, red_upper)												# mask = pixels that fall within the red color range
 
