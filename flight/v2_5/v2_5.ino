@@ -214,7 +214,7 @@ void loop()
   long rcthr, rcyaw, rcpit, rcroll, safety;  // Variables to store radio in
   safety = channels[4];
 
-/*  
+  
   //Check off switch, kills motors otherwise
   float AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
   while( (AVG_OFF_BUTTON_VALUE < 1.0) || (safety < 1500) ){
@@ -230,7 +230,7 @@ void loop()
 //    hal.console->println("SAFE");
 //    hal.scheduler->delay(1000);
   }     
-*/
+
 
   rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MIN, 1500);
   rcyaw = map(channels[3], RC_YAW_MIN, RC_YAW_MAX, -180, 180);
