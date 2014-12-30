@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="index.css">
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<script src="index.js"></script>
+	<title>Otto - The Personal Cameraman</title>
+</head>
+
+<body>
+
+	<div id="navigationBar">
+		<div id="teamNumber"> Team 7</div>
+		<div id="options">
+			<div id="home" > Home </div>
+			<div id="divider1"> | </div>
+			<div id="overview" > Overview </div>
+			<div id="divider2"> | </div>
+			<div id="documents" > Documents </div>
+			<div id="divider3"> | </div>
+			<div id="team" > Team </div>
+		</div>
+	</div>
+	
+	<div id="imageCredit" ><b> 	Source : http://www.maennlichen.ch/en/snowboarding.html; </b></div>
+	
+	<div id="homeBox">
+		<div id="projectTitle">Otto - The Personal Cameraman</div>
+		<div id="description"> To assist in the capturing of high quality action sports videos </div>
+	</div>
+	
+	<script>
+		index = 0;
+		window.setInterval(function() {changeBackgroundImage()} , 5000);
+		
+		function changeBackgroundImage(){
+			index = index + 1;
+			if(index == 5)
+				index = 0;
+			switch(index){
+				case 0:
+					$('body').css("background-image", "url('images/snowboarder.jpg')");
+					$("#imageCredit").text("Source : http://www.maennlichen.ch/en/snowboarding.html ");
+					break;
+				case 1:
+					$('body').css("background-image", "url('images/surfing.jpg')");
+					$("#imageCredit").text("Source : http://www.theatlantic.com/infocus/2011/09/in-the-surf/100148/ ");
+					break;
+				case 2:
+					$('body').css("background-image", "url('images/biking.jpg')");
+					$("#imageCredit").text("Source : http://www.activeazur.com/mountain-biking-france/mountain-biking-french-alps/tignes ");
+					break;
+				case 3:
+					$('body').css("background-image", "url('images/skiing.jpg')");
+					$("#imageCredit").text("Source : http://images.nationalgeographic.com/wpf/media-live/photos/000/123/cache/Alpine-Skiing_12323_600x450.jpg ");
+					break;
+				case 4:
+					$('body').css("background-image", "url('images/running.jpg')");
+					$("#imageCredit").text("Source : http://3.bp.blogspot.com/-s01-q8puMz0/TzR3ra-rtRI/AAAAAAAAAEM/O0V5w2iBpD0/s1600/08sp-en0679.jpg ");
+					break;
+			}
+		}
+		
+	</script>
+	
+</body>
+
+</html>

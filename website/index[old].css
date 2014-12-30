@@ -1,0 +1,122 @@
+body{
+background-image: url("images/snowboarder.jpg");
+background-size:cover;
+}
+
+#navigationBar{
+background-color : #181818;
+position: fixed;
+top: 0px;
+left: 0px;
+width:100%;
+height: 50px;
+}
+
+#teamNumber{
+	position:absolute;
+	z-index: 10;
+	color:rgb(217, 228, 228);
+	top:10px;
+	left:5px;
+	font-family: "Helvetica neue thin", "sans-serif", "Arial";
+	font-weight: 300;
+	font-size:30px;
+}
+
+#options{
+position:fixed;
+top:17px;
+left:0px;
+width:400px;
+}
+
+#home{
+position:absolute;
+color:white;
+left:0px;
+	font-family: "Helvetica neue thin", "sans-serif", "Arial";
+	font-size:18px;
+}
+
+#divider1{
+position:absolute;
+padding-left: 10px;
+color:white;
+	font-family: "Helvetica neue thin", "sans-serif", "Arial";
+	font-size:20px;
+}
+
+#overview{
+position:absolute;
+left:70px;
+color:white;
+	font-family: "Helvetica neue thin", "sans-serif", "Arial";
+	font-weight: 300;
+	font-size:18px;
+}
+
+#divider2{
+position:absolute;
+left:165px;
+color:white;
+font-family: "Lucida Console", "Lucida Sans Typewriter", Monaco, "Bitstream Vera Sans Mono", monospace;
+font-size:20px;
+}
+
+#documents{
+position:absolute;
+left:185px;
+color:white;
+	font-family: "Helvetica neue thin", "sans-serif", "Arial";
+	font-size:18px;
+}
+
+#divider3{
+position:absolute;
+left:290px;
+color:white;
+font-family: "Lucida Console", "Lucida Sans Typewriter", Monaco, "Bitstream Vera Sans Mono", monospace;
+font-size:20px;
+}
+
+#team{
+position:absolute;
+left:310px;
+color:white;
+font-family: "Lucida Console", "Lucida Sans Typewriter", Monaco, "Bitstream Vera Sans Mono", monospace;
+font-size:18px;
+}
+
+#homeBox{
+background-color:white;
+opacity:.5;
+position:fixed;
+top:80px;
+height:110px;
+width:95%;
+border-radius:75px;
+}
+
+#projectTitle{
+position:absolute;
+top:20px;
+left:50px;
+font-size:40px;
+font-family: "Lucida Console", "Lucida Sans Typewriter", Monaco, "Bitstream Vera Sans Mono", monospace;
+}
+
+#description{
+position:absolute;
+top:65px;
+left:80px;
+font-size:28px;
+font-family: "Lucida Console", "Lucida Sans Typewriter", Monaco, "Bitstream Vera Sans Mono", monospace;
+}
+
+#imageCredit{
+position:fixed;
+bottom:5px;
+left :5px;
+font-size:12px;
+font-weight:bold;
+}
