@@ -122,10 +122,12 @@ body{
 	top:80px;
 	width:85%;
 	border-radius:15px;
+	min-height: 100px;
 }
 
 #about_description{
 	position:relative;
+	display: inline-block;
 	top:20px;
 	left: 3%;
 	padding-right: 50px;
@@ -136,7 +138,6 @@ body{
 
 /*________________TEAM PAGE_______________*/
 #team{
-	float: left;
 	padding: 15px;
 	width: 20%;
 	display: inline-block;
@@ -176,8 +177,7 @@ body{
 
 #about{
 	font-weight: normal;
-	padding-top: 2em;
-	padding-bottom: 1em;
+	padding-top: 1em;
 	text-align: center;
 }
 
@@ -188,8 +188,9 @@ body{
 	top:80px;
 	width:85%;
 	padding: 20px;
+	padding-bottom: 0px;
 	border-radius:15px;
-	height: 550px;
+	min-height: 50px;
 }
 
 #advisor{
@@ -198,10 +199,10 @@ body{
 	top:80px;
 	width:85%;
 	border-radius:15px;
-	height: 100px;
+	min-height: 100px;
 	padding: 20px;
 	margin: 20px auto;
-	margin-bottom: 50px;
+	margin-bottom: 200px;
 }
 
 
@@ -247,5 +248,22 @@ body{
 #docPic{
 	margin: 0 auto;
 	width: 70%;
+}
+
+
+
+
+
+
+/*_____________DOCUMENTS PAGE_____________*/
+#footer{
+	position:fixed;
+	bottom:5px;
+	left :5px;
+	font-size:16px;
+	font-weight:lighter;
+
+	width:25%;
+	border-radius:15px;
 }
 

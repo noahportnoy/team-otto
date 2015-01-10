@@ -5,7 +5,7 @@ $(window).load(function(){
 	$("#homeBox").css('left', ((width - $("#homeBox").width() ) / 2 )  + 'px');
 	$("#aboutBox").css('left', ((width - $("#aboutBox").width() ) / 2 )  + 'px');
 	$("#options").css('left', ((width - $("#options").width() ) / 2 )  + 'px');
-	
+	$("#footer").css('left', ((width - $("#footer").width() ) / 2 )  + 'px');
 });
 
 $(window).resize(function(){
@@ -15,5 +15,5 @@ $(window).resize(function(){
 	$("#homeBox").css('left', ((width - $("#homeBox").width() ) / 2 )  + 'px');
 	$("#aboutBox").css('left', ((width - $("#aboutBox").width() ) / 2 )  + 'px');
 	$("#options").css('left', ((width - $("#options").width() ) / 2 )  + 'px');
-	
+	$("#footer").css('left', ((width - $("#footer").width() ) / 2 )  + 'px');
 });
