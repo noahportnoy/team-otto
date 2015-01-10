@@ -1,0 +1,81 @@
+<!--Team Otto 2015 	
+	Andrew Sousa
+	Seth Kielbasa
+	Albion Lici
+	Noah Portnoy
+
+!-->
+
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href="index.css">
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<script src="index.js"></script>
+	<title>Team Otto</title>
+</head>
+
+<body>
+<!--------------- NAV BAR HERE ------------------- !-->
+	<div id="teamNumber"> Team Otto </div>
+
+	<ul id="nav">
+      <li><a href="./index.html">Home</a></li>
+      <li><a href="./about.html">About</a></li>
+      <li><a href="./team.html">Team</a></li>
+      <li><a href="./documents.html">Documents</a></li>
+   </ul>
+	
+	<div id="imageCredit" ><b> 	Source : http://www.maennlichen.ch/en/snowboarding.html; </b></div>
+	
+
+	<!-- ---------- PAGE CONTENT GOES HERE ---------- !-->
+	
+	<div id="aboutBox">
+		<div id="projectTitle">About Otto</div> 
+		<p id="about_description">
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Lorem ipsum dolor sit amet, tacimates quaestio comprehensam sed ex, eos at habeo autem legimus. Deserunt theophrastus et qui, nam no oratio deserunt. In erant quidam persius eos, vis ne integre nonumes, ex per albucius intellegat. Dicta disputando eu vel, usu ei malis quando fabulas.
+		<br/><br/>
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Mel et purto tota, an viderer officiis necessitatibus duo, dolorem forensibus quaerendum an qui. Ad est appetere ullamcorper. Sit eu maiorum evertitur, agam omnis nominavi pro ne. Unum dicant tempor eam in. </p>
+	</div>
+
+
+
+
+	<script>
+		index = 0;
+		window.setInterval(function() {changeBackgroundImage()} , 10000);
+		
+		function changeBackgroundImage(){
+			index = index + 1;
+			if(index == 5)
+				index = 0;
+			switch(index){
+				case 0:
+					$('body').css("background-image", "url('images/snowboarder.jpg')");
+					$("#imageCredit").text("Source : http://www.maennlichen.ch/en/snowboarding.html ");
+					break;
+				case 1:
+					$('body').css("background-image", "url('images/surfing.jpg')");
+					$("#imageCredit").text("Source : http://www.theatlantic.com/infocus/2011/09/in-the-surf/100148/ ");
+					break;
+				case 2:
+					$('body').css("background-image", "url('images/biking.jpg')");
+					$("#imageCredit").text("Source : http://www.activeazur.com/mountain-biking-france/mountain-biking-french-alps/tignes ");
+					break;
+				case 3:
+					$('body').css("background-image", "url('images/skiing.jpg')");
+					$("#imageCredit").text("Source : http://images.nationalgeographic.com/wpf/media-live/photos/000/123/cache/Alpine-Skiing_12323_600x450.jpg ");
+					break;
+				case 4:
+					$('body').css("background-image", "url('images/running.jpg')");
+					$("#imageCredit").text("Source : http://3.bp.blogspot.com/-s01-q8puMz0/TzR3ra-rtRI/AAAAAAAAAEM/O0V5w2iBpD0/s1600/08sp-en0679.jpg ");
+					break;
+			}
+		}
+		
+	</script>
+	
+</body>
+
+</html>

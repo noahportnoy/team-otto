@@ -13,45 +13,60 @@
 
 	<ul id="nav">
       <li><a href="./index.html">Home</a></li>
+      <li><a href="./about.html">About</a></li>
       <li><a href="./team.html">Team</a></li>
       <li><a href="./documents.html">Documents</a></li>
-      <li><a href="#">Contact Us</a></li>
    </ul>
 	
 	<div id="imageCredit" ><b> 	Source : http://www.maennlichen.ch/en/snowboarding.html; </b></div>
-	
 
 	<!-- ---------- PAGE CONTENT GOES HERE ---------- !-->
-	<div id="docBox">
+	<div id="prezoBox">
+		<div id="docTitle">Design Review Presentations</div>
 		<div id="document">
-			<div id="pic"><img src="./images/pdr.pdf" alt="PDF_Image" class="pic"> </div>
-			<div id="name">Preliminary Design Review</div>
+			<div id="docPic"><a href="./docs/Otto_PDR.pdf"> <img src="./images/pdf.png" alt="PDF_Image" class="pic"> </a></div>
+			<div id="name">Preliminary Design<br/>Review</div>
 			<div id="title"> October 16, 2014 </div>
 		</div>
 
 		<div id="document">
-			<div id="pic"><img src="./images/mdr.pdf" alt="PDF_Image" class="pic"> </div>
-			<div id="name">Midway Design Review</div>
+			<div id="docPic"><a href="./docs/Otto_MDR.pdf"> <img src="./images/pdf.png" alt="PDF_Image" class="pic"> </a></div>
+			<div id="name">Midway Design<br/> Review</div>
 			<div id="title"> November 25, 2014  </div>
 		</div>
 
 		<div id="document">
-			<div id="pic"><img src="./images/cdr.pdf" alt="PDF_Image" class="pic"> </div>
-			<div id="name">Comulative Design Review</div>
-			<div id="title"> DATE </div>
+			<div id="docPic"><a href="#"> <img src="./images/pdf.png" alt="PDF_Image" class="pic"> </a></div>
+			<div id="name">Comprehensive Design<br/> Review</div>
+			<div id="title"> - Coming Soon - </div>
 		</div>
 
 		<div id="document">
-			<div id="pic"><img src="./images/fdr.pdf" alt="PDF_Image" class="pic"> </div>
-			<div id="name">Final Design Review</div>
-			<div id="title"> DATE </div>
+			<div id="docPic"><a href="#"> <img src="./images/pdf.png" alt="PDF_Image" class="pic"> </a></div>
+			<div id="name">Final Design<br/> Review</div>
+			<div id="title"> - Coming Soon - </div>
 		</div>
 
 	</div>
 
+	<div id="reportBox">
+		<div id="docTitle">Technical Reports</div>
+		<div id="document">
+			<div id="docPic"><a href="./docs/Otto_PDR_Report.pdf"> <img src="./images/pdf.png" alt="PDF_Image" class="pic"> </a></div>
+			<div id="name">Midway Design<br/>Report</div>
+			<div id="title"> November 25, 2014  </div>
+		</div>
+
+		<div id="document">
+			<div id="docPic"><a href="#"> <img src="./images/pdf.png" alt="PDF_Image" class="pic"> </a></div>
+			<div id="name">Final Design<br/> Report</div>
+			<div id="title"> - Coming Soon -  </div>
+		</div>
+	</div>
+
 	<script>
 		index = 0;
-		window.setInterval(function() {changeBackgroundImage()} , 5000);
+		window.setInterval(function() {changeBackgroundImage()} , 10000);
 		
 		var randomnumber = Math.floor(Math.random() * (5 + 1)) + 0;
 

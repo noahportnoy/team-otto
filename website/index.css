@@ -91,6 +91,7 @@ body{
 	position:relative;
 	top:20px;
 	left:50px;
+	padding-right: 50px;
 	font-size:40px;
 }
 
@@ -98,6 +99,7 @@ body{
 	position:relative;
 	top:20px;
 	left:10%;
+	padding-right: 80px;
 	font-size:28px;
 	font-weight: lighter;
 	padding-bottom: 30px;
@@ -112,6 +114,25 @@ body{
 }
 
 
+/*________________ABOUT PAGE_______________*/
+#aboutBox{
+	background-color:white;
+	opacity:.8;
+	position:relative;
+	top:80px;
+	width:85%;
+	border-radius:15px;
+}
+
+#about_description{
+	position:relative;
+	top:20px;
+	left: 3%;
+	padding-right: 50px;
+	font-size:22px;
+	font-weight: lighter;
+	padding-bottom: 40px;
+}
 
 /*________________TEAM PAGE_______________*/
 #team{
@@ -186,7 +207,15 @@ body{
 
 
 /*_____________DOCUMENTS PAGE_____________*/
-#docBox{
+#docTitle{
+	position:relative;
+	top:10px;
+	left:50px;
+	padding-right: 50px;
+	margin-bottom: 20px;
+	font-size:30px;
+}
+#prezoBox{
 	background-color: rgba(255,255,255, .9);
 	position: relative;
 	margin: 0 auto;
@@ -194,12 +223,29 @@ body{
 	width:85%;
 	padding: 20px;
 	border-radius:15px;
-	height: 350px;
+	min-height: 300px;
+}
+
+#reportBox{
+	background-color: rgba(255,255,255, .9);
+	position: relative;
+	margin: 0 auto;
+	top:80px;
+	width:85%;
+	margin-top: 20px;
+	padding: 20px;
+	border-radius:15px;
+	min-height: 300px;
 }
 
 #document{
-	position: inherit;
-	float: left;
+	display: inline-block;
 	padding: 10px;
 	width: 22.5%;
 }
+
+#docPic{
+	margin: 0 auto;
+	width: 70%;
+}
+

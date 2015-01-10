@@ -3,6 +3,7 @@ $(window).load(function(){
 	var height = $(window).height();
 	
 	$("#homeBox").css('left', ((width - $("#homeBox").width() ) / 2 )  + 'px');
+	$("#aboutBox").css('left', ((width - $("#aboutBox").width() ) / 2 )  + 'px');
 	$("#options").css('left', ((width - $("#options").width() ) / 2 )  + 'px');
 	
 });
@@ -12,6 +13,7 @@ $(window).resize(function(){
 	var height = $(window).height();
 	
 	$("#homeBox").css('left', ((width - $("#homeBox").width() ) / 2 )  + 'px');
+	$("#aboutBox").css('left', ((width - $("#aboutBox").width() ) / 2 )  + 'px');
 	$("#options").css('left', ((width - $("#options").width() ) / 2 )  + 'px');
 	
 });
