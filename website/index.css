@@ -2,8 +2,10 @@ body{
 	background-image: url("images/snowboarder.jpg");
 	background-size:cover;
 	font-family: "Helvetica neue", "Helvetica", "sans-serif", "Arial";
-
-
+	min-height: 100vh;
+}
+html{
+	min-height: 100%
 }
 
 #navigationBar{
@@ -78,6 +80,8 @@ body{
 }
 
 
+
+
 /*_____________HOME PAGE_____________*/
 #homeBox{
 	background-color:white;
@@ -114,6 +118,8 @@ body{
 }
 
 
+
+
 /*________________ABOUT PAGE_______________*/
 #aboutBox{
 	background-color:white;
@@ -136,12 +142,17 @@ body{
 	padding-bottom: 40px;
 }
 
+
+
+
+
 /*________________TEAM PAGE_______________*/
 #team{
 	padding: 15px;
 	width: 20%;
 	display: inline-block;
 	margin: auto;
+	vertical-align: top;
 }
 
 #pic{
@@ -234,6 +245,7 @@ body{
 	top:80px;
 	width:85%;
 	margin-top: 20px;
+	margin-bottom: 100px;
 	padding: 20px;
 	border-radius:15px;
 	min-height: 300px;
@@ -255,15 +267,22 @@ body{
 
 
 
-/*_____________DOCUMENTS PAGE_____________*/
-#footer{
-	position:fixed;
+/*_____________FOOTER _____________*/
+#footer1{
+	position:absolute;
 	bottom:5px;
-	left :5px;
 	font-size:16px;
 	font-weight:lighter;
-
 	width:25%;
 	border-radius:15px;
 }
 
+#footer2{
+	position:relative;
+	bottom:5px;
+	left :5px;
+	font-size:16px;
+	font-weight:lighter;
+	width:25%;
+	border-radius:15px;
+}
