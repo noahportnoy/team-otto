@@ -9,5 +9,7 @@ Added various comments to make code more readable.
 Throttle output capped at 1300.
 
 
+NON-TESTED CODE.
+
 WILL FLY UPON TURNING SAFTEY OFF! USE CAUTION WHEN RUNNING THIS CODE.
 

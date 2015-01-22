@@ -399,7 +399,7 @@ void loop()
     temp = exponentialSmoother(last_alt, alt, smoothing_constant);
     
     //Verfiy that data is not bogus
-    if((abs(alt)-abs(last_alt)) > 100){
+    if(abs(alt-last_alt) > 100){
       alt=last_alt;
     }
     
