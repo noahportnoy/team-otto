@@ -5,6 +5,7 @@ import time
 from collections import deque
 
 def stopRecording():
+	out.release()
 	video_capture.release()
 	cv2.destroyWindow("Video")
 
@@ -15,8 +16,6 @@ def startRecording():
 	while True:
 		ret, frame = video_capture.read()   														# frame is single frame, ignore ret
 		frame = cv2.flip(frame, 1)
-		
-		# print ser.readline()
 
 		# img = cv2.GaussianBlur(frame, (5,5), 0)													# blur frame
 		img = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -89,16 +88,14 @@ def startRecording():
 					if(servoRotateDeg > 0):
 						# servoRotateString = '+' + str(servoRotateDeg);
 						servoRotateString = '-1'
-						ser.write(servoRotateString)
 					elif(servoRotateDeg < 0):
 						# servoRotateString = '-' + str(servoRotateDeg);
 						servoRotateString = '+1'
-						ser.write(servoRotateString)
 					else:
 						servoRotateString = '+0'
-						ser.write(servoRotateString)
 			 
 		cv2.imshow("Video", frame)
+		out.write(frame)
 		
 		frameCount = frameCount + 1
 		if(frameCount % 50 == 0):
@@ -107,15 +104,14 @@ def startRecording():
 			startTime = time.time()
 
 		if cv2.waitKey(1) & 0xFF == ord('q'):														# if q is pressed, quit
-			# ser.close()
 			stopRecording()
 			break
 
 video_capture = cv2.VideoCapture(0)
+out = cv2.VideoWriter('output.avi', cv2.cv.CV_FOURCC('M','J','P','G'), 7, (640, 480))
 scale_down = 4
 dilation_amount = 15
 
-ser = serial.Serial('/dev/ttyUSB0', 9600)
 x_queue = deque()
 y_queue = deque()
 
