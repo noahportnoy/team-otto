@@ -78,6 +78,8 @@ float originalOrientation = 0.0;
 float currentOrientation = 0.0;
 float alt = 0;
 float last_alt = 0;
+float climb_rate = 0;
+float last_climb_rate = 0;
 long rcthr = 1000;
 int heightLock = 0;
 Matrix3f dcm_matrix;
@@ -168,8 +170,11 @@ float getClimbRate(){
 //Exponential Moving Average  ->  http://en.wikipedia.org/wiki/Exponential_smoothing
 float exponentialSmoother(float previous_value, float current_value, float a){
     //a is a constant the smoothing factor
-    return (previous_value + a*current_value);
+    return (previous_value + a*(current_value-previous_value));
 }
+
+
+
 
 
 /*------------------------------------------------ SETUP ------------------------------------------------------*/
@@ -196,8 +201,8 @@ void setup()
   pids[PID_ROLL_STAB].kP(4.5);
   pids[PID_YAW_STAB].kP(10);
   
-  pids[ALT_RATE].kP(4.5);
-  pids[ALT_RATE].kI(0.0);
+  pids[ALT_RATE].kP(3.0);
+  pids[ALT_RATE].kI(0.05);
   pids[ALT_RATE].imax(50);
   
   pids[ALT_STAB].kP(1.0);
@@ -233,8 +238,8 @@ void setup()
   compass.set_declination(ToRad(0.0)); // set local difference between magnetic north and true north
 
   //Initialize Battery
-  battery_mon.init();
-  battery_mon.set_monitoring(AP_BATT_MONITOR_VOLTAGE_AND_CURRENT);
+  //battery_mon.init();
+  //battery_mon.set_monitoring(AP_BATT_MONITOR_VOLTAGE_AND_CURRENT);
 
   hal.console->print("Compass auto-detected as: ");
   switch( compass.product_id ) {
@@ -273,7 +278,7 @@ void loop()
   // Copy from channels array to something human readable - array entry 0 = input 1, etc.
   uint16_t channels[8];  // array for raw channel values
   hal.rcin->read(channels, 8);  
-  long rcyaw, rcpit, rcroll, safety, rcalt;  // Variables to store radio in
+  long rcyaw, rcpit, rcroll, safety, rcalt, last_rcthr;  // Variables to store radio in
   safety = channels[4];
   
   
@@ -301,15 +306,11 @@ void loop()
   rcalt = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_ALT_MIN, RC_ALT_MAX);
   rcyaw = map(channels[3], RC_YAW_MIN, RC_YAW_MAX, -180, 180);
   rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, -45, 45);
-  rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, -45, 45);
-  
-  hal.console->print("Desired Altitude : ");
-  hal.console->print(rcalt);
- 
+  rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, -45, 45); 
    
   // Ask MPU6050 for orientation
   ins.update();
-  float roll, pitch, yaw, temp, smoothing_constant, climbRate;  
+  float roll, pitch, yaw;  
   ins.quaternion.to_euler(&roll, &pitch, &yaw);
   
   /*---------------------------------ADD IN BATTERY CODE -------------------------------------------------------*/
@@ -389,36 +390,32 @@ void loop()
   pitch = ToDeg(pitch) ;
   yaw = ToDeg(yaw);
 
-  
+  //Altitude Holding
   if((hal.scheduler->micros() - interval) > 100000UL) {
-    smoothing_constant = 1.0;
     last_alt = alt;
     alt = getAltitude();
     
-    //Smooth raw data
-    temp = exponentialSmoother(last_alt, alt, smoothing_constant);
+    //Smooth raw data (last parameter is the smoothing constant)
+    alt = exponentialSmoother(last_alt, alt, 0.2);
     
-    //Verfiy that data is not bogus
+    //Verify that the altitude values are within scope
     if(abs(alt-last_alt) > 100){
       alt=last_alt;
     }
     
-    hal.console->print("alt, ");
-    hal.console->print(alt);
-    hal.console->print(", smooth_alt, ");
-    hal.console->print(temp);
+    //Get Climb Rate and smooth (last parameter is the smoothing constant)
+    last_climb_rate = climb_rate;
+    climb_rate = constrain(getClimbRate(), -15, 15);
+    climb_rate = exponentialSmoother(last_climb_rate, climb_rate, 0.2);
     
+    //Verify that the climb rate values are within scope
+    if(abs(climb_rate-last_climb_rate) > 100){
+      climb_rate=last_climb_rate;
+    }
     
-    
-    
-    alt = temp;
-    
-    //Verify that the altitude values are within scope
-    //if(abs(alt) 
-    climbRate = constrain(getClimbRate(), -15, 15);
+    //Scheduling
     interval = hal.scheduler->micros();  
   } 
-
 
   
   // Ask MPU6050 for gyro data
@@ -452,24 +449,33 @@ void loop()
 //    hal.scheduler->delay(1000);
 //    hal.console->println();
 
-    
+    //Feedback loop for altitude holding
     float alt_stab_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -50, 50);
-    float alt_output = constrain(pids[ALT_RATE].get_pid(alt_stab_output - climbRate, 1), -100, 100);
-       
-//    hal.console->print("RCALT: ");
-//    hal.console->print(rcalt);
-//    hal.console->print(" ALT: ");
-//    hal.console->print(alt); 
-    hal.console->print(", Climb Rate:, ");
-    hal.console->print(climbRate);  
-    hal.console->println();
+    float alt_output = constrain(pids[ALT_RATE].get_pid(alt_stab_output - climb_rate, 1), -100, 100);
+    
+    last_rcthr = rcthr; 
+    //Map the Throttle
+    rcthr = map(alt_output, -10, 10, 900, 1700);
+    rcthr = constrain(rcthr, 1100, 1700);
+    
+    rcthr = exponentialSmoother(last_rcthr, rcthr, .5);
+   
+    hal.console->print("Desired Alt, ");
+    hal.console->print(rcalt);
+    hal.console->print(", alt, ");
+    hal.console->print(alt);
+    hal.console->print(", Climb Rate, ");
+    hal.console->print(climb_rate);  
+    hal.console->print(", THR, ");
+    hal.console->println(rcthr/1000); 
+    
+    
+    
     
 //    hal.console->print(" STAB: ");
 //    hal.console->print(alt_stab_output);
 //    hal.console->print(" OUTPUT: ");
 //    hal.console->print(alt_output);
-
-
 
  /*   hal.console->print("Yaw: ");
     hal.console->print(yaw);
@@ -477,17 +483,12 @@ void loop()
     hal.console->print(yaw_stab_output);
     hal.console->print(" Yaw Output: ");
     hal.console->print(yaw_output);
-
-
-    hal.console->print(" THR: ");
-    hal.console->println(rcthr);  
    
    */ 
 //    hal.console->println();
 //    hal.scheduler->delay(50);
 
-    rcthr = map(alt_output, -10, 10, 900, 1400);
-    rcthr = constrain(rcthr, 1100, 1300);
+
     if(alt > 1.50)
       heightLock = 1;
     else 
