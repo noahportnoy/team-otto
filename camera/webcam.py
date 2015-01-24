@@ -1,12 +1,15 @@
 import cv2
+import io
 import numpy as np
+import picamera
+import picamera.array
 import serial
 import time
 from collections import deque
 
 def stopRecording():
-	out.release()
-	video_capture.release()
+	#out.release()
+	#video_capture.release()
 	cv2.destroyWindow("Video")
 
 def startRecording():
@@ -14,8 +17,18 @@ def startRecording():
 	startTime = time.time()
 	
 	while True:
-		ret, frame = video_capture.read()   														# frame is single frame, ignore ret
-		frame = cv2.flip(frame, 1)
+	
+		with picamera.PiCamera() as camera:
+			camera.resolution = (320, 240)
+			#camera.start_preview()
+			#time.sleep(2)
+			
+			with picamera.array.PiRGBArray(camera) as stream:
+				camera.capture(stream, format='bgr')
+				frame = stream.array
+		
+		#data = np.fromstring(stream.getvalue(), dtype=np.uint8)
+		#frame = cv2.imdecode(data, 1)
 
 		# img = cv2.GaussianBlur(frame, (5,5), 0)													# blur frame
 		img = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -95,7 +108,7 @@ def startRecording():
 						servoRotateString = '+0'
 			 
 		cv2.imshow("Video", frame)
-		out.write(frame)
+		#out.write(frame)
 		
 		frameCount = frameCount + 1
 		if(frameCount % 50 == 0):
@@ -107,8 +120,8 @@ def startRecording():
 			stopRecording()
 			break
 
-video_capture = cv2.VideoCapture(0)
-out = cv2.VideoWriter('output.avi', cv2.cv.CV_FOURCC('M','J','P','G'), 7, (640, 480))
+#video_capture = cv2.VideoCapture(0)
+#out = cv2.VideoWriter('output.avi', cv2.cv.CV_FOURCC('M','J','P','G'), 7, (640, 480))
 scale_down = 4
 dilation_amount = 15
 
