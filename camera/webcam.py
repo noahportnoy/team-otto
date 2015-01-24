@@ -20,11 +20,12 @@ def startRecording():
 	
 		with picamera.PiCamera() as camera:
 			camera.resolution = (320, 240)
+			#camera.framerate = 24
 			#camera.start_preview()
 			#time.sleep(2)
 			
 			with picamera.array.PiRGBArray(camera) as stream:
-				camera.capture(stream, format='bgr')
+				camera.capture(stream, format='bgr', use_video_port=True)
 				frame = stream.array
 		
 		#data = np.fromstring(stream.getvalue(), dtype=np.uint8)
