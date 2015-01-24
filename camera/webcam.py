@@ -15,21 +15,17 @@ def stopRecording():
 def startRecording():
 	frameCount = 0
 	startTime = time.time()
+
+	stream = io.BytesIO()
+	
+	with picamera.PiCamera() as camera:
+		camera.resolution = (320, 240)
+		camera.start_recording(stream, format="h264", quality=23)
 	
 	while True:
-	
-		with picamera.PiCamera() as camera:
-			camera.resolution = (320, 240)
-			#camera.framerate = 24
-			#camera.start_preview()
-			#time.sleep(2)
-			
-			with picamera.array.PiRGBArray(camera) as stream:
-				camera.capture(stream, format='bgr', use_video_port=True)
-				frame = stream.array
 		
-		#data = np.fromstring(stream.getvalue(), dtype=np.uint8)
-		#frame = cv2.imdecode(data, 1)
+		data = np.fromstring(stream.getvalue(), dtype=np.uint8)
+		frame = cv2.imdecode(data, 1)
 
 		# img = cv2.GaussianBlur(frame, (5,5), 0)													# blur frame
 		img = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
