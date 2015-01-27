@@ -12,29 +12,40 @@
 #include <AP_Param.h>
 #include <AP_HAL.h>
 #include <AP_HAL_AVR.h>
+#include <UARTDriver.h>
 #include <AP_HAL_Empty.h>
 #include <AP_HAL_PX4.h>
 #include <AP_GPS.h>
 #include <AP_Math.h>
 
-const AP_HAL::HAL& hal = AP_HAL_BOARD_DRIVER;
+const AP_HAL::HAL& hal = AP_HAL_AVR_APM2;
 
 void setup()
 {
-    
-    hal.uartC->begin(38400); //baudrate
+    //Initializes the UART C bus (begin(baudrate, rx buffer, tx buffer)
+    //See UARTDriver.h for more...
+    hal.uartC->begin(115200, 16, 16); 
     hal.console->println("UARTC (UART2) Test");
 }
-
+int a = 0;
 void loop()
 {
-    hal.uartC->println("hello");
+    hal.uartC->println(10);
     
-    //I think this is how you read:
-    //data = hal.uartBC>read();
+    //Check to see if there is something on the buffer to read
+    if (hal.uartC->available()) {
+      hal.console->println("avaliable");
+      //read data in buffer
+      hal.console->println(hal.uartC->read());
+      
+      //Counter
+      a++;
+      hal.console->println(a);
+    }
     
-    hal.scheduler->delay(20);
-    
+    //Write Hello to TX
+    hal.uartC->write("Hello");
+    hal.console->println("Sent hello");
     /*Details here: http://diydrones.com/forum/topics/how-to-get-data-from-ardupilot-through-serial-port*/
     
 }
