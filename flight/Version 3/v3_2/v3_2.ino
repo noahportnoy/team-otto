@@ -172,7 +172,7 @@ float exponentialSmoother(float previous_value, float current_value, float a){
     return (previous_value + a*current_value);
 }
 
-long rcthr = 1000;
+float rcthr = 1000;
 int heightLock = 0;
 
 void setup() 
@@ -184,11 +184,11 @@ void setup()
 
   // PID Configuration
   pids[PID_PITCH_RATE].kP(0.45);
-  pids[PID_PITCH_RATE].kI(0.0);
+  pids[PID_PITCH_RATE].kI(0.05);
   pids[PID_PITCH_RATE].imax(50);
   
   pids[PID_ROLL_RATE].kP(0.45);
-  pids[PID_ROLL_RATE].kI(0.0);
+  pids[PID_ROLL_RATE].kI(0.1);
   pids[PID_ROLL_RATE].imax(50);
   
   pids[PID_YAW_RATE].kP(0.7);
@@ -200,7 +200,7 @@ void setup()
   pids[PID_YAW_STAB].kP(10);
   
   pids[ALT_RATE].kP(0.45);
-  pids[ALT_RATE].kI(0.0);
+  pids[ALT_RATE].kI(0.05);
   pids[ALT_RATE].imax(50);
   
   pids[ALT_STAB].kP(1.0);
@@ -275,7 +275,7 @@ void loop()
   
   //Check off switch, kills motors otherwise
   float AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
-  while( (AVG_OFF_BUTTON_VALUE < 1.0) || (safety < 1500) || (heightLock == 1)){
+  while( (AVG_OFF_BUTTON_VALUE < 1.0) || (safety < 1500) ){//|| (heightLock == 1)){
     hal.rcout->write(MOTOR_FL, 1000);
     hal.rcout->write(MOTOR_BL, 1000);
     hal.rcout->write(MOTOR_FR, 1000);
@@ -312,10 +312,9 @@ void loop()
   pitch = ToDeg(pitch) ;
   yaw = calculateYaw();
   
-  
-  
+   
  
-  if((hal.scheduler->micros() - interval) > 330000UL) {
+  if((hal.scheduler->micros() - interval) > 500000UL) {
   
 	baro.read();
   
@@ -343,13 +342,13 @@ void loop()
 	
     interval = hal.scheduler->micros();
 	thr_lock = 1;
-	// hal.console->print("Alt: ");
-	// hal.console->println(alt);
-	// hal.console->print("Climb Rate: ");
-	// hal.console->println(climbRate);	
-	// hal.console->print("Samples: ");
-	// hal.console->println(baro.get_pressure_samples());
-	// hal.console->println("");
+	hal.console->print("Alt: ");
+	hal.console->println(alt);
+	hal.console->print("Climb Rate: ");
+	hal.console->println(climbRate);	
+	hal.console->print("Samples: ");
+	hal.console->println(baro.get_pressure_samples());
+	hal.console->println("");
   } 
 
   
@@ -375,8 +374,8 @@ void loop()
     long roll_output =  (long) constrain(pids[PID_ROLL_RATE].get_pid(roll_stab_output - gyroRoll, 1), -500, 500);  
     long yaw_output =  (long) constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);  
     
-    long alt_stab_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -50, 50);
-    float alt_output = (long) constrain(pids[ALT_RATE].get_pid(alt_stab_output - climbRate, 1), -10, 10);
+    float alt_stab_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -50, 50);
+    float alt_output = (float) constrain(pids[ALT_RATE].get_pid(alt_stab_output - climbRate, 1), -10, 10);
     
 	
 	//if( (hal.scheduler->micros() - thr_interval) > 67000UL){ 
@@ -384,15 +383,17 @@ void loop()
 		rcthr += alt_output;
 		rcthr = constrain(rcthr, THR_MIN, THR_MAX);		
 		thr_interval = hal.scheduler->micros();
-		hal.console->print("RCALT: ");
-		hal.console->println(rcalt);
-		hal.console->print("ALT: ");
-		hal.console->println(alt); 
-		 hal.console->print("Alt Output: ");
-		 hal.console->println(alt_output);
-		 hal.console->print("Thr: ");
-		 hal.console->println(rcthr);
-		 hal.console->println("");
+		// hal.console->print("RCALT: ");
+		// hal.console->println(rcalt);
+		// hal.console->print("ALT: ");
+		// hal.console->println(alt); 
+		// hal.console->print("Climb Rate: ");
+		// hal.console->println(climbRate);
+		// hal.console->print("Alt Output: ");
+		// hal.console->println(alt_output);
+		// hal.console->print("Thr: ");
+		// hal.console->println(rcthr);
+		// hal.console->println("");
 		thr_lock = 0;
 	}
 	
@@ -416,12 +417,12 @@ void loop()
 //    hal.console->print("BR: ");
 //    hal.console->println(rcthr - roll_output - pitch_output - yaw_output);    
 
-    
-    if(alt > 100)
+    /*
+    if(alt > 300)
       heightLock = 1;
     else 
       heightLock = 0;
-
+	*/
     
     // mix pid outputs and send to the motors.
     hal.rcout->write(MOTOR_FL, rcthr + roll_output + pitch_output - yaw_output);
