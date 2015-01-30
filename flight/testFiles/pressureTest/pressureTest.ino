@@ -55,7 +55,7 @@ void loop()
         hal.console->println();
     }
     
-    hal.scheduler->delay(2000);
+    //hal.scheduler->delay(2000);
     
 }
 

@@ -33,9 +33,9 @@ AP_InertialSensor_MPU6000 ins;
 #define RC_ROL_MIN   1104
 #define RC_ROL_MAX   1906
 #define RC_ALT_MIN   0
-#define RC_ALT_MAX   1
+#define RC_ALT_MAX   50
 #define THR_MIN 1100
-#define THR_MAX 1350
+#define THR_MAX 1800
 
 // Motor numbers definitions
 #define MOTOR_FL   2    // Front left    
@@ -80,6 +80,8 @@ float originalOrientation = 0.0;
 float currentOrientation = 0.0;
 float alt = 0;
 float last_alt = 0;
+float last_climb_rate = 0;
+int thr_lock = 0;
 
 float calculateYaw(){ 
     static float min[3], max[3], offset[3];
@@ -138,7 +140,7 @@ float calculateYaw(){
 AP_Baro_MS5611 baro(&AP_Baro_MS5611::spi);
 
 float getAltitude(){
-      baro.read();
+      //baro.read();
       if (!baro.healthy) {
           hal.console->println("not healthy");
           return 0.0;
@@ -150,11 +152,11 @@ float getAltitude(){
       if(a < 0)
         return 0;
       else
-        return a;
+        return a*100;
 }  
 
 float getClimbRate(){
-      baro.read();
+      //baro.read();
       if (!baro.healthy) {
           hal.console->println("not healthy");
           return 0.0;
@@ -162,7 +164,7 @@ float getClimbRate(){
      // hal.console->print(" Climb Rate:");
      // hal.console->println(baro.get_climb_rate());
 	 
-      return baro.get_climb_rate();
+      return baro.get_climb_rate()*100;
 }
 
 float exponentialSmoother(float previous_value, float current_value, float a){
@@ -286,13 +288,13 @@ void loop()
     //hal.console->println("SAFE");
     //hal.scheduler->delay(1000);
 
-    if( getAltitude() < 1.5)
+    if( getAltitude() < 100)
       heightLock = 0;
   }     
   
-  rcalt = 1;
+  //rcalt = 10;
   thrmax = map(channels[2], RC_THR_MIN, RC_THR_MAX, THR_MIN, THR_MAX);
-  //rcalt = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_ALT_MIN, RC_ALT_MAX);
+  rcalt = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_ALT_MIN, RC_ALT_MAX);
   rcyaw = map(channels[3], RC_YAW_MIN, RC_YAW_MAX, -180, 180);
   rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, -45, 45);
   rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, -45, 45);
@@ -303,45 +305,53 @@ void loop()
   
   // Ask MPU6050 for orientation
   ins.update();
-  float roll, pitch, yaw, alt, climbRate, smoothing_constant, temp;  
+  float roll, pitch, yaw, alt, climbRate;
+  float alt_smoothing_constant, climb_rate_smoothing_constant, alt_temp, climb_rate_temp;  
   ins.quaternion.to_euler(&roll, &pitch, &yaw);
   roll = ToDeg(roll) ;
   pitch = ToDeg(pitch) ;
   yaw = calculateYaw();
   
   
-  alt = getAltitude();
-  climbRate = getClimbRate();
   
-  /*
-  if((hal.scheduler->micros() - interval) > 100000UL) {
-    smoothing_constant = 1.0;
+ 
+  if((hal.scheduler->micros() - interval) > 330000UL) {
+  
+	baro.read();
+  
+    alt_smoothing_constant = 1.0;
+	climb_rate_smoothing_constant = 1.0;
+	
     last_alt = alt;
+	last_climb_rate = climbRate;
+	
     alt = getAltitude();
-    
-    //Smooth raw data
-    temp = exponentialSmoother(last_alt, alt, smoothing_constant);
-    
-    //Verfiy that data is not bogus
-    if(abs(alt-last_alt) > 100){
-      alt=last_alt;
-    }
-    
-    alt = temp;
-    
-    //Verify that the altitude values are within scope
-    //if(abs(alt) 
-    climbRate = constrain(getClimbRate(), -15, 15);
-    interval = hal.scheduler->micros();  
+	climbRate = getClimbRate();
+  
+	alt_temp = exponentialSmoother(last_alt, alt, alt_smoothing_constant);
+	climb_rate_temp = exponentialSmoother(last_climb_rate, climbRate, climb_rate_smoothing_constant);
+  
+	if(abs(alt-last_alt) > 100 )
+		alt=last_alt;       
+    alt = alt_temp;	
+	
+	if( abs(climbRate - last_climb_rate) > 15 )
+		climbRate = last_climb_rate;
+	climbRate = climb_rate_temp;
+		
+	climbRate = constrain(getClimbRate(), -15, 15);
+	
+    interval = hal.scheduler->micros();
+	thr_lock = 1;
+	// hal.console->print("Alt: ");
+	// hal.console->println(alt);
+	// hal.console->print("Climb Rate: ");
+	// hal.console->println(climbRate);	
+	// hal.console->print("Samples: ");
+	// hal.console->println(baro.get_pressure_samples());
+	// hal.console->println("");
   } 
-  */
-    
-//  hal.console->print("Alt: ");
-//  hal.console->println(alt);
-//  hal.console->print("Climb Rate: ");
-//  hal.console->println(climbRate);
-//  hal.console->println("");
-//  hal.scheduler->delay(20);
+
   
   // Ask MPU6050 for gyro data
   Vector3f gyro = ins.get_gyro();
@@ -365,14 +375,25 @@ void loop()
     long roll_output =  (long) constrain(pids[PID_ROLL_RATE].get_pid(roll_stab_output - gyroRoll, 1), -500, 500);  
     long yaw_output =  (long) constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);  
     
-    long alt_stab_output = constrain(pids[ALT_STAB].get_pid((float)rcalt*100 - alt*100, 1), -50, 50);
-    long alt_output = (long) constrain(pids[ALT_RATE].get_pid(alt_stab_output - climbRate*100, 1), -10, 10);
+    long alt_stab_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -50, 50);
+    long alt_output = (long) constrain(pids[ALT_RATE].get_pid(alt_stab_output - climbRate, 1), -10, 10);
     
 	
-	if( (hal.scheduler->micros() - thr_interval) > 67000UL){ 
+	//if( (hal.scheduler->micros() - thr_interval) > 67000UL){ 
+	if( thr_lock == 1 ){	
 		rcthr += alt_output;
-		rcthr = constrain(rcthr, THR_MIN, thrmax);		
+		rcthr = constrain(rcthr, THR_MIN, THR_MAX);		
 		thr_interval = hal.scheduler->micros();
+		hal.console->print("RCALT: ");
+		hal.console->println(rcalt);
+		hal.console->print("ALT: ");
+		hal.console->println(alt); 
+		 hal.console->print("Alt Output: ");
+		 hal.console->println(alt_output);
+		 hal.console->print("Thr: ");
+		 hal.console->println(rcthr);
+		 hal.console->println("");
+		thr_lock = 0;
 	}
 	
     // rcthr = constrain(map(alt_output, -100, 100, THR_MIN, THR_MAX), THR_MIN, thrmax);
@@ -395,13 +416,8 @@ void loop()
 //    hal.console->print("BR: ");
 //    hal.console->println(rcthr - roll_output - pitch_output - yaw_output);    
 
-//    hal.console->print("THR: ");
-//    hal.console->println(rcthr);   
-//    hal.console->println();
-//     hal.scheduler->delay(50);   
-
     
-    if(alt > 1.5)
+    if(alt > 100)
       heightLock = 1;
     else 
       heightLock = 0;
