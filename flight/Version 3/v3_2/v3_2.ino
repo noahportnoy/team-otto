@@ -376,7 +376,7 @@ void loop()
     long yaw_output =  (long) constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);  
     
     long alt_stab_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -50, 50);
-    long alt_output = (long) constrain(pids[ALT_RATE].get_pid(alt_stab_output - climbRate, 1), -10, 10);
+    float alt_output = (long) constrain(pids[ALT_RATE].get_pid(alt_stab_output - climbRate, 1), -10, 10);
     
 	
 	//if( (hal.scheduler->micros() - thr_interval) > 67000UL){ 
