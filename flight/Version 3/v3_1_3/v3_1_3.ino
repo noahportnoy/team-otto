@@ -221,12 +221,12 @@ void setup()
   pids[PID_ROLL_STAB].kP(4.5);
   pids[PID_YAW_STAB].kP(10);
   
-  pids[ALT_RATE].kP(0.0);
+  pids[ALT_RATE].kP(0.2);
   pids[ALT_RATE].kI(0.0);
   pids[ALT_RATE].imax(50);
   
-  pids[ALT_STAB].kP(2.5);
-  pids[ALT_STAB].kI(0.1);
+  pids[ALT_STAB].kP(2.0);
+  pids[ALT_STAB].kI(0.2);
   pids[ALT_STAB].imax(50);
   
   hal.console->println("Barometer Init");
@@ -360,9 +360,12 @@ void loop()
         hal.console->print(gps.time, DEC);
         hal.console->println();
         gps.new_data = 0; // We have readed the data
+        
     }
         
     hal.console->println(getAltitude());
+    for(int i=0; i<8; i++)
+      pids[i].reset_I();
     
   }     
   
