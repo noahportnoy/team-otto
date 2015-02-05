@@ -51,6 +51,9 @@ AP_GPS_Auto GPS(&gps);
 #define RC_ALT_MIN   0
 #define RC_ALT_MAX   1
 
+#define MAX_TAKEOFF_THR 1270
+#define MIN_TAKEOFF_THR 1250
+
 // Motor numbers definitions
 #define MOTOR_FL   2    // Front left    
 #define MOTOR_FR   0    // Front right
@@ -355,12 +358,12 @@ void loop()
     //GET GPS STATS
     gps->update();
     if (gps->new_data) {
-      hal.console->print("Lat, ");
-      hal.console->print(gps->latitude/10000000.0);
-      hal.console->print(", Lon, ");
-      hal.console->print(gps->longitude/10000000.0);
-      hal.console->print(", g_speed, ");
-      hal.console->println(gps->ground_speed/100.0);
+      // hal.console->print("Lat, ");
+      // hal.console->print(gps->latitude/10000000.0);
+      // hal.console->print(", Lon, ");
+      // hal.console->print(gps->longitude/10000000.0);
+      // hal.console->print(", g_speed, ");
+      // hal.console->println(gps->ground_speed/100.0);
       // hal.console->printf(" Alt: %.2fm GSP: %.2fm/s CoG: %d SAT: %d TIM: %lu STATUS: %u\n",
       //               (float)gps->altitude / 100.0,
       //               (float)gps->ground_speed / 100.0,
@@ -531,11 +534,13 @@ void loop()
     //MIDDLE = greater than 1500
     //BOTTOM = greater than 1900
 
+	//hal.scheduler->delay(100);
+	
     // Otto off: switch is in TOP position
-    if (channels[5] < 1200) {
+    if (channels[5] > 1700) {
       	switchStatus = OFF;
     
-        hal.console->print("Switch status: OFF");
+       //hal.console->println("Switch status: OFF");
     }
 
     // Autonomous flight: switch is in MIDDLE position
@@ -568,10 +573,12 @@ void loop()
 			pids[ALT_STAB].kP(10.0);
 			pids[ALT_STAB].kI(0.0);
 			pids[ALT_STAB].imax(50);
+			flightStatus = TAKEOFF;
 		}
 
-                hal.console->print("Switch status: AUTONOMOUS");
+        //hal.console->println("Switch status: AUTONOMOUS");
 		switchStatus = AUTONOMOUS;
+
 
 	// Manual control: switch is in BOTTOM position
     } else {
@@ -583,7 +590,7 @@ void loop()
 			pids[ALT_STAB].reset_I();
 
 			// Set PIDs for manual control
-          	    	pids[PID_PITCH_RATE].kP(0.45);
+          	pids[PID_PITCH_RATE].kP(0.45);
 			pids[PID_PITCH_RATE].kI(0.1);
 			pids[PID_PITCH_RATE].imax(50);
 
@@ -608,24 +615,28 @@ void loop()
 			pids[ALT_STAB].imax(50);
     	}
 
-        hal.console->print("Switch status: MANUAL");
-	switchStatus = MANUAL;
+        //hal.console->println("Switch status: MANUAL");
+		switchStatus = MANUAL;
     }
     
     if (switchStatus == AUTONOMOUS) {
       if (flightStatus == TAKEOFF) {
-  
+		
+		//hal.console->println("TAKEOFF");
+		
       	if(alt < (rcalt/2)) {
+			//hal.console->println("1");
       		//Otto is below rcalt/2
-      		rcthr = 1400;
+      		rcthr = MAX_TAKEOFF_THR;
   
       	} else if (alt < rcalt) {
+			//hal.console->println("2");
       		//Otto is between rcalt/2 and rcalt
-      		rcthr = map(alt, rcalt/2, rcalt, 1400, 1200);
+      		rcthr = map(alt, rcalt/2, rcalt, MAX_TAKEOFF_THR, MIN_TAKEOFF_THR);
   
       	} else {
       		//Otto is above rcalt
-  
+			//hal.console->println("3");
       		// reset PID integrals for altitude hold
   		    for(int i=0; i<8; i++)
   		      pids[i].reset_I();
@@ -659,7 +670,8 @@ void loop()
   		}
   
       } else if (flightStatus == HOLD) {
-      	// Autonomous altitude hold
+      	//hal.console->println("HOLD");
+		// Autonomous altitude hold
 	    
 	    //Map the Throttle
 	    rcthr = HOVER_THR + alt_output;
@@ -678,18 +690,18 @@ void loop()
     }
    
     
-    hal.console->print("Desired Alt, ");
-    hal.console->print(rcalt);
-    hal.console->print(", alt, ");
-    hal.console->print(alt);
+    // hal.console->print("Desired Alt, ");
+    // hal.console->print(rcalt);
+    // hal.console->print(", alt, ");
+    // hal.console->print(alt);
     //hal.console->print(", Desired_climb_Rate, ");
     //hal.console->print(alt_stab_output);
-    hal.console->print(", Climb Rate, ");
-    hal.console->print(climb_rate); 
-    hal.console->print(", alt_output, ");
-    hal.console->print(alt_output); 
-    hal.console->print(", THR, ");
-    hal.console->println(rcthr); 
+    // hal.console->print(", Climb Rate, ");
+    // hal.console->print(climb_rate); 
+    // hal.console->print(", alt_output, ");
+    // hal.console->print(alt_output); 
+    // hal.console->print(", THR, ");
+    // hal.console->println(rcthr); 
     
 
     
