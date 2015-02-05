@@ -18,3 +18,10 @@ TODO:
 
 WILL FLY UPON TURNING OFF SAFTEY AND SWITCHING F.MODE INTO THE UPMOST POSITION! USE CAUTION WHEN RUNNING THIS CODE.
 
+
+
+#####################################
+February 5, 2015
+
+Tests in office promising for autonomous takeoff. Tests in boyden needed to confirm.
+#####################################
