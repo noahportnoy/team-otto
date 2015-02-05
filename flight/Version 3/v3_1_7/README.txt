@@ -1,11 +1,15 @@
-﻿WILL FLY UPON TURNING OFF SAFTEY AND SWITCHING F.MODE INTO THE MIDDLE POSITION!
-USE CAUTION WHEN RUNNING THIS CODE.
+﻿MAJOR CODE REORG, NEEDS TESTING
+DO NOT FLY
 
 ------------------------------------------
 
 February 5, 2015
 
-Branched from 3_1_5
+Branched from 3_1_6
+Major code reorg
+------------------------------------------
+
+February 5, 2015
 
 Tests in office promising for autonomous takeoff. Tests in boyden needed to confirm.
 ------------------------------------------
