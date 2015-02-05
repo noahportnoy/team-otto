@@ -19,7 +19,7 @@
 #include <AP_Buffer.h>
 #include <Filter.h>
 #include <AP_Baro.h>  //altitude
-#include <AP_BattMonitor.h>  //battery Monitor
+//#include <AP_BattMonitor.h>  //battery Monitor
 #include <AP_GPS.h>
 
 // ArduPilot Hardware Abstraction Layer
@@ -29,7 +29,7 @@ const AP_HAL::HAL& hal = AP_HAL_AVR_APM2;
 AP_InertialSensor_MPU6000 ins;
 
 //Batery Monitor
-AP_BattMonitor battery_mon;
+//AP_BattMonitor battery_mon;
 
 //Gps Device
 GPS         *gps;
@@ -81,11 +81,15 @@ PID pids[8];
 #define ALT_STAB 6
 #define ALT_RATE 7
 
+// switchStatus
 #define OFF 0
-#define TAKEOFF 1
-#define HOLD 2
-#define LAND 3
-#define MANUAL 4
+#define AUTONOMOUS 1
+#define MANUAL 2
+
+// flightStatus
+#define TAKEOFF 3
+#define HOLD 4
+#define LAND 5
 
 //Hover throttle
 #define HOVER_THR 1290
@@ -103,6 +107,7 @@ float climb_rate = 0;
 float last_climb_rate = 0;
 long rcthr = 1000;
 int heightLock = 0;
+int switchStatus = 0;
 int flightStatus = 0;
 Matrix3f dcm_matrix;
 
@@ -302,9 +307,9 @@ void setup()
   gps->init(hal.uartB, GPS::GPS_ENGINE_AIRBORNE_2G);       // GPS Initialization
   
   //Initialize the battery monitor
-  battery_mon.init();
-  battery_mon.set_monitoring(AP_BATT_MONITOR_VOLTAGE_AND_CURRENT);
-  hal.console->println("Battery monitor initialized");
+//  battery_mon.init();
+//  battery_mon.set_monitoring(AP_BATT_MONITOR_VOLTAGE_AND_CURRENT);
+//  hal.console->println("Battery monitor initialized");
 }
 
 
@@ -341,7 +346,7 @@ void loop()
     
     //GET BATTERY STATS
     // update voltage and current readings
-    battery_mon.read();
+    //battery_mon.read();
     //hal.console->printf("\nVoltage: %.2f \tCurrent: %.2f \tTotCurr:%.2f  ",
     //		    battery_mon.voltage(), //voltage
     //		    battery_mon.current_amps(), //Inst current
@@ -482,7 +487,7 @@ void loop()
     
     //GET BATTERY STATS at the same frequency of the Altitude check
     // update voltage and current readings
-    battery_mon.read();
+    //battery_mon.read();
     
     
     /*hal.console->printf("\nVoltage: %.2f \tCurrent: %.2f \tTotCurr:%.2f",
@@ -528,14 +533,16 @@ void loop()
 
     // Otto off: switch is in TOP position
     if (channels[5] < 1200) {
-    	flightStatus = OFF;
+      	switchStatus = OFF;
+    
+        hal.console->print("Switch status: OFF");
     }
 
     // Autonomous flight: switch is in MIDDLE position
     else if ((1200 < channels[5]) && (channels[5] < 1700)) {
 
-    	// If switching from OFF to TAKEOFF, change PIDs
-    	if (flightStatus == OFF) {
+    	// If switching from OFF to AUTONOMOUS, change PIDs
+    	if (switchStatus == OFF) {
 
 	    	// PID Configuration for takeoff
 			pids[PID_PITCH_RATE].kP(0.45);
@@ -563,19 +570,20 @@ void loop()
 			pids[ALT_STAB].imax(50);
 		}
 
-		flightStatus = TAKEOFF;
+                hal.console->print("Switch status: AUTONOMOUS");
+		switchStatus = AUTONOMOUS;
 
 	// Manual control: switch is in BOTTOM position
     } else {
 
     	// If going from autonomous to manual control, reset PIDs
-    	if (flightStatus == TAKEOFF || flightStatus == HOLD || flightStatus == LAND || flightStatus == OFF) {
+    	if (switchStatus == AUTONOMOUS || switchStatus == OFF) {
     		// reset i
 			// reset PID integrals while in manual mode
 			pids[ALT_STAB].reset_I();
 
 			// Set PIDs for manual control
-	    	pids[PID_PITCH_RATE].kP(0.45);
+          	    	pids[PID_PITCH_RATE].kP(0.45);
 			pids[PID_PITCH_RATE].kI(0.1);
 			pids[PID_PITCH_RATE].imax(50);
 
@@ -600,68 +608,69 @@ void loop()
 			pids[ALT_STAB].imax(50);
     	}
 
-		flightStatus = MANUAL;
+        hal.console->print("Switch status: MANUAL");
+	switchStatus = MANUAL;
     }
-
-    if (flightStatus == OFF) {
-    	rcthr = 1000;
-
-    } else if (flightStatus == TAKEOFF) {
-
-    	if(alt < (rcalt/2)) {
-    		//Otto is below rcalt/2
-    		rcthr = 1400;
-
-    	} else if (alt < rcalt) {
-    		//Otto is between rcalt/2 and rcalt
-    		rcthr = map(alt, rcalt/2, rcalt, 1400, 1200);
-
-    	} else {
-    		//Otto is above rcalt
-
-    		// reset PID integrals for altitude hold
-		    for(int i=0; i<8; i++)
-		      pids[i].reset_I();
-
-		  	// Set PIDs to default for altitude hold
-			pids[PID_PITCH_RATE].kP(0.45);
-			pids[PID_PITCH_RATE].kI(0.1);
-			pids[PID_PITCH_RATE].imax(50);
-
-			pids[PID_ROLL_RATE].kP(0.45);
-			pids[PID_ROLL_RATE].kI(0.1);
-			pids[PID_ROLL_RATE].imax(50);
-
-			pids[PID_YAW_RATE].kP(0.7);
-			pids[PID_YAW_RATE].kI(0.1);
-			pids[PID_YAW_RATE].imax(50);
-
-			pids[PID_PITCH_STAB].kP(4.5);
-			pids[PID_ROLL_STAB].kP(4.5);
-			pids[PID_YAW_STAB].kP(10);
-
-			pids[ALT_RATE].kP(0.1);
-			pids[ALT_RATE].kI(0.0);
-			pids[ALT_RATE].imax(50);
-
-			pids[ALT_STAB].kP(10.0);
-			pids[ALT_STAB].kI(0.0);
-			pids[ALT_STAB].imax(50);
-
-			flightStatus = HOLD;
-		}
-
-    } else if (flightStatus == HOLD) {
+    
+    if (switchStatus == AUTONOMOUS) {
+      if (flightStatus == TAKEOFF) {
+  
+      	if(alt < (rcalt/2)) {
+      		//Otto is below rcalt/2
+      		rcthr = 1400;
+  
+      	} else if (alt < rcalt) {
+      		//Otto is between rcalt/2 and rcalt
+      		rcthr = map(alt, rcalt/2, rcalt, 1400, 1200);
+  
+      	} else {
+      		//Otto is above rcalt
+  
+      		// reset PID integrals for altitude hold
+  		    for(int i=0; i<8; i++)
+  		      pids[i].reset_I();
+  
+  		  	// Set PIDs to default for altitude hold
+  			pids[PID_PITCH_RATE].kP(0.45);
+  			pids[PID_PITCH_RATE].kI(0.1);
+  			pids[PID_PITCH_RATE].imax(50);
+  
+  			pids[PID_ROLL_RATE].kP(0.45);
+  			pids[PID_ROLL_RATE].kI(0.1);
+  			pids[PID_ROLL_RATE].imax(50);
+  
+  			pids[PID_YAW_RATE].kP(0.7);
+  			pids[PID_YAW_RATE].kI(0.1);
+  			pids[PID_YAW_RATE].imax(50);
+  
+  			pids[PID_PITCH_STAB].kP(4.5);
+  			pids[PID_ROLL_STAB].kP(4.5);
+  			pids[PID_YAW_STAB].kP(10);
+  
+  			pids[ALT_RATE].kP(0.1);
+  			pids[ALT_RATE].kI(0.0);
+  			pids[ALT_RATE].imax(50);
+  
+  			pids[ALT_STAB].kP(10.0);
+  			pids[ALT_STAB].kI(0.0);
+  			pids[ALT_STAB].imax(50);
+  
+  			flightStatus = HOLD;
+  		}
+  
+      } else if (flightStatus == HOLD) {
       	// Autonomous altitude hold
 	    
 	    //Map the Throttle
 	    rcthr = HOVER_THR + alt_output;
 	    rcthr = constrain(rcthr, 1200, 1400);
 
-	} else if (flightStatus == MANUAL) {
-
-		rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MIN, 1500);
-	}
+      }
+    } else if (switchStatus == MANUAL) {
+        rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MIN, 1500);
+    } else if (switchStatus == OFF) {
+      rcthr = 1000;
+    }
   
     //hal.uartC->println(10);
     if (hal.uartC->available()) {
