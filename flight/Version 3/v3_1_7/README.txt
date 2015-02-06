@@ -1,4 +1,7 @@
-﻿NEEDS FURTHER TESTING
+﻿Version 3_1_7
+
+
+WARNING: AUTONOMOUS TAKEOFF NEEDS FURTHER TESTING
 
 Right switch controls:
 	DOWN   	: drone off
@@ -15,8 +18,8 @@ February 5, 2015
 
 Tests in office promising for autonomous takeoff. Tests in boyden needed to confirm.
 
-Determined behavioral parity with v3_1_6 by means of thorough testing
-Major code reorg
+Established behavioral parity with v3_1_6 by means of thorough testing
+Major code reorganization
 Branched from 3_1_6
 ------------------------------------------
 
