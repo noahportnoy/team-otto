@@ -55,6 +55,9 @@ AP_Baro_MS5611 baro(&AP_Baro_MS5611::spi);
 #define MAX_TAKEOFF_THR 1270
 #define MIN_TAKEOFF_THR 1250
 
+//Hover throttle
+#define HOVER_THR 1290
+
 // Motor numbers definitions
 #define MOTOR_FL   2    // Front left    
 #define MOTOR_FR   0    // Front right
@@ -69,8 +72,6 @@ AP_HAL::AnalogSource* OFF_BUTTON_VALUE;
 #else
 	AP_Compass_HMC5843 compass;
 #endif
-uint32_t timer;
-uint32_t interval;
 
 #define wrap_180(x) (x < -180 ? x+360 : (x > 180 ? x - 360: x))
 
@@ -99,13 +100,12 @@ PID pids[8];
 #define DEFAULT 0
 #define CUSTOM 1
 
-//Hover throttle
-#define HOVER_THR 1290
-
 
 
 
 /*------------------------------------------------ DECLARE GLOBAL VARIABLES ------------------------------------------------------*/
+uint32_t timer;
+uint32_t interval;
 int startup = 0;
 float originalOrientation = 0.0;
 float currentOrientation = 0.0;
@@ -126,15 +126,9 @@ void setup() {
 	setPidConstants(DEFAULT);
 	setupBarometer();
 	setupMPU();
-	
-	OFF_BUTTON_VALUE = hal.analogin->channel(OFF_BUTTON);
-	
+	setupOffButton();
 	setupCompass();
-
-	hal.scheduler->delay(1000);
-	timer = hal.scheduler->micros();
-	interval = timer;
-	
+	setupTiming();
 	setupRpi();
 	setupGPS();
 	setupBatteryMonitor();
@@ -165,7 +159,7 @@ void loop() {
 		AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
 		
 		hal.rcin->read(channels, 8);
-    	safety = channels[4];
+		safety = channels[4];
 	}
 	
 	rcalt = 1.0; //Hard code in RCALT
@@ -279,11 +273,61 @@ void loop() {
 }
 
 // Arduino map function
-float map(float x, float in_min, float in_max, float out_min, float out_max){
+float map(float x, float in_min, float in_max, float out_min, float out_max) {
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-float calculateYaw(){ 
+//Exponential Moving Average  ->  http://en.wikipedia.org/wiki/Exponential_smoothing
+float exponentialSmoother(float previous_value, float current_value, float a) {
+	//a is a constant the smoothing factor
+	return (previous_value + a*(current_value-previous_value));
+}
+
+//Moving Average Filter
+float movingAvg(float previous, float current, float a){
+	//a is a constant smoothing factor. Large a means a lot of weight is put on the previous value
+	//a must be between 0 and 1
+	if(abs(a) > 0) {
+		hal.console->println("Error: a must be between 0 and 1");
+		a = 0;
+	}
+
+	return (previous*a + (1-a)*current);
+}
+
+void setPidConstants(int config) {
+	if (config == DEFAULT) {
+		pids[PID_PITCH_RATE].kP(0.45);
+		pids[PID_PITCH_RATE].kI(0.1);
+		pids[PID_PITCH_RATE].imax(50);
+		
+		pids[PID_ROLL_RATE].kP(0.45);
+		pids[PID_ROLL_RATE].kI(0.1);
+		pids[PID_ROLL_RATE].imax(50);
+		
+		pids[PID_YAW_RATE].kP(0.7);
+		pids[PID_YAW_RATE].kI(0.1);
+		pids[PID_YAW_RATE].imax(50);
+		
+		pids[PID_PITCH_STAB].kP(4.5);
+		pids[PID_ROLL_STAB].kP(4.5);
+		pids[PID_YAW_STAB].kP(10);
+		
+		pids[ALT_RATE].kP(0.1);
+		pids[ALT_RATE].kI(0.0);
+		pids[ALT_RATE].imax(50);
+		
+		pids[ALT_STAB].kP(10.0);
+		pids[ALT_STAB].kI(0.0);
+		pids[ALT_STAB].imax(50);
+	} else {
+		hal.console->print("Error: PID constants not set for provided configuration");
+		hal.console->println(config);
+		while(1);
+	}
+}
+
+float calculateYaw() { 
 	static float min[3], max[3], offset[3];
 	float heading;
 	compass.accumulate();
@@ -291,7 +335,6 @@ float calculateYaw(){
 	{
 		timer = hal.scheduler->micros();
 		compass.read();
-		unsigned long read_time = hal.scheduler->micros() - timer;
 		
 		if (!compass.healthy) {
 			hal.console->println("not healthy");
@@ -335,11 +378,11 @@ float calculateYaw(){
 		startup = 2;
 	}
 	if(startup == 0)
-	 	startup = 1;
- 	return wrap_180( currentOrientation - originalOrientation );   
+		startup = 1;
+	return wrap_180( currentOrientation - originalOrientation );   
 }
 
-float getAltitude(){
+float getAltitude() {
 	baro.read();
 	if (!baro.healthy) {
 		hal.console->println("not healthy");
@@ -415,53 +458,37 @@ void getGyro(float &gyroPitch, float &gyroRoll, float &gyroYaw) {
 	gyroYaw = ToDeg(gyro.z);
 }
 
-//Exponential Moving Average  ->  http://en.wikipedia.org/wiki/Exponential_smoothing
-float exponentialSmoother(float previous_value, float current_value, float a){
-	//a is a constant the smoothing factor
-	return (previous_value + a*(current_value-previous_value));
-}
+void getSwitchPosition(uint16_t channels[]) {
+	//F.Mode is channels[5]
+	//TOP = greater than 1100
+	//MIDDLE = greater than 1500
+	//BOTTOM = greater than 1900
 
-//Moving Average Filter
-float movingAvg(float previous, float current, float a){
-	//a is a constant smoothing factor. Large a means a lot of weight is put on the previous value
-	//a must be between 0 and 1
-	if(abs(a) > 0) {
-		hal.console->println("Error: a must be between 0 and 1");
-		a = 0;
-	}
+	if (channels[5] > 1700) {										// Otto off: switch is in BOTTOM position
+		switchStatus = OFF;
 
-	return (previous*a + (1-a)*current);
-}
+	} else if ((1200 < channels[5]) && (channels[5] < 1700)) {		// Autonomous flight: switch is in MIDDLE position
 
-void setPidConstants(int config) {
-	if (config == DEFAULT) {
-		pids[PID_PITCH_RATE].kP(0.45);
-		pids[PID_PITCH_RATE].kI(0.1);
-		pids[PID_PITCH_RATE].imax(50);
-		
-		pids[PID_ROLL_RATE].kP(0.45);
-		pids[PID_ROLL_RATE].kI(0.1);
-		pids[PID_ROLL_RATE].imax(50);
-		
-		pids[PID_YAW_RATE].kP(0.7);
-		pids[PID_YAW_RATE].kI(0.1);
-		pids[PID_YAW_RATE].imax(50);
-		
-		pids[PID_PITCH_STAB].kP(4.5);
-		pids[PID_ROLL_STAB].kP(4.5);
-		pids[PID_YAW_STAB].kP(10);
-		
-		pids[ALT_RATE].kP(0.1);
-		pids[ALT_RATE].kI(0.0);
-		pids[ALT_RATE].imax(50);
-		
-		pids[ALT_STAB].kP(10.0);
-		pids[ALT_STAB].kI(0.0);
-		pids[ALT_STAB].imax(50);
-	} else {
-		hal.console->print("Error: PID constants not set for provided configuration ");
-		hal.console->println(config);
-		while(1);
+		if (switchStatus == OFF || switchStatus == MANUAL) {		// If switching to AUTONOMOUS, reset PIDs and set flightStatus to TAKEOFF
+			pids[ALT_STAB].reset_I();								// reset i; reset PID integrals while in manual mode
+			setPidConstants(DEFAULT);								// PID Configuration for takeoff
+			flightStatus = TAKEOFF;
+		}
+
+		if (flightStatus == OFF) {									// If safety was just turned off
+			flightStatus = TAKEOFF;
+		}
+
+		switchStatus = AUTONOMOUS;
+
+	} else {														// Manual control: switch is in BOTTOM position
+
+		if (switchStatus == AUTONOMOUS || switchStatus == OFF) {	// If switching to manual control, reset PIDs
+			pids[ALT_STAB].reset_I();								// reset i; reset PID integrals while in manual mode
+			setPidConstants(DEFAULT);								// Set PIDs for manual control
+		}
+
+		switchStatus = MANUAL;
 	}
 }
 
@@ -536,71 +563,6 @@ long autonomousHold(float alt_output) {
 	return rcthr;
 }
 
-void getSwitchPosition(uint16_t channels[]) {
-	//F.Mode is channels[5]
-	//TOP = greater than 1100
-	//MIDDLE = greater than 1500
-	//BOTTOM = greater than 1900
-
-	if (channels[5] > 1700) {										// Otto off: switch is in BOTTOM position
-		switchStatus = OFF;
-
-	} else if ((1200 < channels[5]) && (channels[5] < 1700)) {		// Autonomous flight: switch is in MIDDLE position
-
-		if (switchStatus == OFF || switchStatus == MANUAL) {		// If switching to AUTONOMOUS, reset PIDs and set flightStatus to TAKEOFF
-			pids[ALT_STAB].reset_I();								// reset i; reset PID integrals while in manual mode
-			setPidConstants(DEFAULT);								// PID Configuration for takeoff
-			flightStatus = TAKEOFF;
-		}
-
-		if (flightStatus == OFF) {									// If safety was just turned off
-			flightStatus = TAKEOFF;
-		}
-
-		switchStatus = AUTONOMOUS;
-
-	} else {														// Manual control: switch is in BOTTOM position
-
-		if (switchStatus == AUTONOMOUS || switchStatus == OFF) {	// If switching to manual control, reset PIDs
-			pids[ALT_STAB].reset_I();								// reset i; reset PID integrals while in manual mode
-			setPidConstants(DEFAULT);								// Set PIDs for manual control
-		}
-
-		switchStatus = MANUAL;
-	}
-}
-
-void setupCompass() {
-	if (!compass.init()) {
-		hal.console->println("compass initialization failed!");
-		while (1) ;
-	}
-
-	//compass.set_orientation(AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD); // set compass's orientation on aircraft.
-	compass.set_offsets(0,0,0); // set offsets to account for surrounding interference
-	compass.set_declination(ToRad(0.0)); // set local difference between magnetic north and true north
-
-	hal.console->print("\nCompass auto-detected as: ");
-	switch( compass.product_id ) {
-		case AP_COMPASS_TYPE_HMC5843:
-			hal.console->println("HMC5843");
-			break;
-		case AP_COMPASS_TYPE_HMC5883L:
-			hal.console->println("HMC5883L");
-			break;
-		default:
-			hal.console->println("unknown");
-			break;
-	}
-}
-
-void setupBatteryMonitor() {
-	// Initialize the battery monitor
-	//  battery_mon.init();
-	//  battery_mon.set_monitoring(AP_BATT_MONITOR_VOLTAGE_AND_CURRENT);
-	//  hal.console->println("Battery monitor initialized");
-}
-
 void setupMotors() {
 	// Enable the motors and set at 490Hz update
 	hal.rcout->set_freq(0xF, 490);
@@ -627,6 +589,45 @@ void setupMPU() {
 	hal.scheduler->resume_timer_procs();
 }
 
+void setupOffButton() {
+	OFF_BUTTON_VALUE = hal.analogin->channel(OFF_BUTTON);
+}
+
+void setupCompass() {
+	if (!compass.init()) {
+		hal.console->println("compass initialization failed!");
+		while (1) ;
+	}
+
+	//compass.set_orientation(AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD); // set compass's orientation on aircraft.
+	compass.set_offsets(0,0,0); // set offsets to account for surrounding interference
+	compass.set_declination(ToRad(0.0)); // set local difference between magnetic north and true north
+
+	hal.console->print("\nCompass auto-detected as: ");
+	switch( compass.product_id ) {
+		case AP_COMPASS_TYPE_HMC5843:
+			hal.console->println("HMC5843");
+			break;
+		case AP_COMPASS_TYPE_HMC5883L:
+			hal.console->println("HMC5883L");
+			break;
+		default:
+			hal.console->println("unknown");
+			break;
+	}
+}
+
+void setupTiming() {
+	hal.scheduler->delay(1000);
+	timer = hal.scheduler->micros();
+	interval = timer;
+}
+
+void setupRpi() {
+	//SET UP UARTC CONNECTION FOR RPI
+	hal.uartC->begin(115200); //baudrate
+}
+
 void setupGPS() {
 	//SET UP UARTB CONNECTION FOR GPS
 	hal.uartB->begin(38400);
@@ -634,9 +635,11 @@ void setupGPS() {
 	gps->init(hal.uartB, GPS::GPS_ENGINE_AIRBORNE_2G);       // GPS Initialization
 }
 
-void setupRpi() {
-	//SET UP UARTC CONNECTION FOR RPI
-	hal.uartC->begin(115200); //baudrate
+void setupBatteryMonitor() {
+	// Initialize the battery monitor
+	//  battery_mon.init();
+	//  battery_mon.set_monitoring(AP_BATT_MONITOR_VOLTAGE_AND_CURRENT);
+	//  hal.console->println("Battery monitor initialized");
 }
 
 AP_HAL_MAIN();
