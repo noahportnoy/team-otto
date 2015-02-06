@@ -36,7 +36,6 @@ GPS         *gps;
 AP_GPS_Auto GPS(&gps);
 
 AP_Baro_MS5611 baro(&AP_Baro_MS5611::spi);
-AP_HAL_MAIN();
 
 
 /*------------------------------------------------ SYSTEM DEFINITIONS ------------------------------------------------------*/
@@ -143,6 +142,9 @@ void setup() {
 
 /*---------------------------------------------- LOOP -----------------------------------------------------*/
 void loop() {
+	// Delay for console output
+	// hal.scheduler->delay(20);
+
 	static float yaw_target = 0;  
 
 	// Wait until new orientation data (normally 5ms max)
@@ -152,15 +154,18 @@ void loop() {
 	uint16_t channels[8];  // array for raw channel values
 	hal.rcin->read(channels, 8);  
 
-	long rcyaw, rcpit, rcroll, last_rcthr;  // Variables to store radio in
-	float rcalt, AVG_OFF_BUTTON_VALUE;
-
-	long safety = channels[4];
+	long rcyaw, rcpit, rcroll, safety, last_rcthr;  // Variables to store radio in
+	float rcalt;
+	safety = channels[4];
 	
-	AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
-
+	float AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
 	while ( (AVG_OFF_BUTTON_VALUE < 1.0) || (safety < 1500) ) {			// Kill motors when [off switch] or [safety] is on
-		droneOff(channels);
+		droneOff();
+
+		AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
+		
+		hal.rcin->read(channels, 8);
+    	safety = channels[4];
 	}
 	
 	rcalt = 1.0; //Hard code in RCALT
@@ -202,21 +207,20 @@ void loop() {
 		float alt_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
 		//float alt_output = constrain(pids[ALT_RATE].get_pid(alt_stab_output - climb_rate, 1), -100, 100);
 		
-		//F.Mode is channels[5]
-		//TOP = greater than 1100
-		//MIDDLE = greater than 1500
-		//BOTTOM = greater than 1900
-
-		//hal.scheduler->delay(100);
-		
 		getSwitchPosition(channels);									// Sets switchStatus to: OFF, AUTONOMOUS, or MANUAL
 																		// depending on RC top-right switch position
 
 		if (switchStatus == AUTONOMOUS) {
+			// hal.console->print("DRONE IN AUTONOMOUS MODE: ");
+
 			if (flightStatus == TAKEOFF) {
+
+				// hal.console->println("TAKEOFF");
 				rcthr = autonomousTakeoff(rcalt);
 
 			} else if (flightStatus == HOLD) {							// Autonomous altitude hold
+
+				// hal.console->println("HOLD");
 				rcthr = autonomousHold(alt_output);
 
 			} else {
@@ -227,9 +231,13 @@ void loop() {
 			}
 
 		} else if (switchStatus == MANUAL) {
+
+			// hal.console->println("DRONE IN MANUAL MODE");
 			rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MIN, 1500);
 		
 		} else if (switchStatus == OFF) {
+
+			// hal.console->println("DRONE IN OFF MODE");
 			rcthr = 1000;
 		}
 
@@ -237,6 +245,17 @@ void loop() {
 			hal.uartC->read();
 		}
 		
+		// hal.console->print("Desired Alt, ");
+		// hal.console->print(rcalt);
+		// hal.console->print(", alt, ");
+		// hal.console->print(alt);
+		// hal.console->print(", Climb Rate, ");
+		// hal.console->print(climb_rate); 
+		// hal.console->print(", alt_output, ");
+		// hal.console->print(alt_output); 
+		// hal.console->print(", THR, ");
+		// hal.console->println(rcthr);
+
 		// mix pid outputs and send to the motors.
 		hal.rcout->write(MOTOR_FL, rcthr + roll_output + pitch_output - yaw_output);
 		hal.rcout->write(MOTOR_BL, rcthr + roll_output - pitch_output + yaw_output);
@@ -379,19 +398,18 @@ void getAltitudeData() {
 	*/
 }
 
-void getOrientation(float pitch, float roll, float yaw) {
-	// Ask MPU6050 for orientation
-	ins.update();
+void getOrientation(float &pitch, float &roll, float &yaw) {
+	ins.update();											// Ask MPU6050 for orientation
 	ins.quaternion.to_euler(&roll, &pitch, &yaw);
 	
-	roll = ToDeg(roll);
 	pitch = ToDeg(pitch);
+	roll = ToDeg(roll);
 	yaw = ToDeg(yaw);
 }
 
-void getGyro(float gyroPitch, float gyroRoll, float gyroYaw) {
-	// Ask MPU6050 for gyro data
-	Vector3f gyro = ins.get_gyro();
+void getGyro(float &gyroPitch, float &gyroRoll, float &gyroYaw) {
+	Vector3f gyro = ins.get_gyro();							// Ask MPU6050 for gyro data
+
 	gyroPitch = ToDeg(gyro.y);
 	gyroRoll = ToDeg(gyro.x);
 	gyroYaw = ToDeg(gyro.z);
@@ -447,8 +465,11 @@ void setPidConstants(int config) {
 	}
 }
 
-void droneOff(uint16_t channels[]) {
+void droneOff() {
+
 	flightStatus = OFF;
+
+	// hal.console->println("DRONE OFF / safety");
 
 	hal.rcout->write(MOTOR_FL, 1000);
 	hal.rcout->write(MOTOR_BL, 1000);
@@ -457,8 +478,6 @@ void droneOff(uint16_t channels[]) {
 	
 	//hal.console->printf_P(PSTR("Voltage ch0:%.2f\n"), AVG_OFF_BUTTON_VALUE);
 	//hal.scheduler->delay(500);
-	hal.rcin->read(channels, 8);
-	long safety = channels[4];
 	
 	//GET BATTERY STATS
 	// update voltage and current readings
@@ -518,14 +537,23 @@ long autonomousHold(float alt_output) {
 }
 
 void getSwitchPosition(uint16_t channels[]) {
+	//F.Mode is channels[5]
+	//TOP = greater than 1100
+	//MIDDLE = greater than 1500
+	//BOTTOM = greater than 1900
+
 	if (channels[5] > 1700) {										// Otto off: switch is in BOTTOM position
 		switchStatus = OFF;
 
 	} else if ((1200 < channels[5]) && (channels[5] < 1700)) {		// Autonomous flight: switch is in MIDDLE position
 
-		if (switchStatus == OFF) {									// If switching from OFF to AUTONOMOUS, reset PIDs and set flightStatus to TAKEOFF
+		if (switchStatus == OFF || switchStatus == MANUAL) {		// If switching to AUTONOMOUS, reset PIDs and set flightStatus to TAKEOFF
 			pids[ALT_STAB].reset_I();								// reset i; reset PID integrals while in manual mode
 			setPidConstants(DEFAULT);								// PID Configuration for takeoff
+			flightStatus = TAKEOFF;
+		}
+
+		if (flightStatus == OFF) {									// If safety was just turned off
 			flightStatus = TAKEOFF;
 		}
 
@@ -533,7 +561,7 @@ void getSwitchPosition(uint16_t channels[]) {
 
 	} else {														// Manual control: switch is in BOTTOM position
 
-		if (switchStatus == AUTONOMOUS || switchStatus == OFF) {	// If going from [autonomous or off] to manual control, reset PIDs
+		if (switchStatus == AUTONOMOUS || switchStatus == OFF) {	// If switching to manual control, reset PIDs
 			pids[ALT_STAB].reset_I();								// reset i; reset PID integrals while in manual mode
 			setPidConstants(DEFAULT);								// Set PIDs for manual control
 		}
@@ -552,7 +580,7 @@ void setupCompass() {
 	compass.set_offsets(0,0,0); // set offsets to account for surrounding interference
 	compass.set_declination(ToRad(0.0)); // set local difference between magnetic north and true north
 
-	hal.console->print("Compass auto-detected as: ");
+	hal.console->print("\nCompass auto-detected as: ");
 	switch( compass.product_id ) {
 		case AP_COMPASS_TYPE_HMC5843:
 			hal.console->println("HMC5843");
@@ -610,3 +638,5 @@ void setupRpi() {
 	//SET UP UARTC CONNECTION FOR RPI
 	hal.uartC->begin(115200); //baudrate
 }
+
+AP_HAL_MAIN();

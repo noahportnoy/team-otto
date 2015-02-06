@@ -1,17 +1,23 @@
-﻿MAJOR CODE REORG, NEEDS TESTING
-DO NOT FLY
+﻿NEEDS FURTHER TESTING
 
-------------------------------------------
+Right switch controls:
+	DOWN   	: drone off
+	MIDDLE 	: autonomous takeoff, then altitude hold
+	UP		: manual control
 
-February 5, 2015
+Note: whenever switch is put in the MIDDLE position, drone will attempt TAKEOFF first, followed by HOLD.
 
-Branched from 3_1_6
-Major code reorg
+
+Abbreviated changelog
 ------------------------------------------
 
 February 5, 2015
 
 Tests in office promising for autonomous takeoff. Tests in boyden needed to confirm.
+
+Determined behavioral parity with v3_1_6 by means of thorough testing
+Major code reorg
+Branched from 3_1_6
 ------------------------------------------
 
 February 4, 2015
