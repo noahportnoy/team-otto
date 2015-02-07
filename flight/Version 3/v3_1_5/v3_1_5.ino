@@ -22,8 +22,14 @@
 #include <AP_BattMonitor.h>  //battery Monitor
 #include <AP_GPS.h>
 
+//include uart messaging header file
+#include <UartMessaging.h>
+
 // ArduPilot Hardware Abstraction Layer
 const AP_HAL::HAL& hal = AP_HAL_AVR_APM2;
+
+//Messaging Object
+UartMessaging uartMessaging;
 
 // MPU6050 accel/gyro chip
 AP_InertialSensor_MPU6000 ins;
@@ -82,7 +88,7 @@ PID pids[8];
 #define ALT_RATE 7
 
 //Hover throttle
-#define HOVER_THR 1290
+#define HOVER_THR 1300
 
 
 
@@ -239,7 +245,7 @@ void setup()
   pids[ALT_RATE].imax(50);
   
   pids[ALT_STAB].kP(10.0);
-  pids[ALT_STAB].kI(0.0);
+  pids[ALT_STAB].kI(0.2);
   pids[ALT_STAB].imax(50);
   
   hal.console->println("Barometer Init");
@@ -286,8 +292,12 @@ void setup()
   timer = hal.scheduler->micros();
   interval = timer;
   
-  //SET UP UARTC CONNECTION FOR RPI
-  hal.uartC->begin(115200); //baudrate
+  //Initializes the UART C bus (begin(baudrate, rx buffer, tx buffer)
+  //See UARTDriver.h for more...
+  hal.uartC->begin(115200, 16, 16); 
+  hal.console->println("UARTC (UART2) Test");
+  //Uart messaging
+  uartMessaging.init(hal.uartC, hal.console);
   
   //SET UP UARTB CONNECTION FOR GPS
   hal.uartB->begin(38400);
@@ -306,6 +316,9 @@ void setup()
 /*---------------------------------------------- LOOP -----------------------------------------------------*/
 void loop() 
 {
+  //receive from uart
+  uartMessaging.receive();
+  
   static float yaw_target = 0;  
   // Wait until new orientation data (normally 5ms max)
   while (ins.num_samples_available() == 0);
@@ -333,10 +346,7 @@ void loop()
     //GET BATTERY STATS
     // update voltage and current readings
     battery_mon.read();
-    //hal.console->printf("\nVoltage: %.2f \tCurrent: %.2f \tTotCurr:%.2f  ",
-    //		    battery_mon.voltage(), //voltage
-    //		    battery_mon.current_amps(), //Inst current
-    //              battery_mon.current_total_mah()); //Accumulated current
+    battery_mon.voltage(), //voltage
                             
     //GET GPS STATS
     gps->update();
@@ -360,7 +370,6 @@ void loop()
     for(int i=0; i<8; i++)
       pids[i].reset_I();
   }     
-  
   
   
   rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MIN, 1500);
@@ -451,7 +460,7 @@ void loop()
     alt = getAltitude();
     
     //Smooth raw data (last parameter is the smoothing constant)
-    temp = movingAvg(last_alt, alt, .8);
+    temp = movingAvg(last_alt, alt, .5);
     alt = temp;
     
     //Verify that the altitude values are within scope
@@ -482,6 +491,9 @@ void loop()
       			    battery_mon.current_amps(),
                             battery_mon.current_total_mah());
     */
+    //send alt and battery status
+    uartMessaging.sendAltitude(alt);
+    uartMessaging.sendBattery(battery_mon.voltage());
   }
   
   

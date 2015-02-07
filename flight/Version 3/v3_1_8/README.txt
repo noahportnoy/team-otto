@@ -1,0 +1,52 @@
+Version 3_1_8
+
+
+WARNING: AUTONOMOUS TAKEOFF NEEDS FURTHER TESTING
+
+F.MODE switch controls (right switch):
+	DOWN   	: manual Control
+	MIDDLE 	: altitude hold and heading hold
+	UP	: autonomous takeoff, then altitude hold
+
+Note: whenever switch is put in the UP position, drone will attempt TAKEOFF first, followed by HOLD.
+
+
+
+
+Abbreviated changelog
+------------------------------------------
+
+February 7, 2015
+
+Changed F.MODE switch position mapping to allow more states. Simply keep the safety on and select the mode you’d like to be in.
+
+Added UART messaging so that alt & battery data is sent through the RPi to app.
+
+Added a heading control function. Seems to be jerky, I’m going to try smoothing out the input.
+
+Fixed Roll,pitch,and yaw values. Now we are getting values from the DMP (was commented out before). As a result I tuned the flight stabilization PIDs some more.
+
+FLY’S WELL IN MANUAL MODE. ALT_HOLD NEEDS MORE TUNING.  
+------------------------------------------
+
+
+February 6, 2015
+
+Minor reformatting of code. Compiled successfully but should be tested.
+------------------------------------------
+
+
+February 5, 2015
+
+Established behavioral parity with v3_1_6 by means of thorough testing
+Major code reorganization
+Branched from 3_1_6
+Tests in office promising for autonomous takeoff. Tests in boyden needed to confirm.
+------------------------------------------
+
+
+February 4, 2015
+
+Changing from map(……) function to adding ~1290. This is the approximate throttle that the drone will hover at.
+!WORKING ALT HOLD FUNCTION!
+-----------------------------------------
