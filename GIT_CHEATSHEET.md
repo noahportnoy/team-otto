@@ -13,13 +13,13 @@ This reference is non-exhaustive. For more information, I encourage you to look 
 `git pull`
 
 **See changes to tracked files**  
-`git diff`
-OR
+`git diff`  
+OR  
 `git difftool`
 
 **See changes to staged files**  
-`git diff --cached`
-OR
+`git diff --cached`  
+OR  
 `git difftool --cached`
 
 **Stage tracked/untracked file for commit**  
@@ -116,7 +116,7 @@ Then merge the feature branch: `git merge feature/foo`
 **See changes not in remote**  
 `git log origin/<branch name>..`
 
-**Pretty log **  
+**Pretty log**  
 `git log --oneline --graph --decorate`
 
 **Show changes in a commit (no diff)**  
@@ -148,8 +148,8 @@ Then merge the feature branch: `git merge feature/foo`
 `git fetch <remote-git-url> <sha-or-branch> && git cherry-pick FETCH_HEAD`
 
 **If because of the skip-worktree things break**  
-`git reset --hard HEAD`
-OR
+`git reset --hard HEAD`  
+OR  
 `git update-index  --really-refresh --no-assume-unchanged <file>`
 
 **List files with skipped worktree**  

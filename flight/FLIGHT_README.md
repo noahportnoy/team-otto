@@ -4,12 +4,13 @@
 
 **WARNING: AUTONOMOUS TAKEOFF NEEDS FURTHER TESTING**
 
-F.MODE switch controls (right switch)  
-| Switch position   | drone action			     |  
-|:-----------------:|----------------------------------------|  
-|	DOWN   	    | manual control			     |  
-|	MIDDLE 	    | altitude hold and heading hold	     |  
-|	UP	    | autonomous takeoff, then altitude hold |  
+F.MODE switch controls (right switch)
+
+Switch position   | drone action
+ ---------------- | --------------------------------------
+DOWN              | manual control
+MIDDLE            | altitude hold and heading hold
+UP                | autonomous takeoff, then altitude hold
 
 *Note: whenever switch is put in the UP position, drone will attempt TAKEOFF first, followed by HOLD.*
 
