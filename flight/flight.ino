@@ -121,6 +121,7 @@ float originalOrientation = 0.0;
 float currentOrientation = 0.0;
 float alt = 0;
 float last_alt = 0;
+float current_heading = 0, last_heading = 0;
 float climb_rate = 0;
 float last_climb_rate = 0;
 long rcthr = 1000;
@@ -184,7 +185,7 @@ void loop() {
 	float pitch, roll, yaw;
 	getOrientation(pitch, roll, yaw);
 
-	if( (hal.scheduler->micros() - interval) > 100000UL ) {				// Update altitude data on interval
+	if( (hal.scheduler->micros() - interval) > 100000UL ) {				                        // Update altitude data on interval
 		getAltitudeData();
 	}
 	
@@ -195,7 +196,7 @@ void loop() {
 
                 getSwitchPosition(channels);									// Sets switchStatus to: OFF, AUTONOMOUS, or MANUAL
 		
-                //Autonomous yaw												// depending on RC top-right switch position  
+                //Autonomous yaw										// depending on RC top-right switch position  
 		if (switchStatus == ALT_HOLD) {
 
 			//hal.console->println("DRONE IN ALT_HOLD MODE");
@@ -318,8 +319,8 @@ void loop() {
             battery_mon.read();
 
             //send alt and battery status
-            uartMessaging.sendAltitude(alt);
-            uartMessaging.sendBattery(battery_mon.voltage());
+            //uartMessaging.sendAltitude(alt);
+            //uartMessaging.sendBattery(battery_mon.voltage());
           }
 }
 
@@ -434,7 +435,7 @@ float calculateYaw() {
 
 
 float getHeading(){
-      float desired_heading, current_heading, heading_error;
+      float desired_heading, heading_error;
       
       //getDesiredHeading
       desired_heading = -57.0;
@@ -446,6 +447,7 @@ float getHeading(){
         timer = hal.scheduler->micros();
         compass.read();
         unsigned long read_time = hal.scheduler->micros() - timer;
+        last_heading = current_heading;
         float heading;
         
         Matrix3f dcm_matrix;
@@ -453,19 +455,22 @@ float getHeading(){
         heading = compass.calculate_heading(dcm_matrix);
         //compass.null_offsets();
         current_heading = ToDeg(heading);
-        
+                
         // display heading
-        hal.console->print("Desired Heading: ");
+        hal.console->print("Desired Heading, ");
         hal.console->print(desired_heading);
-        hal.console->print("  Current Heading: ");
+        hal.console->print(",  Current Heading, ");
         hal.console->print(current_heading);
-        hal.console->print("  Heading Error: ");
+        current_heading = movingAvg(last_heading, current_heading, .5);
+        hal.console->print(",  Smooth Current Heading, ");
+        hal.console->print(current_heading);
+        hal.console->print(",  Heading Error, ");
         heading_error = desired_heading - current_heading;
         hal.console->print(heading_error);
         
         float rcyaw = constrain(pids[YAW_CONTROL].get_pid(heading_error, 1), -250, 250);
        
-        hal.console->print("  rcYaw: ");
+        hal.console->print(",  rcYaw, ");
         hal.console->println(rcyaw);
        
         return rcyaw; 
@@ -497,8 +502,7 @@ void getAltitudeData() {
 	alt = getAltitude();
 	
 	//Smooth raw data (last parameter is the smoothing constant)
-	float temp = movingAvg(last_alt, alt, .8);
-	alt = temp;
+	alt = movingAvg(last_alt, alt, .8);
 	
 	//Verify that the altitude values are within scope
 	if(abs(alt-last_alt) > 100){
