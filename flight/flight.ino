@@ -8,13 +8,19 @@
 #include <AP_Progmem.h>
 #include <AP_ADC.h>
 #include <AP_InertialSensor.h>
+#include <AP_ADC.h>
+#include <AP_AHRS.h>
 
 #include <AP_HAL.h>
 #include <AP_HAL_AVR.h>
 #include <AP_HAL_AVR_SITL.h>
 #include <AP_HAL_Empty.h>
+#include <GCS_MAVLink.h>
+
+#include <SITL.h>
 #include <PID.h>
 #include <AP_Declination.h>
+#include <AP_Airspeed.h>
 #include <AP_Math.h>
 #include <AP_Buffer.h>
 #include <Filter.h>
@@ -41,7 +47,13 @@ AP_BattMonitor battery_mon;
 GPS         *gps;
 AP_GPS_Auto GPS(&gps);
 
+//Otto uses the MS5611 Baro
 AP_Baro_MS5611 baro(&AP_Baro_MS5611::spi);
+
+// choose which AHRS system to use
+//AP_AHRS_DCM  ahrs(&ins, gps);
+AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
+
 
 
 /*------------------------------------------------ SYSTEM DEFINITIONS ------------------------------------------------------*/
@@ -62,7 +74,7 @@ AP_Baro_MS5611 baro(&AP_Baro_MS5611::spi);
 #define MIN_TAKEOFF_THR 1250
 
 //Hover throttle
-#define HOVER_THR 1290
+#define HOVER_THR 1330
 
 // Motor numbers definitions
 #define MOTOR_FL   2    // Front left    
@@ -73,11 +85,8 @@ AP_Baro_MS5611 baro(&AP_Baro_MS5611::spi);
 #define OFF_BUTTON 0
 AP_HAL::AnalogSource* OFF_BUTTON_VALUE;
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
-	AP_Compass_PX4 compass;
-#else
-	AP_Compass_HMC5843 compass;
-#endif
+//Initialize the HMC5843 compass.
+AP_Compass_HMC5843 compass;
 
 #define wrap_180(x) (x < -180 ? x+360 : (x > 180 ? x - 360: x))
 
@@ -108,6 +117,21 @@ PID pids[9];
 #define DEFAULT 0
 #define CUSTOM 1
 
+// Define the HW LED setup & Compass orientation 
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+ # define A_LED_PIN        27
+ # define C_LED_PIN        25
+ # define LED_ON           0  //Low
+ # define LED_OFF          1  //High
+ # define MAG_ORIENTATION  AP_COMPASS_APM2_SHIELD
+#else
+ # define A_LED_PIN        37
+ # define C_LED_PIN        35
+ # define LED_ON           1    //High
+ # define LED_OFF          0    //Low
+ # define MAG_ORIENTATION  AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD
+#endif
+
 
 
 
@@ -115,6 +139,7 @@ PID pids[9];
 uint32_t timer;
 uint32_t interval;
 uint32_t send_interval;
+uint32_t heading_timer;
 
 int startup = 0;
 float originalOrientation = 0.0;
@@ -135,14 +160,16 @@ Matrix3f dcm_matrix;
 void setup() {
 	setupMotors();
 	setPidConstants(DEFAULT);
-	setupBarometer();
 	setupMPU();
 	setupOffButton();
 	setupCompass();
 	setupTiming();
 	setupRpi();
+        setupBarometer();
 	setupGPS();
 	setupBatteryMonitor();
+        ahrs.init();                      //Initizlize the Altitude Hold Refernece System
+        hal.console->println("Otto Ready.");
 }
 
 /*---------------------------------------------- LOOP -----------------------------------------------------*/
@@ -198,21 +225,24 @@ void loop() {
 		
                 //Autonomous yaw										// depending on RC top-right switch position  
 		if (switchStatus == ALT_HOLD) {
-
-			//hal.console->println("DRONE IN ALT_HOLD MODE");
-              
-                        rcyaw = getHeading();
-
-                        /*
-                        hal.console->print("Old rcyaw: ");
-                        hal.console->print(rcyaw);
-                        rcyaw = getHeading();
+                        float desired_heading, heading_error;
+                        
+                        desired_heading = -60; //This should be an input from autonomous SoftWare
+                        
+                        if((hal.scheduler->micros() - heading_timer) > 100000L){ //Run loop @ 10Hz ~ 100ms
+                            current_heading = getHeading(last_heading);
+                        }
+                        
+                        //Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
+                        heading_error = desired_heading - current_heading;
+                        rcyaw = constrain(pids[YAW_CONTROL].get_pid(heading_error, 1), -250, 250);
+                       
+                        hal.console->print("Heading: ");
+                        hal.console->print(current_heading);
                         hal.console->print(" rcyaw: ");
                         hal.console->print(rcyaw);
                         hal.console->print(" sensor yaw(yaw_target): ");
-                        hal.console->print(yaw_target);
-                        */
-
+                        hal.console->println(yaw_target);
 		} 
 
 		// Stablise PIDS
@@ -343,12 +373,12 @@ float movingAvg(float previous, float current, float a){
 
 void setPidConstants(int config) {
 	if (config == DEFAULT) {
-		pids[PID_PITCH_RATE].kP(0.3);
-		pids[PID_PITCH_RATE].kI(0.2);
+		pids[PID_PITCH_RATE].kP(0.2);
+		pids[PID_PITCH_RATE].kI(0.08);
 		pids[PID_PITCH_RATE].imax(50);
 		
-		pids[PID_ROLL_RATE].kP(0.3);
-		pids[PID_ROLL_RATE].kI(0.2);
+		pids[PID_ROLL_RATE].kP(0.2);
+		pids[PID_ROLL_RATE].kI(0.08);
 		pids[PID_ROLL_RATE].imax(50);
 		
 		pids[PID_YAW_RATE].kP(0.7);
@@ -434,46 +464,38 @@ float calculateYaw() {
 }
 
 
-float getHeading(){
-      float desired_heading, heading_error;
-      
-      //getDesiredHeading
-      desired_heading = -57.0;
-      
-      compass.accumulate();
-
-    //if((hal.scheduler->micros()- timer) > 100000L)
-    //{
-        timer = hal.scheduler->micros();
-        compass.read();
-        unsigned long read_time = hal.scheduler->micros() - timer;
-        last_heading = current_heading;
-        float heading;
-        
-        Matrix3f dcm_matrix;
-        dcm_matrix.from_euler(0, 0, 0);
-        heading = compass.calculate_heading(dcm_matrix);
-        //compass.null_offsets();
-        current_heading = ToDeg(heading);
-                
-        // display heading
-        hal.console->print("Desired Heading, ");
-        hal.console->print(desired_heading);
-        hal.console->print(",  Current Heading, ");
-        hal.console->print(current_heading);
+float getHeading(float last_heading){
+        //Use AHRS for Heading
+        static uint32_t last_t, last_print;
+        uint32_t now = hal.scheduler->micros();
+        float heading = 0;
+    
+        ahrs.update();
+        if((hal.scheduler->micros() - heading_timer) > 100000L){ //Run loop @ 10Hz
+            heading_timer = hal.scheduler->micros();
+            
+            compass.read();
+            heading = compass.calculate_heading(ahrs.get_dcm_matrix());
+            gps->update();
+            
+            Vector3f drift  = ahrs.get_gyro_drift();
+            /*
+            hal.console->printf_P(
+                    PSTR("r:%4.1f  p:%4.1f y:%4.1f "
+                        "drift=(%5.1f %5.1f %5.1f) hdg=%.1f\n"),
+                            ToDeg(ahrs.roll),
+                            ToDeg(ahrs.pitch),
+                            ToDeg(ahrs.yaw),
+                            ToDeg(drift.x),
+                            ToDeg(drift.y),
+                            ToDeg(drift.z),
+                            compass.use_for_yaw() ? ToDeg(heading) : 2.67767789
+            );
+            */
+            current_heading =  ToDeg(heading);
+        }
         current_heading = movingAvg(last_heading, current_heading, .5);
-        hal.console->print(",  Smooth Current Heading, ");
-        hal.console->print(current_heading);
-        hal.console->print(",  Heading Error, ");
-        heading_error = desired_heading - current_heading;
-        hal.console->print(heading_error);
-        
-        float rcyaw = constrain(pids[YAW_CONTROL].get_pid(heading_error, 1), -250, 250);
-       
-        hal.console->print(",  rcYaw, ");
-        hal.console->println(rcyaw);
-       
-        return rcyaw; 
+        return current_heading;
 }
 
 float getAltitude() {
@@ -684,10 +706,11 @@ void setupBarometer() {
 
 void setupMPU() {
 	// Turn on MPU6050 - quad must be kept still as gyros will calibrate
-	ins.init(AP_InertialSensor::COLD_START, 
+        ins.init(AP_InertialSensor::COLD_START, 
 			 AP_InertialSensor::RATE_100HZ,
-							NULL);
-
+			 flash_leds);
+        ins.init_accel(flash_leds);
+        
 	// initialise sensor fusion on MPU6050 chip (aka DigitalMotionProcessing/DMP)
 	hal.scheduler->suspend_timer_procs();  // stop bus collisions
 	ins.dmp_init();
@@ -704,22 +727,11 @@ void setupCompass() {
 		while (1) ;
 	}
 
-	//compass.set_orientation(AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD); // set compass's orientation on aircraft.
+	compass.set_orientation(MAG_ORIENTATION); // set compass's orientation on aircraft.
 	compass.set_offsets(0,0,0); // set offsets to account for surrounding interference
 	compass.set_declination(ToRad(0.0)); // set local difference between magnetic north and true north
-
-	hal.console->print("\nCompass auto-detected as: ");
-	switch( compass.product_id ) {
-		case AP_COMPASS_TYPE_HMC5843:
-			hal.console->println("HMC5843");
-			break;
-		case AP_COMPASS_TYPE_HMC5883L:
-			hal.console->println("HMC5883L");
-			break;
-		default:
-			hal.console->println("unknown");
-			break;
-	}
+        
+        //Otto uses the HMC5883L Compass
 }
 
 void setupTiming() {
@@ -727,6 +739,7 @@ void setupTiming() {
 	timer = hal.scheduler->micros();
 	interval = timer;
         send_interval = timer;
+        heading_timer = timer;
 }
 
 void setupRpi() {
@@ -751,5 +764,12 @@ void setupBatteryMonitor() {
 	battery_mon.set_monitoring(AP_BATT_MONITOR_VOLTAGE_AND_CURRENT);
 	hal.console->println("Battery monitor initialized");
 }
+
+static void flash_leds(bool on)
+{
+    hal.gpio->write(A_LED_PIN, on ? LED_OFF : LED_ON);
+    hal.gpio->write(C_LED_PIN, on ? LED_ON : LED_OFF);
+}
+
 
 AP_HAL_MAIN();
