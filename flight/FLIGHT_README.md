@@ -20,6 +20,19 @@ UP                | autonomous takeoff, then altitude hold
 ## Changelog
 
 
+February 11, 2015
+
+- Using AHRS for heading control. 
+- Made some tuning changes to the pitch / roll PID's for more stable flight
+- Increased the hover throttle because of the added weight that came with the new Hardware (3rd level)
+
+ISSUE:
+	- Drone will only hold heading for a shirt period of time, then it will start to spin.
+TODO:
+	- Fix spinning heading issue. 
+
+------------------------------------------
+
 February 7, 2015
 
 - Changed F.MODE switch position mapping to allow more states. Simply keep the safety on and select the mode you’d like to be in.  
