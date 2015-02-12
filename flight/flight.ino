@@ -226,8 +226,10 @@ void loop() {
                 //Autonomous yaw										// depending on RC top-right switch position  
 		if (switchStatus == ALT_HOLD) {
                         float desired_heading, heading_error;
-                        
                         desired_heading = -60; //This should be an input from autonomous SoftWare
+                        
+                        hal.console->print("rcYaw: ");
+                        hal.console->print(rcyaw);
                         
                         if((hal.scheduler->micros() - heading_timer) > 100000L){ //Run loop @ 10Hz ~ 100ms
                             current_heading = getHeading(last_heading);
@@ -236,13 +238,85 @@ void loop() {
                         //Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
                         heading_error = desired_heading - current_heading;
                         rcyaw = constrain(pids[YAW_CONTROL].get_pid(heading_error, 1), -250, 250);
-                       
+                        rcyaw = rcyaw * -1;
                         hal.console->print("Heading: ");
                         hal.console->print(current_heading);
                         hal.console->print(" rcyaw: ");
                         hal.console->print(rcyaw);
                         hal.console->print(" sensor yaw(yaw_target): ");
                         hal.console->println(yaw_target);
+                        
+                        
+                        
+                        
+                        
+                        /*
+                        //Autonomous pitch / roll
+                        //Get Lattitude & Longitude
+                        float lat_drone, long_drone, lat_user, long_user, angle, desired_heading, current_heading;
+                        //getDroneCoor();
+                        //getUserCoor();
+                        //getSepDistance();
+                        //getHeading();
+                        
+                        //Calculate the heading angle of the user relative to the drone.
+                        float lat_seperation, long_seperation;
+                        
+                        //Find the lat & long differences
+                        if(abs(lat_drone) > abs(lat_user)){
+                          lat_seperation = abs(lat_drone - lat_user);
+                        }else{
+                          lat_seperation = abs(lat_user - lat_drone);
+                        }
+                        
+                        if(abs(long_drone) > abs(long_user)){
+                          long_seperation = abs(long_drone - long_user);
+                        }else{
+                          long_seperation = abs(long_user - long_drone);
+                        }
+                        
+                        //Calculate the desired heading of the drone. By using the lattitude as of "opposite" (sohcahTOA) then this will 
+                        //always calculate an angle from either due N or S
+                        angle = lat_seperation / long_seperation;
+                        desired_heading = atan(angle);
+                        
+                        /*COMPASS OPERATION: 
+                           True North is 0 (degrees)
+                           Eastern headings are negative numbers
+                           Western headings are positive numbers
+                           South is 180 or -180
+                        //
+                        
+                        
+                        //If the heading is greater than zero, add it to the "desired heading"
+                        orientation_angle_1 = desired_heading + drone_heading;
+                        //This gives you the "offset angle" with this angle you can calculate the pitch and roll required to get to the target.
+                        //This should be relative to N
+                        
+                        //angle 1 + angle 2 + 90 == 180
+                        orientation_angle_2 = 90 - orientation_angle_1;
+                        
+                        //Calculate the lat and long now that we know every angle
+                        temp = acos(orientation_angle_1);
+                        long_seperation = temp / hypotenuse; 
+                        
+                        temp = asin(orientation_angle_1);
+                        lat_seperation = temp / hypotenuse;
+                        
+                        
+                        //If the Longitude of the drone is larger than the user than add 90 (degrees)
+                        if(long_drone > long_user){
+                           desired_heading = desired_heading + 90;
+                        }
+                        
+                        //If the Lattitude of the user is larger than the drones then the drone should be facing East
+                        //Convert this to a negative number (details above)
+                        if(lat_user > lat_drone){
+                          desired_heading = desired_heading*(-1);
+                        }
+                        
+                        */
+                        
 		} 
 
 		// Stablise PIDS
@@ -397,7 +471,7 @@ void setPidConstants(int config) {
 		pids[ALT_STAB].kI(0.0);
 		pids[ALT_STAB].imax(50);
                 
-                pids[YAW_CONTROL].kP(0.5);
+                pids[YAW_CONTROL].kP(0.7);
 		pids[YAW_CONTROL].kI(0.0);
 		pids[YAW_CONTROL].imax(50);
 
@@ -524,7 +598,7 @@ void getAltitudeData() {
 	alt = getAltitude();
 	
 	//Smooth raw data (last parameter is the smoothing constant)
-	alt = movingAvg(last_alt, alt, .8);
+	alt = movingAvg(last_alt, alt, .5);
 	
 	//Verify that the altitude values are within scope
 	if(abs(alt-last_alt) > 100){
@@ -602,7 +676,7 @@ void getSwitchPosition(uint16_t channels[]) {
 
 		switchStatus = ALT_HOLD;
 
-	} else if ((channels[5] > 1800)) {		                        // Autonomous flight: switch is in MIDDLE position
+	} else if ((channels[5] < 1200)) {		                        // Autonomous flight: switch is in MIDDLE position
 
 		if (switchStatus == ALT_HOLD || switchStatus == MANUAL) {		// If switching to AUTONOMOUS, reset PIDs and set flightStatus to TAKEOFF
 			pids[ALT_STAB].reset_I();								// reset i; reset PID integrals while in manual mode

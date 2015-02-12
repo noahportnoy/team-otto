@@ -20,6 +20,17 @@ UP                | autonomous takeoff, then altitude hold
 ## Changelog
 
 
+February 12, 2015
+
+- Working heading control function with exception of occasional spin.
+
+ISSUE:
+	- Drone does a full spin ocasinally.
+TODO:
+	- Fix spinning heading issue. 
+
+------------------------------------------
+
 February 11, 2015
 
 - Using AHRS for heading control. 
