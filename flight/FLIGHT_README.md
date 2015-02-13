@@ -2,8 +2,6 @@
 
 ## Info
 
-**WARNING: AUTONOMOUS TAKEOFF NEEDS FURTHER TESTING**
-
 F.MODE switch controls (right switch)
 
 Switch position   | drone action
@@ -12,12 +10,18 @@ DOWN              | manual control
 MIDDLE            | altitude hold and heading hold
 UP                | autonomous takeoff, then altitude hold
 
-*Note: whenever switch is put in the UP position, drone will attempt TAKEOFF first, followed by HOLD.*
-
 
 
 
 ## Changelog
+
+February 12, 2015
+
+- In manual mode, drone behaves oddly when throttle is all the way down. A quick yaw correction wil fix this temporarily.
+- Fixed F.mode channel bug.
+- Merged v3_1_7 working takeoff code into master flight.ino.
+
+------------------------------------------
 
 
 February 7, 2015
