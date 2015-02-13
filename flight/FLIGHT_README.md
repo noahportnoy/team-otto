@@ -15,6 +15,19 @@ UP                | autonomous takeoff, then altitude hold
 
 ## Changelog
 
+
+February 13, 2015
+
+- Fixed Heading Control spin issue (tested in Hangar)
+- Added GPS lock software using rotation  matrix method
+
+TODO:
+	- Test GPS hold
+	- Set drone GPS coordinate as "target" for position hold
+
+
+------------------------------------------
+
 February 12, 2015
 
 - In manual mode, drone behaves oddly when throttle is all the way down. A quick yaw correction wil fix this temporarily.
