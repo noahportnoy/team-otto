@@ -173,6 +173,8 @@ void setup() {
 	setupBatteryMonitor();
         ahrs.init();                      //Initizlize the Altitude Hold Refernece System
         hal.console->println("Otto Ready.");
+        
+        //Set the target as the drones current GPS Coordinate
 }
 
 /*---------------------------------------------- LOOP -----------------------------------------------------*/
@@ -248,15 +250,12 @@ void loop() {
                         
                         hal.console->print("  rcYaw: ");
                         hal.console->print(rcyaw);
-                        
-                        
-                        
                         hal.console->print(" Heading: ");
                         hal.console->print(current_heading);
  
                         
                         
-                        /*
+                        
                         
                  /////////Autonomous Pitch / Roll using the Rotation Matrix Method
                         //Vector format is x,y,z                       
@@ -299,7 +298,7 @@ void loop() {
                         
                         rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.x, 1), -250, 250); 
                         rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.y, 1), -250, 250); 
-                        */
+                       
                         
 		} 
 
