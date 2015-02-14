@@ -16,6 +16,18 @@ UP                | autonomous takeoff, then altitude hold
 ## Changelog
 
 
+February 14, 2015
+
+- Improved upon GPS tracking software using yaw rotation matrix method (untested)
+- tuned Altitude hold some more
+
+TODO:
+	- Test GPS hold (GPS in gym isnt great)
+	- Add filtering to GPS signal
+
+
+------------------------------------------
+
 February 13, 2015
 
 - Fixed Heading Control spin issue (tested in Hangar)
