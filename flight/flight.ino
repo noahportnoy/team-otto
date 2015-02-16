@@ -8,13 +8,19 @@
 #include <AP_Progmem.h>
 #include <AP_ADC.h>
 #include <AP_InertialSensor.h>
+#include <AP_ADC.h>
+#include <AP_AHRS.h>
 
 #include <AP_HAL.h>
 #include <AP_HAL_AVR.h>
 #include <AP_HAL_AVR_SITL.h>
 #include <AP_HAL_Empty.h>
+#include <GCS_MAVLink.h>
+
+#include <SITL.h>
 #include <PID.h>
 #include <AP_Declination.h>
+#include <AP_Airspeed.h>
 #include <AP_Math.h>
 #include <AP_Buffer.h>
 #include <Filter.h>
@@ -41,7 +47,13 @@ AP_BattMonitor battery_mon;
 GPS         *gps;
 AP_GPS_Auto GPS(&gps);
 
+//Otto uses the MS5611 Baro
 AP_Baro_MS5611 baro(&AP_Baro_MS5611::spi);
+
+// choose which AHRS system to use
+//AP_AHRS_DCM  ahrs(&ins, gps);
+AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
+
 
 
 /*------------------------------------------------ SYSTEM DEFINITIONS ------------------------------------------------------*/
@@ -73,16 +85,13 @@ AP_Baro_MS5611 baro(&AP_Baro_MS5611::spi);
 #define OFF_BUTTON 0
 AP_HAL::AnalogSource* OFF_BUTTON_VALUE;
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
-	AP_Compass_PX4 compass;
-#else
-	AP_Compass_HMC5843 compass;
-#endif
+//Initialize the HMC5843 compass.
+AP_Compass_HMC5843 compass;
 
 #define wrap_180(x) (x < -180 ? x+360 : (x > 180 ? x - 360: x))
 
-// PID array (9 pids, two for each axis, 2 for altitude, 1 for yaw control)
-PID pids[9];
+// PID array (11 pids, two for each axis, 2 for altitude, 3 for AUTONOMOUS commands)
+PID pids[11];
 #define PID_PITCH_RATE 0
 #define PID_ROLL_RATE 1
 #define PID_PITCH_STAB 2
@@ -91,7 +100,9 @@ PID pids[9];
 #define PID_YAW_STAB 5
 #define ALT_STAB 6
 #define ALT_RATE 7
-#define YAW_CONTROL 8
+#define YAW_CMD 8
+#define PITCH_CMD 9
+#define ROLL_CMD 10
 
 // switchState
 #define MANUAL 0
@@ -108,6 +119,21 @@ PID pids[9];
 #define DEFAULT 0
 #define CUSTOM 1
 
+// Define the HW LED setup & Compass orientation 
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2
+ # define A_LED_PIN        27
+ # define C_LED_PIN        25
+ # define LED_ON           0  //Low
+ # define LED_OFF          1  //High
+ # define MAG_ORIENTATION  AP_COMPASS_APM2_SHIELD
+#else
+ # define A_LED_PIN        37
+ # define C_LED_PIN        35
+ # define LED_ON           1    //High
+ # define LED_OFF          0    //Low
+ # define MAG_ORIENTATION  AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD
+#endif
+
 
 
 
@@ -115,33 +141,47 @@ PID pids[9];
 uint32_t timer;
 uint32_t interval;
 uint32_t send_interval;
+uint32_t heading_timer;
 
 int startup = 0;
 float originalOrientation = 0.0;
 float currentOrientation = 0.0;
 float alt = 0;
 float last_alt = 0;
+float current_heading = 0, last_heading = 0;
 float climb_rate = 0;
 float last_climb_rate = 0;
 long rcthr = 1000;
 int heightLock = 0;
 int switchState = 0;
 int autopilotState = 0;
+
 Matrix3f dcm_matrix;
+Quaternion q;
+float target_coordinates[2];
 
 
 /*---------------------------------------------------- SETUP ----------------------------------------------*/
 void setup() {
 	setupMotors();
 	setPidConstants(DEFAULT);
-	setupBarometer();
 	setupMPU();
 	setupOffButton();
 	setupCompass();
 	setupTiming();
 	setupRpi();
+        setupBarometer();
 	setupGPS();
 	setupBatteryMonitor();
+        //Initizlize the Altitude Hold Refernece System
+        ahrs.init();  
+        
+        //Get coordinates of takeoff point
+        getTakeoffCoordinates(target_coordinates);
+        
+        hal.console->printf("target_long, %f, target_lat, %f,  ", target_coordinates[0], target_coordinates[1]);
+        
+        hal.console->println("Otto Ready.");
 }
 
 /*---------------------------------------------- LOOP -----------------------------------------------------*/
@@ -158,23 +198,21 @@ void loop() {
 	uint16_t channels[8];  // array for raw channel values
 	hal.rcin->read(channels, 8);  
 
-	long rcyaw, rcpit, rcroll, safety, last_rcthr;  // Variables to store radio in
+        long rcyaw, rcpit, rcroll, safety, last_rcthr;  // Variables to store radio in
 	float rcalt;
+
 	safety = channels[4];
 	float pitch, roll, yaw;
 
 	float pitch_stab_output, roll_stab_output, yaw_stab_output;
 	float alt_output;
 	long pitch_output, roll_output, yaw_output;
-
-
-	getSwitchPosition(channels);										// Sets switchState to: OFF, AUTONOMOUS, or MANUAL
-																		// depending on RC top-right switch position
 	
 	float AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
 	while ( (AVG_OFF_BUTTON_VALUE < 1.0) || (safety < 1500)) {			// Kill motors when [off switch] or [safety] is on
 		droneOff();
 		yaw_target = yaw;												// reset yaw target so we maintain this on takeoff
+		sendDataToPhone();
 
 		AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
 		hal.rcin->read(channels, 8);
@@ -196,51 +234,58 @@ void loop() {
 	
 	float gyroPitch, gyroRoll, gyroYaw;
 	getGyro(gyroPitch, gyroRoll, gyroYaw);
-	
-	//Autonomous yaw													// depending on RC top-right switch position  
-	if (switchState == AUTO_ALT_HOLD) {
 
-		rcyaw = getHeading();
+    getSwitchPosition(channels);									// Sets switchStatus to: OFF, AUTONOMOUS, or MANUAL
+																	// depending on RC top-right switch position
 
-		/*
-		hal.console->print("Old rcyaw: ");
-		hal.console->print(rcyaw);
-		rcyaw = getHeading();
-		hal.console->print(" rcyaw: ");
-		hal.console->print(rcyaw);
-		hal.console->print(" sensor yaw(yaw_target): ");
-		hal.console->print(yaw_target);
-		*/
+      //Autonomous 										// depending on RC top-right switch position  
+      if (switchState == AUTO_ALT_HOLD) {
+            float desired_heading, heading_error;
+            desired_heading = -50; //This should be an input from autonomous SoftWare
+            
+		    /////////Autonomous YAW using the compass & GPS
+		    
+		    if((hal.scheduler->micros() - heading_timer) > 100000L){ //Run loop @ 10Hz ~ 100ms
+		        current_heading = getHeading(last_heading);
+		    }
+		    
+		    //Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
+		    heading_error = desired_heading - current_heading;
+		    rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -180, 180);
+		    rcyaw = rcyaw * -1;          
 	}
-	
-	// Stablise PIDS
-	pitch_stab_output = constrain(pids[PID_PITCH_STAB].get_pid((float)rcpit - pitch, 1), -250, 250);
+
+    // Stablize PIDS
+    pitch_stab_output = constrain(pids[PID_PITCH_STAB].get_pid((float)rcpit - pitch, 1), -250, 250); 
 	roll_stab_output = constrain(pids[PID_ROLL_STAB].get_pid((float)rcroll - roll, 1), -250, 250);
 	yaw_stab_output = constrain(pids[PID_YAW_STAB].get_pid((float)yaw_target - yaw, 1), -360, 360);
-		
+ 
 	// is pilot asking for yaw change - if so feed directly to rate pid (overwriting yaw stab output)
-	if(abs(rcyaw) > 5) {
+	if(abs(rcyaw ) > 5) {
 		yaw_stab_output = rcyaw;
 		yaw_target = yaw;   // remember this yaw for when pilot stops
 	}
-	
+		
 	// rate PIDS
-	pitch_output =  (long) constrain(pids[PID_PITCH_RATE].get_pid(pitch_stab_output - gyroPitch, 1), -500, 500);
-	roll_output =  (long) constrain(pids[PID_ROLL_RATE].get_pid(roll_stab_output - gyroRoll, 1), -500, 500);
-	yaw_output =  (long) constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);
+	pitch_output =  (long) constrain(pids[PID_PITCH_RATE].get_pid(pitch_stab_output - gyroPitch, 1), -500, 500);  
+	roll_output =  (long) constrain(pids[PID_ROLL_RATE].get_pid(roll_stab_output - gyroRoll, 1), -500, 500);  
+	yaw_output =  (long) constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);  
 
-	//Feedback loop for altitude holding
-	alt_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
-	//float alt_output = constrain(pids[ALT_RATE].get_pid(alt_stab_output - climb_rate, 1), -100, 100);
+      	//Feedback loop for altitude holding
+      	alt_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
+      	//float alt_output = constrain(pids[ALT_RATE].get_pid(alt_stab_output - climb_rate, 1), -100, 100);
+
+
+
 
 	if (switchState == AUTO_TAKEOFF) {
 		// hal.console->print("DRONE IN AUTOPILOT MODE: ");
 
-		if (autopilotState == TAKEOFF) {									// Autonomous takeoff
+		if (autopilotState == TAKEOFF) {							// Autonomous takeoff
 			// hal.console->println("TAKEOFF");
 			rcthr = autonomousTakeoff(rcalt);
 
-		} else if (autopilotState == ALT_HOLD) {							// Autonomous altitude hold
+		} else if (autopilotState == ALT_HOLD) {						// Autonomous altitude hold
 			// hal.console->println("ALT_HOLD");
 			rcthr = autonomousHold(alt_output);
 
@@ -263,39 +308,26 @@ void loop() {
 	} else {
 		hal.console->print("Error: switchState of ");
 		hal.console->print(switchState);
-		hal.console->println(" has not been configured");
+		hal.console->println(" has snot been configured");
 		while(1);
-	}
-	
-	// hal.console->print("Desired Alt, ");
-	// hal.console->print(rcalt);
-	// hal.console->print(", alt, ");
-	// hal.console->print(alt);
-	// hal.console->print(", Climb Rate, ");
-	// hal.console->print(climb_rate); 
-	// hal.console->print(", alt_output, ");
-	// hal.console->print(alt_output); 
-	// hal.console->print(", THR, ");
-	// hal.console->println(rcthr);
+	}       
+        
+    //Motor Control
+    if(rcthr >= RC_THR_MIN+50) {  // Altitude raised, turn on motors.
+    	// mix pid outputs and send to the motors.
+    	hal.rcout->write(MOTOR_FL, rcthr + roll_output + pitch_output - yaw_output);
+    	hal.rcout->write(MOTOR_BL, rcthr + roll_output - pitch_output + yaw_output);
+    	hal.rcout->write(MOTOR_FR, rcthr - roll_output + pitch_output + yaw_output);
+    	hal.rcout->write(MOTOR_BR, rcthr - roll_output - pitch_output - yaw_output);
+    } else {
+            droneOff();
+            yaw_target = yaw;
+    }
 
-	// hal.console->print("RCTHR: ");
-	// hal.console->print(rcthr);
-	// hal.console->print(",  roll_output: ");
-	// hal.console->print(roll_output);
-	// hal.console->print(",  pitch_output: ");
-	// hal.console->print(pitch_output);
-	// hal.console->print(",  yaw_output: ");
-	// hal.console->print(yaw_output);
-	// hal.console->println();
-
-	// mix pid outputs and send to the motors.
-	hal.rcout->write(MOTOR_FL, rcthr + roll_output + pitch_output - yaw_output);
-	hal.rcout->write(MOTOR_BL, rcthr + roll_output - pitch_output + yaw_output);
-	hal.rcout->write(MOTOR_FR, rcthr - roll_output + pitch_output + yaw_output);
-	hal.rcout->write(MOTOR_BR, rcthr - roll_output - pitch_output - yaw_output);
-
+        //Send data to user App
 	sendDataToPhone();
 }
+
 
 // Arduino map function
 float map(float x, float in_min, float in_max, float out_min, float out_max) {
@@ -316,12 +348,13 @@ float movingAvg(float previous, float current, float a){
 
 void setPidConstants(int config) {
 	if (config == DEFAULT) {
-		pids[PID_PITCH_RATE].kP(0.3);
-		pids[PID_PITCH_RATE].kI(0.2);
+                //Below are the PIDs for drone stabilization
+		pids[PID_PITCH_RATE].kP(0.2);
+		pids[PID_PITCH_RATE].kI(0.08);
 		pids[PID_PITCH_RATE].imax(50);
 		
-		pids[PID_ROLL_RATE].kP(0.3);
-		pids[PID_ROLL_RATE].kI(0.2);
+		pids[PID_ROLL_RATE].kP(0.2);
+		pids[PID_ROLL_RATE].kI(0.08);
 		pids[PID_ROLL_RATE].imax(50);
 		
 		pids[PID_YAW_RATE].kP(0.7);
@@ -332,20 +365,30 @@ void setPidConstants(int config) {
 		pids[PID_ROLL_STAB].kP(4.5);
 		pids[PID_YAW_STAB].kP(10);
 		
+                //Below are the PIDs for altitude hold
 		pids[ALT_RATE].kP(0.1);
 		pids[ALT_RATE].kI(0.0);
 		pids[ALT_RATE].imax(50);
 		
-		pids[ALT_STAB].kP(10.0);
-		pids[ALT_STAB].kI(0.0);
-		pids[ALT_STAB].imax(50);
-				
-		pids[YAW_CONTROL].kP(0.5);
-		pids[YAW_CONTROL].kI(0.0);
-		pids[YAW_CONTROL].imax(50);
+		pids[ALT_STAB].kP(6.0);
+		pids[ALT_STAB].kI(1.0);
+		pids[ALT_STAB].imax(100);
+                
+                //Below are the PIDs for autonomous control
+                pids[PITCH_CMD].kP(1.0);
+		pids[PITCH_CMD].kI(0.0);
+		pids[PITCH_CMD].imax(50);
+
+                pids[ROLL_CMD].kP(1.0);
+		pids[ROLL_CMD].kI(0.0);
+		pids[ROLL_CMD].imax(50);
+
+                pids[YAW_CMD].kP(0.7);
+		pids[YAW_CMD].kI(0.0);
+		pids[YAW_CMD].imax(50);
 
 	} else {
-		hal.console->print("Error: PID constants not set for provided configuration ");
+		hal.console->print("Error: PID constants not set for provided configuration");
 		hal.console->println(config);
 		while(1);
 	}
@@ -407,42 +450,119 @@ float calculateYaw() {
 }
 
 
-float getHeading(){
-	  float desired_heading, current_heading, heading_error;
-	  
-	  //getDesiredHeading
-	  desired_heading = -57.0;
-	  
-	  compass.accumulate();
+float getHeading(float last_heading){
+        //Use AHRS for Heading
+        static uint32_t last_t, last_print;
+        uint32_t now = hal.scheduler->micros();
+        float heading = 0;
+    
+        ahrs.update();
+        if((hal.scheduler->micros() - heading_timer) > 100000L){ //Run loop @ 10Hz
+            heading_timer = hal.scheduler->micros();
+            
+            compass.read();
+            heading = compass.calculate_heading(ahrs.get_dcm_matrix());
+            gps->update();
+            
+            Vector3f drift  = ahrs.get_gyro_drift();
+            /*
+            hal.console->printf_P(
+                    PSTR("r:%4.1f  p:%4.1f y:%4.1f "
+                        "drift=(%5.1f %5.1f %5.1f) hdg=%.1f\n"),
+                            ToDeg(ahrs.roll),
+                            ToDeg(ahrs.pitch),
+                            ToDeg(ahrs.yaw),
+                            ToDeg(drift.x),
+                            ToDeg(drift.y),
+                            ToDeg(drift.z),
+                            compass.use_for_yaw() ? ToDeg(heading) : 2.67767789
+            );
+            */
+            current_heading =  ToDeg(heading);
+        }
+        //current_heading = movingAvg(last_heading, current_heading, .5);
+        return current_heading;
+}
 
-	//if((hal.scheduler->micros()- timer) > 100000L)
-	//{
-		timer = hal.scheduler->micros();
-		compass.read();
-		unsigned long read_time = hal.scheduler->micros() - timer;
-		float heading;
-		
-		Matrix3f dcm_matrix;
-		dcm_matrix.from_euler(0, 0, 0);
-		heading = compass.calculate_heading(dcm_matrix);
-		//compass.null_offsets();
-		current_heading = ToDeg(heading);
-		
-		// display heading
-		// hal.console->print("Desired Heading: ");
-		// hal.console->print(desired_heading);
-		// hal.console->print("  Current Heading: ");
-		// hal.console->print(current_heading);
-		// hal.console->print("  Heading Error: ");
-		// heading_error = desired_heading - current_heading;
-		// hal.console->print(heading_error);
-		
-		float rcyaw = constrain(pids[YAW_CONTROL].get_pid(heading_error, 1), -250, 250);
-	   
-		// hal.console->print("  rcYaw: ");
-		// hal.console->println(rcyaw);
-	   
-		return rcyaw; 
+
+//Coordinate Arrays: [longitude, lattitude]
+void getDroneCoordinates(float coords[]){
+        gps->update();
+	if (gps->new_data) {
+	    // hal.console->print("Lat, ");
+	    // hal.console->print(gps->latitude/10000000.0);
+	    // hal.console->print(", Lon, ");
+	    // hal.console->print(gps->longitude/10000000.0);
+	    // hal.console->print(", g_speed, ");
+	    // hal.console->println(gps->ground_speed/100.0);
+	    // hal.console->printf(" Alt: %.2fm GSP: %.2fm/s CoG: %d SAT: %d TIM: %lu STATUS: %u\n",
+	    //               (float)gps->altitude / 100.0,
+	    //               (float)gps->ground_speed / 100.0,
+	    //               (int)gps->ground_course / 100,
+	    //               gps->num_sats,
+	    //               gps->time,
+	    //               gps->status()
+	    //               );
+
+            coords[1] = gps->latitude/10000000.0;
+            coords[0] = gps->longitude/10000000.0;
+	} else {
+            hal.console->print("~~~~~~~~~~~~~~~~  Error. NO NEW GPS DATA!  ~~~~~~~~~~~~~~");
+        }
+}
+
+//Coordinate Arrays: [longitude, lattitude]
+bool getTargetCoordinates(float coords[]){
+        gps->update();
+	if (gps->new_data) {
+            coords[1] = gps->latitude/10000000.0;
+            coords[0] = gps->longitude/10000000.0;
+            hal.console->println(gps->status());
+            return true;
+	} 
+        hal.console->print("~~~~~~~~~~~~~~~~  Error. NO NEW GPS DATA!  ~~~~~~~~~~~~~~");
+        return false;
+}
+
+//Coordinate Arrays: [longitude, lattitude]
+void getTakeoffCoordinates(float coords[]){
+        int counter=0;
+        hal.console->println("getting GPS lock");
+        gps->update();
+        
+        while (gps->status() < 2){
+              flash_leds(true);
+              hal.scheduler->delay(50);
+              flash_leds(false);
+              hal.scheduler->delay(50);
+              flash_leds(true);
+              hal.scheduler->delay(50);
+              
+              //Counter to exit while loop if cannot get GPS coordinate
+              counter++;
+              hal.console->print(counter);
+              
+              //If we get to 20 attempts, then it probalby cannot attain coordinates
+              if(counter >= 20){
+                      hal.console->println("\n Cannot attain GPS coordinates. Status code: ");        
+                      hal.console->println(gps->status());
+                      flash_leds(true);
+                      hal.scheduler->delay(50);
+                      flash_leds(false);
+                      hal.scheduler->delay(50);
+                      flash_leds(true);
+                      hal.scheduler->delay(50);       
+                      flash_leds(false);
+                      hal.scheduler->delay(50);  
+                      flash_leds(true);
+                      hal.scheduler->delay(50);     
+              }
+        }
+
+        coords[1] = gps->latitude/10000000.0;
+        coords[0] = gps->longitude/10000000.0;
+        hal.console->println(gps->status());
+        return;
 }
 
 float getAltitude() {
@@ -462,7 +582,6 @@ float getClimbRate() {
 		hal.console->println("not healthy");
 		return 0.0;
 	}
-	
 	return (baro.get_climb_rate());
 }
 
@@ -471,7 +590,7 @@ void getAltitudeData() {
 	alt = getAltitude();
 	
 	//Smooth raw data (last parameter is the smoothing constant)
-	alt = movingAvg(last_alt, alt, .8);
+	//alt = movingAvg(last_alt, alt, .5);
 	
 	//Verify that the altitude values are within scope
 	if(abs(alt-last_alt) > 100){
@@ -489,11 +608,18 @@ void getAltitudeData() {
 	}
 	
 	//Scheduling
-	interval = hal.scheduler->micros();
+	interval = hal.scheduler->micros();  
+	
+	/*hal.console->printf("\nVoltage: %.2f \tCurrent: %.2f \tTotCurr:%.2f",
+					battery_mon.voltage(),
+					battery_mon.current_amps(),
+							battery_mon.current_total_mah());
+	*/
 }
 
 void getOrientation(float &pitch, float &roll, float &yaw) {
-	ins.update();														// Ask MPU6050 for orientation
+	ins.update();	
+        //q = ins.quaternion;										// Ask MPU6050 for orientation
 	ins.quaternion.to_euler(&roll, &pitch, &yaw);
 	
 	pitch = ToDeg(pitch);
@@ -502,7 +628,7 @@ void getOrientation(float &pitch, float &roll, float &yaw) {
 }
 
 void getGyro(float &gyroPitch, float &gyroRoll, float &gyroYaw) {
-	Vector3f gyro = ins.get_gyro();										// Ask MPU6050 for gyro data
+	Vector3f gyro = ins.get_gyro();							// Ask MPU6050 for gyro data
 
 	gyroPitch = ToDeg(gyro.y);
 	gyroRoll = ToDeg(gyro.x);
@@ -555,6 +681,7 @@ void getSwitchPosition(uint16_t channels[]) {
 	}
 }
 
+//Saftey Switch Function
 void droneOff() {
 
 	autopilotState = OFF;
@@ -569,26 +696,15 @@ void droneOff() {
 	//hal.console->printf_P(PSTR("Voltage ch0:%.2f\n"), AVG_OFF_BUTTON_VALUE);
 	//hal.scheduler->delay(500);
 							
-	//GET GPS STATS
-	gps->update();
-	if (gps->new_data) {
-		// hal.console->print("Lat, ");
-		// hal.console->print(gps->latitude/10000000.0);
-		// hal.console->print(", Lon, ");
-		// hal.console->print(gps->longitude/10000000.0);
-		// hal.console->print(", g_speed, ");
-		// hal.console->println(gps->ground_speed/100.0);
-		// hal.console->printf(" Alt: %.2fm GSP: %.2fm/s CoG: %d SAT: %d TIM: %lu STATUS: %u\n",
-		//               (float)gps->altitude / 100.0,
-		//               (float)gps->ground_speed / 100.0,
-		//               (int)gps->ground_course / 100,
-		//               gps->num_sats,
-		//               gps->time,
-		//               gps->status()
-		//               );
-	}
-	
-	for(int i=0; i<9; i++) {								// reset PID integrals
+	//GET BATTERY STATS
+	//Update voltage and current readings
+	battery_mon.read();
+	hal.console->printf("\nVoltage: %.2f \tCurrent: %.2f \tTotCurr:%.2f  ",
+	        battery_mon.voltage(), //voltage
+	        battery_mon.current_amps(), //Inst current
+	        battery_mon.current_total_mah()); //Accumulated current
+		
+	for(int i=0; i<11; i++) {								// reset PID integrals
 		pids[i].reset_I();
 	}
 }
@@ -600,7 +716,7 @@ long autonomousTakeoff(float rcalt) {
 		rcthr = map(alt, rcalt/2, rcalt, MAX_TAKEOFF_THR,
 					MIN_TAKEOFF_THR);
 	} else {												// Otto is above rcalt
-		for(int i=0; i<9; i++) {							// reset PID integrals for altitude hold
+		for(int i=0; i<11; i++) {							// reset PID integrals for altitude hold
 			pids[i].reset_I();
 		}
 		setPidConstants(DEFAULT);
@@ -634,10 +750,11 @@ void setupBarometer() {
 
 void setupMPU() {
 	// Turn on MPU6050 - quad must be kept still as gyros will calibrate
-	ins.init(AP_InertialSensor::COLD_START, 
+        ins.init(AP_InertialSensor::COLD_START, 
 			 AP_InertialSensor::RATE_100HZ,
-							NULL);
-
+			 flash_leds);
+        ins.init_accel(flash_leds);
+        
 	// initialise sensor fusion on MPU6050 chip (aka DigitalMotionProcessing/DMP)
 	hal.scheduler->suspend_timer_procs();  // stop bus collisions
 	ins.dmp_init();
@@ -654,29 +771,19 @@ void setupCompass() {
 		while (1) ;
 	}
 
-	//compass.set_orientation(AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD); // set compass's orientation on aircraft.
+	compass.set_orientation(MAG_ORIENTATION); // set compass's orientation on aircraft.
 	compass.set_offsets(0,0,0); // set offsets to account for surrounding interference
 	compass.set_declination(ToRad(0.0)); // set local difference between magnetic north and true north
-
-	hal.console->print("\nCompass auto-detected as: ");
-	switch( compass.product_id ) {
-		case AP_COMPASS_TYPE_HMC5843:
-			hal.console->println("HMC5843");
-			break;
-		case AP_COMPASS_TYPE_HMC5883L:
-			hal.console->println("HMC5883L");
-			break;
-		default:
-			hal.console->println("unknown");
-			break;
-	}
+        
+        //Otto uses the HMC5883L Compass
 }
 
 void setupTiming() {
 	hal.scheduler->delay(1000);
 	timer = hal.scheduler->micros();
 	interval = timer;
-		send_interval = timer;
+        send_interval = timer;
+        heading_timer = timer;
 }
 
 void setupRpi() {
@@ -701,6 +808,13 @@ void setupBatteryMonitor() {
 	battery_mon.set_monitoring(AP_BATT_MONITOR_VOLTAGE_AND_CURRENT);
 	hal.console->println("Battery monitor initialized");
 }
+
+static void flash_leds(bool on)
+{
+    hal.gpio->write(A_LED_PIN, on ? LED_OFF : LED_ON);
+    hal.gpio->write(C_LED_PIN, on ? LED_ON : LED_OFF);
+}
+
 
 void sendDataToPhone() {
 	//Send alt and battery info over UART to App every 2 seconds
