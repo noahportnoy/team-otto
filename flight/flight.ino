@@ -70,7 +70,7 @@ AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
 #define RC_ALT_MAX   1
 
 //Hover throttle
-#define HOVER_THR 1340
+#define HOVER_THR 1330
 
 // Min/max throttle for autonomous takeoff
 #define MAX_TAKEOFF_THR 1340
@@ -202,15 +202,15 @@ void loop() {
 	uint16_t channels[8];  // array for raw channel values
 	hal.rcin->read(channels, 8);  
 
-	long rcyaw, rcpit, rcroll, safety, last_rcthr;  // Variables to store radio in
+        long rcyaw, rcpit, rcroll, safety, last_rcthr;  // Variables to store radio in
 	float rcalt;
+
 	safety = channels[4];
 	float pitch, roll, yaw;
 
 	float pitch_stab_output, roll_stab_output, yaw_stab_output;
 	float alt_output;
 	long pitch_output, roll_output, yaw_output;
-
 
 	getSwitchPosition(channels);										// Sets switchState to: OFF, AUTONOMOUS, or MANUAL
 																		// depending on RC top-right switch position
@@ -241,163 +241,171 @@ void loop() {
 	float gyroPitch, gyroRoll, gyroYaw;
 	getGyro(gyroPitch, gyroRoll, gyroYaw);
 	
-	if(rcalt >= 0) {  // Altitude raised, turn on stablisation.
 
-                getSwitchPosition(channels);									// Sets switchStatus to: OFF, AUTONOMOUS, or MANUAL
+          getSwitchPosition(channels);									// Sets switchStatus to: OFF, AUTONOMOUS, or MANUAL
 		
-                //Autonomous 										// depending on RC top-right switch position  
-	        if (switchState == AUTO_ALT_HOLD) {
+          //Autonomous 										// depending on RC top-right switch position  
+          if (switchState == AUTO_ALT_HOLD) {
                 /*        float desired_heading, heading_error;
-                        desired_heading = -50; //This should be an input from autonomous SoftWare
-                        
-                        
-                /////////Autonomous YAW using the compass & GPS
-                        
-                        if((hal.scheduler->micros() - heading_timer) > 100000L){ //Run loop @ 10Hz ~ 100ms
-                            current_heading = getHeading(last_heading);
-                        }
-                        
-                        //Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
-                        heading_error = desired_heading - current_heading;
-                        rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -180, 180);
-                        rcyaw = rcyaw * -1;          
-                        
-                 /*       
-                 /////////Autonomous Pitch / Roll using the Rotation Matrix Method
-                        //Vector format is x,y,z                       
-                        Vector3f lat_long_error, autonomous_pitch_roll;
-                        Matrix3f yaw_rotation_m;
-     
-                        //lat_long_error = Vector3f(1, 2, .1);
-                        //q.earth_to_body(lat_long_error);
-
-                        //Coordinate Arrays: [longitude, lattitude]
-                        float drone_coordinates[2];
-                        
-                        getDroneCoordinates(drone_coordinates);
-                        //getTargetCoordinates(target_coordinates);
-                        
-                        
-                        //Get Lat and Long error
-                        lat_long_error.x = (target_coordinates[0] - drone_coordinates[0])*111082.9;
-                        lat_long_error.y = (target_coordinates[1] - drone_coordinates[1])*82198.9;
-                        lat_long_error.z = 0;
-                        
-                        hal.console->printf("long:%f Lat:%f  ", lat_long_error.x, lat_long_error.y );
-                        
-                        /*
-                        Generic Matrix Setup
-                        ----           ----
-                        |  a.x  a.y  a.z  |
-                        |  b.x  b.y  b.z  |
-                        |  c.x  c.y  c.z  |
-                        ----           ----
-                        *
-                        //q.rotation_matrix(m);
-                        
-                        yaw_rotation_m.a = Vector3f(cos(yaw), sin(yaw), 0);
-                        yaw_rotation_m.b = Vector3f(-sin(yaw), cos(yaw), 0);
-                        yaw_rotation_m.c = Vector3f(0, 0, 1);
-                        //hal.console->print("Yaw Rotation Matrix:  ");
-                        hal.console->printf("a: %f %f %f b: %f %f %f    ", yaw_rotation_m.a.x, yaw_rotation_m.a.y, yaw_rotation_m.a.z, yaw_rotation_m.b.x, yaw_rotation_m.b.y, yaw_rotation_m.b.z);
-                        
-                        
-                        //Multiply the lat_long_error matrix by the yaw rotation matrix to get pitch / roll proportions
-                        autonomous_pitch_roll = yaw_rotation_m*lat_long_error;    //This may be incorrect mom
-                        
-                        hal.console->printf("p/r: %f %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y, autonomous_pitch_roll.z);
-
-                        
-                        rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.x, 1), -45, 45); 
-                        rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.y, 1), -45, 45); 
-                        
-                        hal.console->print(" rcpitch, ");
-                        hal.console->print(rcpit);
-                        hal.console->print(" rcroll, ");
-                        hal.console->println(rcroll);
+                          desired_heading = -50; //This should be an input from autonomous SoftWare
+                
+                
+        /////////Autonomous YAW using the compass & GPS
+                
+                if((hal.scheduler->micros() - heading_timer) > 100000L){ //Run loop @ 10Hz ~ 100ms
+                    current_heading = getHeading(last_heading);
+                }
+                
+                //Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
+                heading_error = desired_heading - current_heading;
+                rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -180, 180);
+                rcyaw = rcyaw * -1;          
+                
+               /*       
+         /////////Autonomous Pitch / Roll using the Rotation Matrix Method
+                //Vector format is x,y,z                       
+                Vector3f lat_long_error, autonomous_pitch_roll;
+                Matrix3f yaw_rotation_m;
+       
+                //lat_long_error = Vector3f(1, 2, .1);
+                //q.earth_to_body(lat_long_error);
+      
+                //Coordinate Arrays: [longitude, lattitude]
+                float drone_coordinates[2];
+                
+                getDroneCoordinates(drone_coordinates);
+                //getTargetCoordinates(target_coordinates);
+                
+                
+                //Get Lat and Long error
+                lat_long_error.x = (target_coordinates[0] - drone_coordinates[0])*111082.9;
+                lat_long_error.y = (target_coordinates[1] - drone_coordinates[1])*82198.9;
+                lat_long_error.z = 0;
+                
+                hal.console->printf("long:%f Lat:%f  ", lat_long_error.x, lat_long_error.y );
+                
+                /*
+                Generic Matrix Setup
+                ----           ----
+                |  a.x  a.y  a.z  |
+                |  b.x  b.y  b.z  |
+                |  c.x  c.y  c.z  |
+                ----           ----
+                *
+                //q.rotation_matrix(m);
+                
+                yaw_rotation_m.a = Vector3f(cos(yaw), sin(yaw), 0);
+                yaw_rotation_m.b = Vector3f(-sin(yaw), cos(yaw), 0);
+                yaw_rotation_m.c = Vector3f(0, 0, 1);
+                //hal.console->print("Yaw Rotation Matrix:  ");
+                hal.console->printf("a: %f %f %f b: %f %f %f    ", yaw_rotation_m.a.x, yaw_rotation_m.a.y, yaw_rotation_m.a.z, yaw_rotation_m.b.x, yaw_rotation_m.b.y, yaw_rotation_m.b.z);
+                
+                
+                //Multiply the lat_long_error matrix by the yaw rotation matrix to get pitch / roll proportions
+                autonomous_pitch_roll = yaw_rotation_m*lat_long_error;    //This may be incorrect 
+                
+                hal.console->printf("p/r: %f %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y, autonomous_pitch_roll.z);
+      
+                
+                rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.x, 1), -45, 45); 
+                rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.y, 1), -45, 45); 
+                
+                hal.console->print(" rcpitch, ");
+                hal.console->print(rcpit);
+                hal.console->print(" rcroll, ");
+                hal.console->println(rcroll);
                 */
-                
-                
-	        }
+        
+  
+	}
+
 	
-	        // Stablise PIDS
-		float pitch_stab_output = constrain(pids[PID_PITCH_STAB].get_pid((float)rcpit - pitch, 1), -250, 250); 
-		float roll_stab_output = constrain(pids[PID_ROLL_STAB].get_pid((float)rcroll - roll, 1), -250, 250);
-		float yaw_stab_output = constrain(pids[PID_YAW_STAB].get_pid((float)yaw_target - yaw, 1), -360, 360);
-   
-		// is pilot asking for yaw change - if so feed directly to rate pid (overwriting yaw stab output)
-		if(abs(rcyaw ) > 5) {
-			yaw_stab_output = rcyaw;
-			yaw_target = yaw;   // remember this yaw for when pilot stops
+
+        // Stablize PIDS
+        pitch_stab_output = constrain(pids[PID_PITCH_STAB].get_pid((float)rcpit - pitch, 1), -250, 250); 
+	roll_stab_output = constrain(pids[PID_ROLL_STAB].get_pid((float)rcroll - roll, 1), -250, 250);
+	yaw_stab_output = constrain(pids[PID_YAW_STAB].get_pid((float)yaw_target - yaw, 1), -360, 360);
+ 
+	// is pilot asking for yaw change - if so feed directly to rate pid (overwriting yaw stab output)
+	if(abs(rcyaw ) > 5) {
+		yaw_stab_output = rcyaw;
+		yaw_target = yaw;   // remember this yaw for when pilot stops
+	}
+		
+	// rate PIDS
+	pitch_output =  (long) constrain(pids[PID_PITCH_RATE].get_pid(pitch_stab_output - gyroPitch, 1), -500, 500);  
+	roll_output =  (long) constrain(pids[PID_ROLL_RATE].get_pid(roll_stab_output - gyroRoll, 1), -500, 500);  
+	yaw_output =  (long) constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);  
+
+      	//Feedback loop for altitude holding
+      	alt_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
+      	//float alt_output = constrain(pids[ALT_RATE].get_pid(alt_stab_output - climb_rate, 1), -100, 100);
+
+
+
+
+	if (switchState == AUTO_TAKEOFF) {
+		// hal.console->print("DRONE IN AUTOPILOT MODE: ");
+
+		if (autopilotState == TAKEOFF) {							// Autonomous takeoff
+			// hal.console->println("TAKEOFF");
+			rcthr = autonomousTakeoff(rcalt);
+
+		} else if (autopilotState == ALT_HOLD) {						// Autonomous altitude hold
+			// hal.console->println("ALT_HOLD");
+			rcthr = autonomousHold(alt_output);
+
+		} else {
+			hal.console->print("Error: autopilotState of ");
+			hal.console->print(autopilotState);
+			hal.console->println(" has not been configured");
+			while(1);
 		}
-		
-		// rate PIDS
-		long pitch_output =  (long) constrain(pids[PID_PITCH_RATE].get_pid(pitch_stab_output - gyroPitch, 1), -500, 500);  
-		long roll_output =  (long) constrain(pids[PID_ROLL_RATE].get_pid(roll_stab_output - gyroRoll, 1), -500, 500);  
-		long yaw_output =  (long) constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);  
 
-
-		//Feedback loop for altitude holding
-		float alt_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
-		//float alt_output = constrain(pids[ALT_RATE].get_pid(alt_stab_output - climb_rate, 1), -100, 100);
-		
-
-
-
-          	if (switchState == AUTO_TAKEOFF) {
-          		// hal.console->print("DRONE IN AUTOPILOT MODE: ");
-          
-          		if (autopilotState == TAKEOFF) {							// Autonomous takeoff
-          			// hal.console->println("TAKEOFF");
-          			rcthr = autonomousTakeoff(rcalt);
-          
-          		} else if (autopilotState == ALT_HOLD) {						// Autonomous altitude hold
-          			// hal.console->println("ALT_HOLD");
-          			rcthr = autonomousHold(alt_output);
-          
-          		} else {
-          			hal.console->print("Error: autopilotState of ");
-          			hal.console->print(autopilotState);
-          			hal.console->println(" has not been configured");
-          			while(1);
-          		}
-          
-          	} else if (switchState == MANUAL) {								// Manual mode
-          		// hal.console->println("DRONE IN MANUAL MODE");
-          		rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MIN, 1500);
-          	
-          	} else if (switchState == AUTO_ALT_HOLD) {							// Autonomous altitude hold
-          	
-          		// hal.console->println("DRONE IN AUTO_ALT_HOLD MODE");
-          		rcthr = autonomousHold(alt_output);
-          	
-          	} else {
-          		hal.console->print("Error: switchState of ");
-          		hal.console->print(switchState);
-          		hal.console->println(" has not been configured");
-          		while(1);
-          	}
-          	
-          	// hal.console->print("Desired Alt, ");
-          	// hal.console->print(rcalt);
-          	// hal.console->print(", alt, ");
-          	// hal.console->print(alt);
-          	// hal.console->print(", Climb Rate, ");
-          	// hal.console->print(climb_rate); 
-          	// hal.console->print(", alt_output, ");
-          	// hal.console->print(alt_output); 
-          	// hal.console->print(", THR, ");
-          	// hal.console->println(rcthr);
-          
-          	// mix pid outputs and send to the motors.
-          	hal.rcout->write(MOTOR_FL, rcthr + roll_output + pitch_output - yaw_output);
-          	hal.rcout->write(MOTOR_BL, rcthr + roll_output - pitch_output + yaw_output);
-          	hal.rcout->write(MOTOR_FR, rcthr - roll_output + pitch_output + yaw_output);
-          	hal.rcout->write(MOTOR_BR, rcthr - roll_output - pitch_output - yaw_output);
-          
-          	sendDataToPhone();
+	} else if (switchState == MANUAL) {								// Manual mode
+		// hal.console->println("DRONE IN MANUAL MODE");
+		rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MIN, 1500);
+	
+	} else if (switchState == AUTO_ALT_HOLD) {							// Autonomous altitude hold
+	
+		// hal.console->println("DRONE IN AUTO_ALT_HOLD MODE");
+		rcthr = autonomousHold(alt_output);
+	
+	} else {
+		hal.console->print("Error: switchState of ");
+		hal.console->print(switchState);
+		hal.console->println(" has snot been configured");
+		while(1);
+	}
+   
+        
+        
+        //Motor Control
+        if(rcthr >= RC_THR_MIN+50) {  // Altitude raised, turn on motors.
+        	// mix pid outputs and send to the motors.
+        	hal.rcout->write(MOTOR_FL, rcthr + roll_output + pitch_output - yaw_output);
+        	hal.rcout->write(MOTOR_BL, rcthr + roll_output - pitch_output + yaw_output);
+        	hal.rcout->write(MOTOR_FR, rcthr - roll_output + pitch_output + yaw_output);
+        	hal.rcout->write(MOTOR_BR, rcthr - roll_output - pitch_output - yaw_output);
+        } else {
+                // motors off
+                hal.rcout->write(MOTOR_FL, 1000);
+                hal.rcout->write(MOTOR_BL, 1000);
+                hal.rcout->write(MOTOR_FR, 1000);
+                hal.rcout->write(MOTOR_BR, 1000);
+                   
+                // reset yaw target so we maintain this on takeoff
+                yaw_target = yaw;
+                
+                // reset PID integrals whilst on the ground
+                for(int i=0; i<6; i++)
+                  pids[i].reset_I();
         }
+
+        //Send data to user App
+	sendDataToPhone();
 }
+
 
 // Arduino map function
 float map(float x, float in_min, float in_max, float out_min, float out_max) {
@@ -647,7 +655,7 @@ void getAltitudeData() {
 
 void getOrientation(float &pitch, float &roll, float &yaw) {
 	ins.update();	
-        q = ins.quaternion;										// Ask MPU6050 for orientation
+        //q = ins.quaternion;										// Ask MPU6050 for orientation
 	ins.quaternion.to_euler(&roll, &pitch, &yaw);
 	
 	pitch = ToDeg(pitch);
