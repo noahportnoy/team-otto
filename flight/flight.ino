@@ -173,17 +173,13 @@ void setup() {
         setupBarometer();
 	setupGPS();
 	setupBatteryMonitor();
-        ahrs.init();                      //Initizlize the Altitude Hold Refernece System
+        //Initizlize the Altitude Hold Refernece System
+        ahrs.init();  
         
-        while (!getTargetCoordinates(target_coordinates)){
-            flash_leds(true);
-            hal.scheduler->delay(200);
-            flash_leds(false);
-            hal.scheduler->delay(200);
-            flash_leds(true);
-            hal.scheduler->delay(500);
-            hal.console->println("getting GPS lock");
-        }
+        //Get coordinates of takeoff point
+        getTakeoffCoordinates(target_coordinates);
+        
+        hal.console->printf("target_long, %f, target_lat, %f,  ", target_coordinates[0], target_coordinates[1]);
         
         hal.console->println("Otto Ready.");
 }
@@ -241,14 +237,12 @@ void loop() {
 	float gyroPitch, gyroRoll, gyroYaw;
 	getGyro(gyroPitch, gyroRoll, gyroYaw);
 	
-
           getSwitchPosition(channels);									// Sets switchStatus to: OFF, AUTONOMOUS, or MANUAL
 		
           //Autonomous 										// depending on RC top-right switch position  
           if (switchState == AUTO_ALT_HOLD) {
-                /*        float desired_heading, heading_error;
-                          desired_heading = -50; //This should be an input from autonomous SoftWare
-                
+                float desired_heading, heading_error;
+                desired_heading = -50; //This should be an input from autonomous SoftWare
                 
         /////////Autonomous YAW using the compass & GPS
                 
@@ -260,8 +254,7 @@ void loop() {
                 heading_error = desired_heading - current_heading;
                 rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -180, 180);
                 rcyaw = rcyaw * -1;          
-                
-               /*       
+                      
          /////////Autonomous Pitch / Roll using the Rotation Matrix Method
                 //Vector format is x,y,z                       
                 Vector3f lat_long_error, autonomous_pitch_roll;
@@ -282,7 +275,12 @@ void loop() {
                 lat_long_error.y = (target_coordinates[1] - drone_coordinates[1])*82198.9;
                 lat_long_error.z = 0;
                 
-                hal.console->printf("long:%f Lat:%f  ", lat_long_error.x, lat_long_error.y );
+                hal.console->print("heading, ");
+                hal.console->print(current_heading);
+                hal.console->printf(",  drone_long, %f, drone_lat, %f,  ", drone_coordinates[0], drone_coordinates[1]);
+                hal.console->print(" yaw, ");
+                hal.console->println(yaw);
+                
                 
                 /*
                 Generic Matrix Setup
@@ -291,29 +289,29 @@ void loop() {
                 |  b.x  b.y  b.z  |
                 |  c.x  c.y  c.z  |
                 ----           ----
-                *
+                */
                 //q.rotation_matrix(m);
                 
                 yaw_rotation_m.a = Vector3f(cos(yaw), sin(yaw), 0);
                 yaw_rotation_m.b = Vector3f(-sin(yaw), cos(yaw), 0);
                 yaw_rotation_m.c = Vector3f(0, 0, 1);
                 //hal.console->print("Yaw Rotation Matrix:  ");
-                hal.console->printf("a: %f %f %f b: %f %f %f    ", yaw_rotation_m.a.x, yaw_rotation_m.a.y, yaw_rotation_m.a.z, yaw_rotation_m.b.x, yaw_rotation_m.b.y, yaw_rotation_m.b.z);
+                //hal.console->printf("a: %f %f %f b: %f %f %f    ", yaw_rotation_m.a.x, yaw_rotation_m.a.y, yaw_rotation_m.a.z, yaw_rotation_m.b.x, yaw_rotation_m.b.y, yaw_rotation_m.b.z);
                 
                 
                 //Multiply the lat_long_error matrix by the yaw rotation matrix to get pitch / roll proportions
                 autonomous_pitch_roll = yaw_rotation_m*lat_long_error;    //This may be incorrect 
                 
-                hal.console->printf("p/r: %f %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y, autonomous_pitch_roll.z);
+                //hal.console->printf("p/r: %f %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y, autonomous_pitch_roll.z);
       
-                
                 rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.x, 1), -45, 45); 
                 rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.y, 1), -45, 45); 
                 
-                hal.console->print(" rcpitch, ");
-                hal.console->print(rcpit);
-                hal.console->print(" rcroll, ");
-                hal.console->println(rcroll);
+                /*
+                //hal.console->print(" rcpitch, ");
+                //hal.console->print(rcpit);
+                //hal.console->print(" rcroll, ");
+                //hal.console->println(rcroll);
                 */
         
   
@@ -595,10 +593,52 @@ bool getTargetCoordinates(float coords[]){
 	if (gps->new_data) {
             coords[1] = gps->latitude/10000000.0;
             coords[0] = gps->longitude/10000000.0;
+            hal.console->println(gps->status());
             return true;
 	} 
         hal.console->print("~~~~~~~~~~~~~~~~  Error. NO NEW GPS DATA!  ~~~~~~~~~~~~~~");
         return false;
+}
+
+//Coordinate Arrays: [longitude, lattitude]
+void getTakeoffCoordinates(float coords[]){
+        int counter=0;
+        hal.console->println("getting GPS lock");
+        gps->update();
+        
+        while (gps->status() < 2){
+              flash_leds(true);
+              hal.scheduler->delay(50);
+              flash_leds(false);
+              hal.scheduler->delay(50);
+              flash_leds(true);
+              hal.scheduler->delay(50);
+              
+              //Counter to exit while loop if cannot get GPS coordinate
+              counter++;
+              hal.console->print(counter);
+              
+              //If we get to 20 attempts, then it probalby cannot attain coordinates
+              if(counter >= 20){
+                      hal.console->println("\n Cannot attain GPS coordinates. Status code: ");        
+                      hal.console->println(gps->status());
+                      flash_leds(true);
+                      hal.scheduler->delay(50);
+                      flash_leds(false);
+                      hal.scheduler->delay(50);
+                      flash_leds(true);
+                      hal.scheduler->delay(50);       
+                      flash_leds(false);
+                      hal.scheduler->delay(50);  
+                      flash_leds(true);
+                      hal.scheduler->delay(50);     
+              }
+        }
+
+        coords[1] = gps->latitude/10000000.0;
+        coords[0] = gps->longitude/10000000.0;
+        hal.console->println(gps->status());
+        return;
 }
 
 float getAltitude() {
