@@ -207,14 +207,12 @@ void loop() {
 	float pitch_stab_output, roll_stab_output, yaw_stab_output;
 	float alt_output;
 	long pitch_output, roll_output, yaw_output;
-
-	getSwitchPosition(channels);										// Sets switchState to: OFF, AUTONOMOUS, or MANUAL
-																		// depending on RC top-right switch position
 	
 	float AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
 	while ( (AVG_OFF_BUTTON_VALUE < 1.0) || (safety < 1500)) {			// Kill motors when [off switch] or [safety] is on
 		droneOff();
 		yaw_target = yaw;												// reset yaw target so we maintain this on takeoff
+		sendDataToPhone();
 
 		AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
 		hal.rcin->read(channels, 8);
@@ -236,91 +234,29 @@ void loop() {
 	
 	float gyroPitch, gyroRoll, gyroYaw;
 	getGyro(gyroPitch, gyroRoll, gyroYaw);
-	
-          getSwitchPosition(channels);									// Sets switchStatus to: OFF, AUTONOMOUS, or MANUAL
-		
-          //Autonomous 										// depending on RC top-right switch position  
-          if (switchState == AUTO_ALT_HOLD) {
-                float desired_heading, heading_error;
-                desired_heading = -50; //This should be an input from autonomous SoftWare
-                
-        /////////Autonomous YAW using the compass & GPS
-                
-                if((hal.scheduler->micros() - heading_timer) > 100000L){ //Run loop @ 10Hz ~ 100ms
-                    current_heading = getHeading(last_heading);
-                }
-                
-                //Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
-                heading_error = desired_heading - current_heading;
-                rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -180, 180);
-                rcyaw = rcyaw * -1;          
-                      
-         /////////Autonomous Pitch / Roll using the Rotation Matrix Method
-                //Vector format is x,y,z                       
-                Vector3f lat_long_error, autonomous_pitch_roll;
-                Matrix3f yaw_rotation_m;
-       
-                //lat_long_error = Vector3f(1, 2, .1);
-                //q.earth_to_body(lat_long_error);
-      
-                //Coordinate Arrays: [longitude, lattitude]
-                float drone_coordinates[2];
-                
-                getDroneCoordinates(drone_coordinates);
-                //getTargetCoordinates(target_coordinates);
-                
-                
-                //Get Lat and Long error
-                lat_long_error.x = (target_coordinates[0] - drone_coordinates[0])*111082.9;
-                lat_long_error.y = (target_coordinates[1] - drone_coordinates[1])*82198.9;
-                lat_long_error.z = 0;
-                
-                hal.console->print("heading, ");
-                hal.console->print(current_heading);
-                hal.console->printf(",  drone_long, %f, drone_lat, %f,  ", drone_coordinates[0], drone_coordinates[1]);
-                hal.console->print(" yaw, ");
-                hal.console->println(yaw);
-                
-                
-                /*
-                Generic Matrix Setup
-                ----           ----
-                |  a.x  a.y  a.z  |
-                |  b.x  b.y  b.z  |
-                |  c.x  c.y  c.z  |
-                ----           ----
-                */
-                //q.rotation_matrix(m);
-                
-                yaw_rotation_m.a = Vector3f(cos(yaw), sin(yaw), 0);
-                yaw_rotation_m.b = Vector3f(-sin(yaw), cos(yaw), 0);
-                yaw_rotation_m.c = Vector3f(0, 0, 1);
-                //hal.console->print("Yaw Rotation Matrix:  ");
-                //hal.console->printf("a: %f %f %f b: %f %f %f    ", yaw_rotation_m.a.x, yaw_rotation_m.a.y, yaw_rotation_m.a.z, yaw_rotation_m.b.x, yaw_rotation_m.b.y, yaw_rotation_m.b.z);
-                
-                
-                //Multiply the lat_long_error matrix by the yaw rotation matrix to get pitch / roll proportions
-                autonomous_pitch_roll = yaw_rotation_m*lat_long_error;    //This may be incorrect 
-                
-                //hal.console->printf("p/r: %f %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y, autonomous_pitch_roll.z);
-      
-                rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.x, 1), -45, 45); 
-                rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.y, 1), -45, 45); 
-                
-                /*
-                //hal.console->print(" rcpitch, ");
-                //hal.console->print(rcpit);
-                //hal.console->print(" rcroll, ");
-                //hal.console->println(rcroll);
-                */
-        
-  
+
+    getSwitchPosition(channels);									// Sets switchStatus to: OFF, AUTONOMOUS, or MANUAL
+																	// depending on RC top-right switch position
+
+      //Autonomous 										// depending on RC top-right switch position  
+      if (switchState == AUTO_ALT_HOLD) {
+            float desired_heading, heading_error;
+            desired_heading = -50; //This should be an input from autonomous SoftWare
+            
+		    /////////Autonomous YAW using the compass & GPS
+		    
+		    if((hal.scheduler->micros() - heading_timer) > 100000L){ //Run loop @ 10Hz ~ 100ms
+		        current_heading = getHeading(last_heading);
+		    }
+		    
+		    //Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
+		    heading_error = desired_heading - current_heading;
+		    rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -180, 180);
+		    rcyaw = rcyaw * -1;          
 	}
 
-	
-
-        // Stablize PIDS
-        pitch_stab_output = constrain(pids[PID_PITCH_STAB].get_pid((float)rcpit - pitch, 1), -250, 250); 
+    // Stablize PIDS
+    pitch_stab_output = constrain(pids[PID_PITCH_STAB].get_pid((float)rcpit - pitch, 1), -250, 250); 
 	roll_stab_output = constrain(pids[PID_ROLL_STAB].get_pid((float)rcroll - roll, 1), -250, 250);
 	yaw_stab_output = constrain(pids[PID_YAW_STAB].get_pid((float)yaw_target - yaw, 1), -360, 360);
  
@@ -374,31 +310,19 @@ void loop() {
 		hal.console->print(switchState);
 		hal.console->println(" has snot been configured");
 		while(1);
-	}
-   
+	}       
         
-        
-        //Motor Control
-        if(rcthr >= RC_THR_MIN+50) {  // Altitude raised, turn on motors.
-        	// mix pid outputs and send to the motors.
-        	hal.rcout->write(MOTOR_FL, rcthr + roll_output + pitch_output - yaw_output);
-        	hal.rcout->write(MOTOR_BL, rcthr + roll_output - pitch_output + yaw_output);
-        	hal.rcout->write(MOTOR_FR, rcthr - roll_output + pitch_output + yaw_output);
-        	hal.rcout->write(MOTOR_BR, rcthr - roll_output - pitch_output - yaw_output);
-        } else {
-                // motors off
-                hal.rcout->write(MOTOR_FL, 1000);
-                hal.rcout->write(MOTOR_BL, 1000);
-                hal.rcout->write(MOTOR_FR, 1000);
-                hal.rcout->write(MOTOR_BR, 1000);
-                   
-                // reset yaw target so we maintain this on takeoff
-                yaw_target = yaw;
-                
-                // reset PID integrals whilst on the ground
-                for(int i=0; i<6; i++)
-                  pids[i].reset_I();
-        }
+    //Motor Control
+    if(rcthr >= RC_THR_MIN+50) {  // Altitude raised, turn on motors.
+    	// mix pid outputs and send to the motors.
+    	hal.rcout->write(MOTOR_FL, rcthr + roll_output + pitch_output - yaw_output);
+    	hal.rcout->write(MOTOR_BL, rcthr + roll_output - pitch_output + yaw_output);
+    	hal.rcout->write(MOTOR_FR, rcthr - roll_output + pitch_output + yaw_output);
+    	hal.rcout->write(MOTOR_BR, rcthr - roll_output - pitch_output - yaw_output);
+    } else {
+            droneOff();
+            yaw_target = yaw;
+    }
 
         //Send data to user App
 	sendDataToPhone();
@@ -779,15 +703,10 @@ void droneOff() {
 	        battery_mon.voltage(), //voltage
 	        battery_mon.current_amps(), //Inst current
 	        battery_mon.current_total_mah()); //Accumulated current
-							
-	//GET GPS STATS
-	//getDroneCoordinates();
 		
 	for(int i=0; i<11; i++) {								// reset PID integrals
 		pids[i].reset_I();
 	}
-
-        sendDataToPhone();
 }
 
 long autonomousTakeoff(float rcalt) {

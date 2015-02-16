@@ -15,6 +15,12 @@ UP                | autonomous takeoff, then altitude hold
 
 ## Changelog
 
+February 16, 2015
+
+- Merged feature/heading back into master
+
+
+------------------------------------------
 
 February 14, 2015
 
@@ -22,8 +28,9 @@ February 14, 2015
 - tuned Altitude hold some more
 
 TODO:
-	- Test GPS hold (GPS in gym isnt great)
-	- Add filtering to GPS signal
+
+- Test GPS hold (GPS in gym isnt great)
+- Add filtering to GPS signal
 
 
 ------------------------------------------
@@ -34,8 +41,9 @@ February 13, 2015
 - Added GPS lock software using rotation  matrix method
 
 TODO:
-	- Test GPS hold
-	- Set drone GPS coordinate as "target" for position hold
+
+- Test GPS hold
+- Set drone GPS coordinate as "target" for position hold
 
 
 ------------------------------------------
@@ -48,22 +56,29 @@ February 12, 2015
 - Working heading control function with exception of occasional spin.
 
 ISSUE:
-	- Drone does a full spin ocasinally.
+
+- Drone does a full spin ocasinally.
+
 TODO:
-	- Fix spinning heading issue. 
+
+- Fix spinning heading issue. 
 
 ------------------------------------------
 
 February 11, 2015
 
+- Branched to feature/heading from master
 - Using AHRS for heading control. 
 - Made some tuning changes to the pitch / roll PID's for more stable flight
 - Increased the hover throttle because of the added weight that came with the new Hardware (3rd level)
 
 ISSUE:
-	- Drone will only hold heading for a shirt period of time, then it will start to spin.
+
+- Drone will only hold heading for a shirt period of time, then it will start to spin.
+
 TODO:
-	- Fix spinning heading issue. 
+
+- Fix spinning heading issue. 
 
 ------------------------------------------
 
