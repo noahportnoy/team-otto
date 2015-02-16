@@ -155,6 +155,7 @@ long rcthr = 1000;
 int heightLock = 0;
 int switchState = 0;
 int autopilotState = 0;
+bool GPS_state = false; //Requires GPS status of 2 or 3 to be true
 
 Matrix3f dcm_matrix;
 Quaternion q;
@@ -188,7 +189,7 @@ void setup() {
 void loop() {
 	//receive from uart
 	uartMessaging.receive();
-	
+        
 	static float yaw_target = 0;  
 
 	// Wait until new orientation data (normally 5ms max)
@@ -237,14 +238,23 @@ void loop() {
 	float gyroPitch, gyroRoll, gyroYaw;
 	getGyro(gyroPitch, gyroRoll, gyroYaw);
 	
-          getSwitchPosition(channels);									// Sets switchStatus to: OFF, AUTONOMOUS, or MANUAL
+        getSwitchPosition(channels);									// Sets switchStatus to: OFF, AUTONOMOUS, or MANUAL
 		
-          //Autonomous 										// depending on RC top-right switch position  
-          if (switchState == AUTO_ALT_HOLD) {
-                float desired_heading, heading_error;
-                desired_heading = -50; //This should be an input from autonomous SoftWare
+        //Autonomous 										// depending on RC top-right switch position  
+        if (switchState == AUTO_ALT_HOLD) {
                 
-        /////////Autonomous YAW using the compass & GPS
+                //Coordinate Arrays: [longitude, lattitude]
+                float drone_coordinates[2];
+                      
+                      
+                /////////Autonomous YAW using the compass & GPS
+                float desired_heading, heading_error;
+                desired_heading = -50; 
+                
+                getDroneCoordinates(drone_coordinates);
+                //getTargetCoordinates(target_coordinates);
+                
+                desired_heading = getDesiredHeading(drone_coordinates[0], drone_coordinates[1], target_coordinates[0], target_coordinates[1]);
                 
                 if((hal.scheduler->micros() - heading_timer) > 100000L){ //Run loop @ 10Hz ~ 100ms
                     current_heading = getHeading(last_heading);
@@ -254,67 +264,71 @@ void loop() {
                 heading_error = desired_heading - current_heading;
                 rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -180, 180);
                 rcyaw = rcyaw * -1;          
+                
+                
+
+                /////////Autonomous Pitch / Roll using the Rotation Matrix Method
+                //First we must verify that we have a reliable GPS connection
+                if(getGpsState()){
+                  
+                      //Vector format is x,y,z                       
+                      Vector3f lat_long_error, autonomous_pitch_roll;
+                      Matrix3f yaw_rotation_m;
+             
+                      //lat_long_error = Vector3f(1, 2, .1);
+                      //q.earth_to_body(lat_long_error);
+            
                       
-         /////////Autonomous Pitch / Roll using the Rotation Matrix Method
-                //Vector format is x,y,z                       
-                Vector3f lat_long_error, autonomous_pitch_roll;
-                Matrix3f yaw_rotation_m;
-       
-                //lat_long_error = Vector3f(1, 2, .1);
-                //q.earth_to_body(lat_long_error);
-      
-                //Coordinate Arrays: [longitude, lattitude]
-                float drone_coordinates[2];
-                
-                getDroneCoordinates(drone_coordinates);
-                //getTargetCoordinates(target_coordinates);
-                
-                
-                //Get Lat and Long error
-                lat_long_error.x = (target_coordinates[0] - drone_coordinates[0])*111082.9;
-                lat_long_error.y = (target_coordinates[1] - drone_coordinates[1])*82198.9;
-                lat_long_error.z = 0;
-                
-                hal.console->print("heading, ");
-                hal.console->print(current_heading);
-                hal.console->printf(",  drone_long, %f, drone_lat, %f,  ", drone_coordinates[0], drone_coordinates[1]);
-                hal.console->print(" yaw, ");
-                hal.console->println(yaw);
-                
-                
-                /*
-                Generic Matrix Setup
-                ----           ----
-                |  a.x  a.y  a.z  |
-                |  b.x  b.y  b.z  |
-                |  c.x  c.y  c.z  |
-                ----           ----
-                */
-                //q.rotation_matrix(m);
-                
-                yaw_rotation_m.a = Vector3f(cos(yaw), sin(yaw), 0);
-                yaw_rotation_m.b = Vector3f(-sin(yaw), cos(yaw), 0);
-                yaw_rotation_m.c = Vector3f(0, 0, 1);
-                //hal.console->print("Yaw Rotation Matrix:  ");
-                //hal.console->printf("a: %f %f %f b: %f %f %f    ", yaw_rotation_m.a.x, yaw_rotation_m.a.y, yaw_rotation_m.a.z, yaw_rotation_m.b.x, yaw_rotation_m.b.y, yaw_rotation_m.b.z);
-                
-                
-                //Multiply the lat_long_error matrix by the yaw rotation matrix to get pitch / roll proportions
-                autonomous_pitch_roll = yaw_rotation_m*lat_long_error;    //This may be incorrect 
-                
-                //hal.console->printf("p/r: %f %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y, autonomous_pitch_roll.z);
-      
-                rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.x, 1), -45, 45); 
-                rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.y, 1), -45, 45); 
-                
-                /*
-                //hal.console->print(" rcpitch, ");
-                //hal.console->print(rcpit);
-                //hal.console->print(" rcroll, ");
-                //hal.console->println(rcroll);
-                */
-        
-  
+                      
+                      
+                      //This should all be in an if statement that checks the status of GPS_state variable
+                      getDroneCoordinates(drone_coordinates);
+                      //getTargetCoordinates(target_coordinates);
+                      
+                      
+                      //Get Lat and Long error
+                      lat_long_error.x = (target_coordinates[0] - drone_coordinates[0])*111082.9;
+                      lat_long_error.y = (target_coordinates[1] - drone_coordinates[1])*82198.9;
+                      lat_long_error.z = 0;
+                               
+                      /*
+                      Generic Matrix Setup
+                      ----           ----
+                      |  a.x  a.y  a.z  |
+                      |  b.x  b.y  b.z  |
+                      |  c.x  c.y  c.z  |
+                      ----           ----
+                      */
+                      //q.rotation_matrix(m);
+                      
+                      yaw_rotation_m.a = Vector3f(cos(yaw), sin(yaw), 0);
+                      yaw_rotation_m.b = Vector3f(-sin(yaw), cos(yaw), 0);
+                      yaw_rotation_m.c = Vector3f(0, 0, 1);
+                      //hal.console->print("Yaw Rotation Matrix:  ");
+                      //hal.console->printf("a: %f %f %f b: %f %f %f    ", yaw_rotation_m.a.x, yaw_rotation_m.a.y, yaw_rotation_m.a.z, yaw_rotation_m.b.x, yaw_rotation_m.b.y, yaw_rotation_m.b.z);
+                      
+                      
+                      //Multiply the lat_long_error matrix by the yaw rotation matrix to get pitch / roll proportions
+                      autonomous_pitch_roll = yaw_rotation_m*lat_long_error;    //This may be incorrect 
+                      
+                      //hal.console->printf("p/r: %f %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y, autonomous_pitch_roll.z);
+            
+                      rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.x, 1), -45, 45); 
+                      rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.y, 1), -45, 45); 
+                      
+                      
+                      hal.console->print("heading, ");
+                      hal.console->print(current_heading);
+                      hal.console->printf(",  drone_long, %f, drone_lat, %f, ", drone_coordinates[0], drone_coordinates[1]);
+                      hal.console->print(" yaw, ");
+                      hal.console->print(yaw);
+                      hal.console->print(", rcpitch, ");
+                      hal.console->print(rcpit);
+                      hal.console->print(", rcroll, ");
+                      hal.console->print(rcroll);
+                      hal.console->print(", t, ");
+                      hal.console->println(hal.scheduler->millis());
+                }
 	}
 
 	
@@ -470,61 +484,14 @@ void setPidConstants(int config) {
 	}
 }
 
-float calculateYaw() { 
-	static float min[3], max[3], offset[3];
-	float heading;
-	compass.accumulate();
-	if((hal.scheduler->micros()- timer) > 100000L)
-	{
-		timer = hal.scheduler->micros();
-		compass.read();
-		
-		if (!compass.healthy) {
-			hal.console->println("not healthy");
-			return 0;
-		}
-		dcm_matrix.to_euler(0,0,0);
-		heading = compass.calculate_heading(dcm_matrix); // roll = 0, pitch = 0 for this example
-		compass.null_offsets();
 
-		// capture min
-		if( compass.mag_x < min[0] )
-			min[0] = compass.mag_x;
-		if( compass.mag_y < min[1] )
-			min[1] = compass.mag_y;
-		if( compass.mag_z < min[2] )
-			min[2] = compass.mag_z;
 
-		// capture max
-		if( compass.mag_x > max[0] )
-			max[0] = compass.mag_x;
-		if( compass.mag_y > max[1] )
-			max[1] = compass.mag_y;
-		if( compass.mag_z > max[2] )
-			max[2] = compass.mag_z;
 
-		// calculate offsets
-		offset[0] = -(max[0]+min[0])/2;
-		offset[1] = -(max[1]+min[1])/2;
-		offset[2] = -(max[2]+min[2])/2;
-	} else {
-		hal.scheduler->delay(1);
-	}  
-	
-	currentOrientation = ToDeg(heading);
-	if(currentOrientation < 0) {
-		currentOrientation = 360 + currentOrientation;
-	}
-	 
-	if(startup == 1) {
-		originalOrientation = currentOrientation;
-		startup = 2;
-	}
-	if(startup == 0)
-		startup = 1;
-	return wrap_180( currentOrientation - originalOrientation );   
-}
 
+
+
+
+/*-------------------------------------------------------- GPS / COMPASS Methods --------------------------------------------------------*/
 
 float getHeading(float last_heading){
         //Use AHRS for Heading
@@ -560,6 +527,49 @@ float getHeading(float last_heading){
         return current_heading;
 }
 
+float getDesiredHeading(float long_drone, float lat_drone, float long_target, float lat_target){
+ 
+          //Calculate the heading angle of the user relative to the drone.
+          float lat_seperation, long_seperation, angle, desired_heading;
+          
+          //Find the lat & long differences
+          if(abs(lat_drone) > abs(lat_target)){
+            lat_seperation = abs(lat_drone - lat_target);  
+          }else{
+            lat_seperation = abs(lat_target - lat_drone);
+          }
+          
+          if(abs(long_drone) > abs(long_target)){
+            long_seperation = abs(long_drone - long_target); 
+          }else{
+            long_seperation = abs(long_target - long_drone);
+          }
+          
+          //Calculate the desired heading of the drone. By using the lattitude as of "opposite" (sohcahTOA) then this will 
+          //always calculate an angle from either due N or S
+          angle = lat_seperation / long_seperation;
+          desired_heading = atan(angle);
+          
+          /*COMPASS OPERATION: 
+             True North is 0 (degrees)
+             Eastern headings are negative numbers
+             Western headings are positive numbers
+             South is 180 or -180
+          */
+        
+          //If the Longitude of the drone is larger than the user than add 90 (degrees)
+          if(long_drone > long_target){
+             desired_heading = desired_heading + 90;
+          }
+          
+          //If the Lattitude of the user is larger than the drones then the drone should be facing East
+          //Convert this to a negative number (details above)
+          if(lat_target > lat_drone){
+            desired_heading = desired_heading*(-1);
+          } 
+          
+          return desired_heading;
+}
 
 //Coordinate Arrays: [longitude, lattitude]
 void getDroneCoordinates(float coords[]){
@@ -589,14 +599,39 @@ void getDroneCoordinates(float coords[]){
 
 //Coordinate Arrays: [longitude, lattitude]
 bool getTargetCoordinates(float coords[]){
+  
+        if(uartMessaging.isUserLonLatest() && uartMessaging.isUserLatLatest()){
+              uartMessaging.getUserLon(&target_coordinates[0]);
+              uartMessaging.getUserLat(&target_coordinates[1]);
+              return true;
+        }
+        
+        hal.console->print("~~~~~~~~~~~~~~~~  WAITING ON NEW TARGET DATA!  ~~~~~~~~~~~~~~");
+        return false;
+}
+
+
+//GPS Status Code
+// 0 = no GPS, 1 = GPS but no fix, 2 = 2D fix, 3 = 3D fix
+bool getGpsState(){
         gps->update();
-	if (gps->new_data) {
-            coords[1] = gps->latitude/10000000.0;
-            coords[0] = gps->longitude/10000000.0;
-            hal.console->println(gps->status());
-            return true;
-	} 
-        hal.console->print("~~~~~~~~~~~~~~~~  Error. NO NEW GPS DATA!  ~~~~~~~~~~~~~~");
+
+	if (gps->new_data){
+            int gps_status = gps->status();
+
+            if(gps_status >=2) {
+                  GPS_state = true;
+                  return true;
+            }else{
+                  hal.console->printf("No GPS Lock, status code: %i \n", gps_status);
+                  GPS_state = false;
+                  return false;
+            }
+	}
+
+        //No data on buffer - check connection
+        hal.console->println("No GPS data on UART buffer");
+        GPS_state = false;
         return false;
 }
 
@@ -616,11 +651,11 @@ void getTakeoffCoordinates(float coords[]){
               
               //Counter to exit while loop if cannot get GPS coordinate
               counter++;
-              hal.console->print(counter);
+              //hal.console->print(counter);
               
               //If we get to 20 attempts, then it probalby cannot attain coordinates
-              if(counter >= 20){
-                      hal.console->println("\n Cannot attain GPS coordinates. Status code: ");        
+              if(counter >= 50){
+                      hal.console->print("\n\n Cannot attain GPS coordinates. Status code: ");        
                       hal.console->println(gps->status());
                       flash_leds(true);
                       hal.scheduler->delay(50);
@@ -633,6 +668,7 @@ void getTakeoffCoordinates(float coords[]){
                       flash_leds(true);
                       hal.scheduler->delay(50);     
               }
+              gps->update();
         }
 
         coords[1] = gps->latitude/10000000.0;
@@ -640,6 +676,8 @@ void getTakeoffCoordinates(float coords[]){
         hal.console->println(gps->status());
         return;
 }
+
+
 
 float getAltitude() {
 	baro.read();
@@ -881,6 +919,7 @@ void setupGPS() {
 	hal.uartB->begin(38400);
 	gps = &GPS;
 	gps->init(hal.uartB, GPS::GPS_ENGINE_AIRBORNE_2G);       // GPS Initialization
+        gps->update();
 }
 
 void setupBatteryMonitor() {
@@ -896,10 +935,65 @@ static void flash_leds(bool on)
     hal.gpio->write(C_LED_PIN, on ? LED_ON : LED_OFF);
 }
 
+float calculateYaw() { 
+	static float min[3], max[3], offset[3];
+	float heading;
+	compass.accumulate();
+	if((hal.scheduler->micros()- timer) > 100000L)
+	{
+		timer = hal.scheduler->micros();
+		compass.read();
+		
+		if (!compass.healthy) {
+			hal.console->println("not healthy");
+			return 0;
+		}
+		dcm_matrix.to_euler(0,0,0);
+		heading = compass.calculate_heading(dcm_matrix); // roll = 0, pitch = 0 for this example
+		compass.null_offsets();
+
+		// capture min
+		if( compass.mag_x < min[0] )
+			min[0] = compass.mag_x;
+		if( compass.mag_y < min[1] )
+			min[1] = compass.mag_y;
+		if( compass.mag_z < min[2] )
+			min[2] = compass.mag_z;
+
+		// capture max
+		if( compass.mag_x > max[0] )
+			max[0] = compass.mag_x;
+		if( compass.mag_y > max[1] )
+			max[1] = compass.mag_y;
+		if( compass.mag_z > max[2] )
+			max[2] = compass.mag_z;
+
+		// calculate offsets
+		offset[0] = -(max[0]+min[0])/2;
+		offset[1] = -(max[1]+min[1])/2;
+		offset[2] = -(max[2]+min[2])/2;
+	} else {
+		hal.scheduler->delay(1);
+	}  
+	
+	currentOrientation = ToDeg(heading);
+	if(currentOrientation < 0) {
+		currentOrientation = 360 + currentOrientation;
+	}
+	 
+	if(startup == 1) {
+		originalOrientation = currentOrientation;
+		startup = 2;
+	}
+	if(startup == 0)
+		startup = 1;
+	return wrap_180( currentOrientation - originalOrientation );   
+}
+
 
 void sendDataToPhone() {
-	//Send alt and battery info over UART to App every 2 seconds
-	if((hal.scheduler->micros() - send_interval) > 2000000UL) {
+	//Send alt and battery info over UART to App every 1 seconds
+	if((hal.scheduler->micros() - send_interval) > 1000000UL) {
 		//Scheduling
 		send_interval = hal.scheduler->micros();  
 		
@@ -910,6 +1004,20 @@ void sendDataToPhone() {
 		//send alt and battery status
 		uartMessaging.sendAltitude(alt);
 		uartMessaging.sendBattery(battery_mon.voltage());
+                
+                //Send GPS Lock information
+                if (GPS_state == true){
+                  uartMessaging.sendGPSLock(true);
+                }else{
+                  uartMessaging.sendGPSLock(false);
+                }
+                
+                //Send Saftey Status
+                if (autopilotState == OFF){
+                  uartMessaging.sendSafetyStatus(false);
+                }else{
+                  uartMessaging.sendSafetyStatus(true);
+                }
 	}
 }
 
