@@ -289,6 +289,9 @@ void loop() {
 			// hal.console->println("ALT_HOLD");
 			rcthr = autonomousHold(alt_output);
 
+		} else if (autopilotState == LAND){
+			rcthr = autonomousLand();								// Autonomous land
+		
 		} else {
 			hal.console->print("Error: autopilotState of ");
 			hal.console->print(autopilotState);
@@ -731,6 +734,19 @@ long autonomousHold(float alt_output) {
 	rcthr = HOVER_THR + alt_output;
 	rcthr = constrain(rcthr, 1200, 1400);
 
+	return rcthr;
+}
+
+//This function is not implemented in loop
+//TODO add switch functionality for autonomous land
+long autonomousLand(){
+	if (alt > 1)											//Otto greater than 1 meter, 30us under hover throttle
+		rcthr = HOVER_THR - 30;
+	else if ( (alt <= 1) || (alt > 0.5) )					//Otto between a half and 1 meter, 20us under hover throttle
+		rcthr = HOVER_THR - 20;
+	else													//Otto under a half meter, 10us under hover throttle
+		rcthr = HOVER_THR - 10;
+		
 	return rcthr;
 }
 
