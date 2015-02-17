@@ -32,7 +32,7 @@ void setup()
     uartMessaging.init(hal.uartC, hal.console);
     
 }
-
+float lat, lon;
 void loop()
 {
   hal.scheduler->delay(1000);
@@ -42,7 +42,14 @@ void loop()
   //send alt and battery status
   uartMessaging.sendAltitude(25.21255f);
   uartMessaging.sendBattery(01.21255f);
-
+  uartMessaging.sendGPSLock(true);
+  uartMessaging.sendSafetyStatus(false);
+  
+  if(uartMessaging.isUserLonLatest())
+    uartMessaging.getUserLon(&lon);
+  
+  if(uartMessaging.isUserLatLatest())
+    uartMessaging.getUserLat(&lat);
     
 }
 

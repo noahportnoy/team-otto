@@ -209,13 +209,11 @@ void loop() {
 	float alt_output;
 	long pitch_output, roll_output, yaw_output;
 
-	getSwitchPosition(channels);										// Sets switchState to: OFF, AUTONOMOUS, or MANUAL
-																		// depending on RC top-right switch position
-	
 	float AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
 	while ( (AVG_OFF_BUTTON_VALUE < 1.0) || (safety < 1500)) {			// Kill motors when [off switch] or [safety] is on
 		droneOff();
 		yaw_target = yaw;												// reset yaw target so we maintain this on takeoff
+		sendDataToPhone();
 
 		AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
 		hal.rcin->read(channels, 8);
@@ -262,13 +260,14 @@ void loop() {
                 
                 //Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
                 heading_error = desired_heading - current_heading;
-                rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -180, 180);
-                rcyaw = rcyaw * -1;          
+                //rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -180, 180);
+                //rcyaw = rcyaw * -1;          
                 
                 
 
                 /////////Autonomous Pitch / Roll using the Rotation Matrix Method
                 //First we must verify that we have a reliable GPS connection
+                /*
                 if(getGpsState()){
                   
                       //Vector format is x,y,z                       
@@ -298,7 +297,7 @@ void loop() {
                       |  b.x  b.y  b.z  |
                       |  c.x  c.y  c.z  |
                       ----           ----
-                      */
+                      *
                       //q.rotation_matrix(m);
                       
                       yaw_rotation_m.a = Vector3f(cos(yaw), sin(yaw), 0);
@@ -329,6 +328,7 @@ void loop() {
                       hal.console->print(", t, ");
                       hal.console->println(hal.scheduler->millis());
                 }
+                */
 	}
 
 	
@@ -400,18 +400,8 @@ void loop() {
         	hal.rcout->write(MOTOR_FR, rcthr - roll_output + pitch_output + yaw_output);
         	hal.rcout->write(MOTOR_BR, rcthr - roll_output - pitch_output - yaw_output);
         } else {
-                // motors off
-                hal.rcout->write(MOTOR_FL, 1000);
-                hal.rcout->write(MOTOR_BL, 1000);
-                hal.rcout->write(MOTOR_FR, 1000);
-                hal.rcout->write(MOTOR_BR, 1000);
-                   
-                // reset yaw target so we maintain this on takeoff
-                yaw_target = yaw;
-                
-                // reset PID integrals whilst on the ground
-                for(int i=0; i<6; i++)
-                  pids[i].reset_I();
+            droneOff();
+            yaw_target = yaw;
         }
 
         //Send data to user App
@@ -439,29 +429,42 @@ float movingAvg(float previous, float current, float a){
 void setPidConstants(int config) {
 	if (config == DEFAULT) {
                 //Below are the PIDs for drone stabilization
-		pids[PID_PITCH_RATE].kP(0.2);
-		pids[PID_PITCH_RATE].kI(0.08);
+		
+		//Attidude PID's - uses MPU
+                pids[PID_PITCH_STAB].kP(6);
+                pids[PID_PITCH_STAB].kI(3);
+                pids[PID_PITCH_STAB].imax(50);
+
+                pids[PID_ROLL_STAB].kP(6);
+                pids[PID_ROLL_STAB].kI(3);
+                pids[PID_ROLL_STAB].imax(50);
+                
+                pids[PID_YAW_STAB].kP(10);
+                pids[PID_YAW_STAB].kI(0);
+		pids[PID_YAW_STAB].imax(10);
+                
+                
+                //Rate PID's - uses Gyro
+                pids[PID_PITCH_RATE].kP(0.2);
+		pids[PID_PITCH_RATE].kI(0.0);
 		pids[PID_PITCH_RATE].imax(50);
-		
-		pids[PID_ROLL_RATE].kP(0.2);
-		pids[PID_ROLL_RATE].kI(0.08);
+
+                pids[PID_ROLL_RATE].kP(0.2);
+		pids[PID_ROLL_RATE].kI(0.0);
 		pids[PID_ROLL_RATE].imax(50);
-		
+
 		pids[PID_YAW_RATE].kP(0.7);
 		pids[PID_YAW_RATE].kI(0.1);
 		pids[PID_YAW_RATE].imax(50);
 		
-		pids[PID_PITCH_STAB].kP(4.5);
-		pids[PID_ROLL_STAB].kP(4.5);
-		pids[PID_YAW_STAB].kP(10);
-		
+
                 //Below are the PIDs for altitude hold
 		pids[ALT_RATE].kP(0.1);
 		pids[ALT_RATE].kI(0.0);
 		pids[ALT_RATE].imax(50);
 		
 		pids[ALT_STAB].kP(6.0);
-		pids[ALT_STAB].kI(1.0);
+		pids[ALT_STAB].kI(0.0);
 		pids[ALT_STAB].imax(100);
                 
                 //Below are the PIDs for autonomous control
@@ -818,14 +821,9 @@ void droneOff() {
 	        battery_mon.current_amps(), //Inst current
 	        battery_mon.current_total_mah()); //Accumulated current
 							
-	//GET GPS STATS
-	//getDroneCoordinates();
-		
 	for(int i=0; i<11; i++) {								// reset PID integrals
 		pids[i].reset_I();
 	}
-
-        sendDataToPhone();
 }
 
 long autonomousTakeoff(float rcalt) {
