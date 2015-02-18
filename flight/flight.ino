@@ -69,8 +69,9 @@ AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
 #define RC_ALT_MIN   0
 #define RC_ALT_MAX   1
 
-//Hover throttle
 #define HOVER_THR 1330
+
+#define BATTERY_ADJ_THR 1280
 
 // Min/max throttle for autonomous takeoff
 #define MAX_TAKEOFF_THR (HOVER_THR+10)
@@ -142,6 +143,7 @@ uint32_t timer;
 uint32_t interval;
 uint32_t send_interval;
 uint32_t heading_timer;
+uint32_t hover_thr_timer;
 
 int startup = 0;
 float originalOrientation = 0.0;
@@ -159,6 +161,7 @@ int autopilotState = 0;
 Matrix3f dcm_matrix;
 Quaternion q;
 float target_coordinates[2];
+float desired_heading;
 
 
 /*---------------------------------------------------- SETUP ----------------------------------------------*/
@@ -170,17 +173,17 @@ void setup() {
 	setupCompass();
 	setupTiming();
 	setupRpi();
-		setupBarometer();
+	setupBarometer();
 	setupGPS();
 	setupBatteryMonitor();
-		//Initizlize the Altitude Hold Refernece System
-		ahrs.init();
-		
-		//Get coordinates of takeoff point
-		getTakeoffCoordinates(target_coordinates);
-		
-		hal.console->printf("target_long, %f, target_lat, %f,  ", target_coordinates[0], target_coordinates[1]);
-		hal.console->println("Otto Ready.");
+	//Initizlize the Altitude Hold Refernece System
+	ahrs.init();
+
+	//Get coordinates of takeoff point
+	getTakeoffCoordinates(target_coordinates);
+	
+	hal.console->printf("target_long, %f, target_lat, %f,  ", target_coordinates[0], target_coordinates[1]);
+	hal.console->println("Otto Ready.");
 }
 
 /*---------------------------------------------- LOOP -----------------------------------------------------*/
@@ -237,19 +240,13 @@ void loop() {
 	getSwitchPosition(channels);										// Sets switchStatus to: OFF, AUTONOMOUS, or MANUAL
 																		// depending on RC top-right switch position
 
-	//Autonomous 														// depending on RC top-right switch position
-	if (switchState == AUTO_ALT_HOLD) {
-		float desired_heading, heading_error;
-		desired_heading = -50; //This should be an input from autonomous SoftWare
-		
-		/////////Autonomous YAW using the compass & GPS
-		
-		if((hal.scheduler->micros() - heading_timer) > 100000L){		//Run loop @ 10Hz ~ 100ms
-			current_heading = getHeading(last_heading);
+	if (switchState == AUTO_ALT_HOLD || switchState == AUTO_TAKEOFF) {	// Autonomous YAW using the compass and GPS
+		if((hal.scheduler->micros() - heading_timer) > 100000L){		// Run loop @ 10Hz ~ 100ms
+			current_heading = getHeading();
 		}
 		
 		//Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
-		heading_error = desired_heading - current_heading;
+		float heading_error = desired_heading - current_heading;
 		rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -180, 180);
 		rcyaw = rcyaw * -1;
 	}
@@ -270,9 +267,9 @@ void loop() {
 	roll_output =  (long) constrain(pids[PID_ROLL_RATE].get_pid(roll_stab_output - gyroRoll, 1), -500, 500);
 	yaw_output =  (long) constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);
 
-		//Feedback loop for altitude holding
-		alt_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
-		//float alt_output = constrain(pids[ALT_RATE].get_pid(alt_stab_output - climb_rate, 1), -100, 100);
+	//Feedback loop for altitude holding
+	alt_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
+	//float alt_output = constrain(pids[ALT_RATE].get_pid(alt_stab_output - climb_rate, 1), -100, 100);
 
 	if (switchState == AUTO_TAKEOFF) {
 		// hal.console->print("DRONE IN AUTOPILOT MODE: ");
@@ -283,6 +280,7 @@ void loop() {
 
 		} else if (autopilotState == ALT_HOLD) {						// Autonomous altitude hold
 			// hal.console->println("ALT_HOLD");
+			
 			rcthr = autonomousHold(alt_output);
 
 		} else if (autopilotState == LAND){
@@ -307,12 +305,12 @@ void loop() {
 	} else {
 		hal.console->print("Error: switchState of ");
 		hal.console->print(switchState);
-		hal.console->println(" has snot been configured");
+		hal.console->println(" has not been configured");
 		while(1);
 	}
 		
 	//Motor Control
-	if(rcthr >= RC_THR_MIN+50) {  										// Altitude raised, turn on motors.
+	if(rcthr >= RC_THR_MIN+50) {  										// Throttle raised, turn on motors.
 		// mix pid outputs and send to the motors.
 		hal.rcout->write(MOTOR_FL, rcthr + roll_output + pitch_output - yaw_output);
 		hal.rcout->write(MOTOR_BL, rcthr + roll_output - pitch_output + yaw_output);
@@ -323,10 +321,13 @@ void loop() {
 		yaw_target = yaw;
 	}
 
+	if (rcthr > BATTERY_ADJ_THR) {
+		adjustHoverThrottle();											// adjusts HOVER_THR based on battery voltage
+	}
+
 	//Send data to user App
 	sendDataToPhone();
 }
-
 
 // Arduino map function
 float map(float x, float in_min, float in_max, float out_min, float out_max) {
@@ -347,22 +348,31 @@ float movingAvg(float previous, float current, float a){
 
 void setPidConstants(int config) {
 	if (config == DEFAULT) {
-		//Below are the PIDs for drone stabilization
+		//Attidude PID's - uses MPU
+		pids[PID_PITCH_STAB].kP(6);
+		pids[PID_PITCH_STAB].kI(3);
+		pids[PID_PITCH_STAB].imax(50);
+
+		pids[PID_ROLL_STAB].kP(6);
+		pids[PID_ROLL_STAB].kI(3);
+		pids[PID_ROLL_STAB].imax(50);
+		
+		pids[PID_YAW_STAB].kP(10);
+		pids[PID_YAW_STAB].kI(0);
+		pids[PID_YAW_STAB].imax(10);
+		
+		//Rate PID's - uses Gyro
 		pids[PID_PITCH_RATE].kP(0.2);
-		pids[PID_PITCH_RATE].kI(0.08);
+		pids[PID_PITCH_RATE].kI(0.0);
 		pids[PID_PITCH_RATE].imax(50);
-		
+
 		pids[PID_ROLL_RATE].kP(0.2);
-		pids[PID_ROLL_RATE].kI(0.08);
+		pids[PID_ROLL_RATE].kI(0.0);
 		pids[PID_ROLL_RATE].imax(50);
-		
+
 		pids[PID_YAW_RATE].kP(0.7);
 		pids[PID_YAW_RATE].kI(0.1);
 		pids[PID_YAW_RATE].imax(50);
-		
-		pids[PID_PITCH_STAB].kP(4.5);
-		pids[PID_ROLL_STAB].kP(4.5);
-		pids[PID_YAW_STAB].kP(10);
 		
 		//Below are the PIDs for altitude hold
 		pids[ALT_RATE].kP(0.1);
@@ -370,9 +380,9 @@ void setPidConstants(int config) {
 		pids[ALT_RATE].imax(50);
 		
 		pids[ALT_STAB].kP(6.0);
-		pids[ALT_STAB].kI(1.0);
+		pids[ALT_STAB].kI(0.0);
 		pids[ALT_STAB].imax(100);
-				
+		
 		//Below are the PIDs for autonomous control
 		pids[PITCH_CMD].kP(1.0);
 		pids[PITCH_CMD].kI(0.0);
@@ -385,7 +395,6 @@ void setPidConstants(int config) {
 		pids[YAW_CMD].kP(0.7);
 		pids[YAW_CMD].kI(0.0);
 		pids[YAW_CMD].imax(50);
-
 	} else {
 		hal.console->print("Error: PID constants not set for provided configuration");
 		hal.console->println(config);
@@ -448,7 +457,7 @@ float calculateYaw() {
 	return wrap_180( currentOrientation - originalOrientation );
 }
 
-float getHeading(float last_heading){
+float getHeading(){
 	//Use AHRS for Heading
 	static uint32_t last_t, last_print;
 	uint32_t now = hal.scheduler->micros();
@@ -528,6 +537,8 @@ void getTakeoffCoordinates(float coords[]){
 	gps->update();
 	
 	while (gps->status() < 2){
+		gps->update();
+
 		flash_leds(true);
 		hal.scheduler->delay(50);
 		flash_leds(false);
@@ -540,7 +551,7 @@ void getTakeoffCoordinates(float coords[]){
 		hal.console->print(counter);
 		
 		//If we get to 20 attempts, then it probably cannot attain coordinates
-		if(counter >= 20){
+		if(counter >= 50){
 			hal.console->println("\n Cannot attain GPS coordinates. Status code: ");
 			hal.console->println(gps->status());
 			flash_leds(true);
@@ -642,7 +653,6 @@ void getSwitchPosition(uint16_t channels[]) {
 
 		if (switchState == AUTO_ALT_HOLD || switchState == AUTO_TAKEOFF) {		// If switching to manual control, reset PIDs
 			pids[ALT_STAB].reset_I();											// reset i; reset PID integrals while in manual mode
-			setPidConstants(DEFAULT);											// Set PIDs for manual control
 		}
 
 		switchState = MANUAL;
@@ -651,12 +661,13 @@ void getSwitchPosition(uint16_t channels[]) {
 
 		if (switchState == MANUAL || switchState == AUTO_TAKEOFF) {				// If switching to AUTO_ALT_HOLD, reset PIDs and set autopilotState to ALT_HOLD
 			pids[ALT_STAB].reset_I();											// reset i; reset PID integrals while in manual mode
-			setPidConstants(DEFAULT);											// PID Configuration for ALT_HOLD
 			autopilotState = ALT_HOLD;
+			desired_heading = getHeading();
 		}
 
 		if (autopilotState == OFF) {											// If safety was just turned off
 			autopilotState = ALT_HOLD;
+			desired_heading = getHeading();
 		}
 
 		switchState = AUTO_ALT_HOLD;
@@ -665,12 +676,13 @@ void getSwitchPosition(uint16_t channels[]) {
 
 		if (switchState == MANUAL || switchState == AUTO_ALT_HOLD) {			// If switching to AUTO_TAKEOFF, reset PIDs and set autopilotState to TAKEOFF
 			pids[ALT_STAB].reset_I();											// reset i; reset PID integrals while in manual mode
-			setPidConstants(DEFAULT);											// PID Configuration for takeoff
 			autopilotState = TAKEOFF;
+			desired_heading = getHeading();
 		}
 
 		if (autopilotState == OFF) {											// If safety was just turned off
 			autopilotState = TAKEOFF;
+			desired_heading = getHeading();
 		}
 
 		switchState = AUTO_TAKEOFF;
@@ -716,7 +728,6 @@ long autonomousTakeoff(float rcalt) {
 		for(int i=0; i<11; i++) {										// reset PID integrals for altitude hold
 			pids[i].reset_I();
 		}
-		setPidConstants(DEFAULT);
 		autopilotState = ALT_HOLD;
 	}
 
@@ -794,6 +805,7 @@ void setupTiming() {
 	interval = timer;
 	send_interval = timer;
 	heading_timer = timer;
+	hover_thr_timer = timer;
 }
 
 void setupRpi() {
@@ -817,6 +829,26 @@ void setupBatteryMonitor() {
 	battery_mon.init();
 	battery_mon.set_monitoring(AP_BATT_MONITOR_VOLTAGE_AND_CURRENT);
 	hal.console->println("Battery monitor initialized");
+}
+
+void adjustHoverThrottle() {
+	uint32_t delay;
+	if (autopilotState == TAKEOFF) {
+		delay = 200000UL;												// delay every 0.2 seconds when performing autonomous takeoff
+	} else {
+		delay = 10000000UL;												// delay every 10 seconds under normal operating conditions
+	}
+
+	if((hal.scheduler->micros() - hover_thr_timer) > delay) {
+		hover_thr_timer = hal.scheduler->micros();
+		
+		battery_mon.read();												// Get battery stats: update voltage and current readings
+		
+		float voltage = battery_mon.voltage();
+		float new_hover_thr = map(voltage, 10, 11.8, 1350, 1320);		// map HOVER_THR based on voltage of drone in flight
+		#undef HOVER_THR;
+		#define HOVER_THR new_hover_thr;
+	}
 }
 
 static void flash_leds(bool on) {

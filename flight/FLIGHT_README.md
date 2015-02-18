@@ -15,6 +15,16 @@ UP                | autonomous takeoff, then altitude hold
 
 ## Changelog
 
+February 18, 2015
+
+- Added hover throttle adjustment based on battery level
+- Heading hold is now in effect when in either autonomous altitude hold or autonomous takeoff
+- PIDs updated to Andrew's latest from feature/tracking branch
+- GPS update bug fixed in getTakeoffCoordinates()
+
+
+------------------------------------------
+
 February 16, 2015
 
 - Merged feature/heading back into master
