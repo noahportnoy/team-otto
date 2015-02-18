@@ -97,13 +97,10 @@ Then merge the feature branch: `git merge feature/foo`
 **Deleting a branch even if you didn't push stuff first (you will lose work!)**  
 `git branch –D feature/foo`
 
-**Delete the remote copy of a branch**  
-`git push origin –delete feature/foo`
-
 **Delete local and remote branch**  
 `git branch -rd feature/foo`
 
-**Delete remote after the fact**  
+**Delete the remote copy of a branch**  
 `git push origin --delete feature/foo`
 
 **Weirder syntax for deleting remote**  
