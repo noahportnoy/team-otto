@@ -26,30 +26,40 @@ void setup()
 {
     //Initializes the UART C bus (begin(baudrate, rx buffer, tx buffer)
     //See UARTDriver.h for more...
-    hal.uartC->begin(115200, 16, 16); 
-    hal.console->println("UARTC (UART2) Test");
+    hal.uartC->begin(115200, 32, 32); 
+    hal.console->println("UARTC Test");
     //Uart messaging
     uartMessaging.init(hal.uartC, hal.console);
     
 }
-float lat, lon;
+int32_t lat, lon;
+unsigned long time = 0;
+
 void loop()
 {
-  hal.scheduler->delay(1000);
   //receive from uart
   uartMessaging.receive();
   
-  //send alt and battery status
-  uartMessaging.sendAltitude(25.21255f);
-  uartMessaging.sendBattery(01.21255f);
-  uartMessaging.sendGPSLock(true);
-  uartMessaging.sendSafetyStatus(false);
+  
+  if((hal.scheduler->millis() - time) > 2000)
+  {
+    uartMessaging.sendAltitude(-25.21255f);
+    uartMessaging.sendBattery(01.21255f);
+    uartMessaging.sendClimbRate(2.1);
+    time = hal.scheduler->millis();
+  }
   
   if(uartMessaging.isUserLonLatest())
+  {
     uartMessaging.getUserLon(&lon);
+    hal.console->println(lon/1000000.0);
+  }
   
   if(uartMessaging.isUserLatLatest())
+  {
     uartMessaging.getUserLat(&lat);
+     hal.console->println(lat/1000000.0);
+  }
     
 }
 
