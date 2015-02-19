@@ -11,6 +11,7 @@ const char* Latitude = "$LAT";
 const char* Longitude = "$LON";
 const char* GPSLock = "$GPL";
 const char* Safety = "$SFT";
+const char* ClimbRate = "$CRS";
 
 
 void UartMessaging::init(AP_HAL::UARTDriver* _driver, AP_HAL::ConsoleDriver* _console)
@@ -32,24 +33,25 @@ void UartMessaging::sendAltitude(float altitude)
 {
 	send(Altitude, altitude);	
 }
-
 void UartMessaging::sendBattery(float battery)
 {
 	send(BatteryStatus, battery);
 }
-
 void UartMessaging::sendGPSLock(bool isGPSLock)
 {
 	send(GPSLock, isGPSLock);
 }
-
 void UartMessaging::sendSafetyStatus(bool isSafety)
 {
 	send(Safety, isSafety);
 }
+void UartMessaging::sendClimbRate(float climbRate)
+{
+	send(ClimbRate, climbRate);
+}
 
 //Receive User Lattitude
-void UartMessaging::getUserLat(float* lat)
+void UartMessaging::getUserLat(int32_t* lat)
 {
 	_isUserLatLatest = false;
 	*lat = _userLat;
@@ -61,10 +63,10 @@ bool UartMessaging::isUserLatLatest()
 }
 
 //Receive User Longitude
-void UartMessaging::getUserLon(float* lon)
+void UartMessaging::getUserLon(int32_t* lon)
 {
 	_isUserLongLatest = false;
-	*lon = _userLong;
+	*lon = _userLon;
 
 }
 bool UartMessaging::isUserLonLatest()
@@ -93,7 +95,7 @@ void UartMessaging::send(const char* messageID, bool b)
 	{
 		memcpy(&buffer[4], "0", 1);
 	}
-	strcpy(&buffer[12], "!\n");
+	strcpy(&buffer[5], "!\n");
 	send(buffer);
 }
 
@@ -174,7 +176,8 @@ void UartMessaging::receive()
 			console->println(_payloadReceived); 
 			
 			//convert latitude from string to double
-			_userLat = atof(_payloadReceived);
+			_userLat = atol(_payloadReceived);
+
 			_isUserLatLatest = true;
 			
 		}else if(_idReceived[0] == 'L' && _idReceived[1] == 'O' && _idReceived[2] == 'N')
@@ -184,8 +187,8 @@ void UartMessaging::receive()
 			console->println(_payloadReceived); 
 			
 			//convert latitude from string to double
-			_userLat = atof(_payloadReceived);
-			_isUserLatLatest = true;
+			_userLon = atol(_payloadReceived);
+			_isUserLongLatest = true;
 			
 		}
 		

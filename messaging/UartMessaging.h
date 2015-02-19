@@ -25,7 +25,7 @@ private:
 	short _payloadNumBytes; //number of bytes received on thepayload stage
 	
 	bool _isUserLatLatest, _isUserLongLatest;
-	float _userLat, _userLong;
+	int32_t _userLat, _userLon;
 
 public:
 	void init(AP_HAL::UARTDriver* driver, AP_HAL::ConsoleDriver* _console);
@@ -34,12 +34,13 @@ public:
 	void sendBattery(float battery);
 	void sendGPSLock(bool gpsLock);
 	void sendSafetyStatus(bool isSafety);
+	void sendClimbRate(float climbRate);
 
 	bool isUserLatLatest();
-	void getUserLat(float* lat);
+	void getUserLat(int32_t* lat);
 
 	bool isUserLonLatest();
-	void getUserLon(float* lon);
+	void getUserLon(int32_t* lon);
 
 	//generic send functions
 	void send(const char* messageID, float fPayload);
