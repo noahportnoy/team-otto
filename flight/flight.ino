@@ -55,7 +55,6 @@ AP_Baro_MS5611 baro(&AP_Baro_MS5611::spi);
 AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
 
 
-
 /*------------------------------------------------ SYSTEM DEFINITIONS ------------------------------------------------------*/
 // Radio min/max values for each stick for my radio (worked out at beginning of article)
 #define RC_THR_MIN   1107
@@ -157,9 +156,9 @@ int heightLock = 0;
 int switchState = 0;
 int autopilotState = 0;
 
-//Coordinate Arrays: [longitude, lattitude]
+//Coordinate Arrays: [longitude, lattitude, last_longitude, last_la]
 float target_coordinates[2];
-float drone_coordinates[2];
+int32_t drone_coordinates[2];
 bool GPS_state = false; //Requires GPS status of 2 or 3 to be true
 
 Matrix3f dcm_matrix;
@@ -185,7 +184,6 @@ void setup() {
         getTakeoffCoordinates(target_coordinates);
         
         hal.console->printf("target_long, %f, target_lat, %f,  ", target_coordinates[0], target_coordinates[1]);
-        
         hal.console->println("Otto Ready.");
 }
 
@@ -278,12 +276,12 @@ void loop() {
     
                       //This should all be in an if statement that checks the status of GPS_state variable
                       getDroneCoordinates(drone_coordinates);
-                      //getTargetCoordinates(target_coordinates);
+                      getTargetCoordinates(target_coordinates);
                       
                       
                       //Get Lat and Long error
-                      lat_long_error.x = (target_coordinates[0] - drone_coordinates[0])*LONG_TO_METER;
-                      lat_long_error.y = (target_coordinates[1] - drone_coordinates[1])*LAT_TO_METER;
+                      lat_long_error.x = (target_coordinates[0] - drone_coordinates[0])*LONG_TO_METER/10000000;
+                      lat_long_error.y = (target_coordinates[1] - drone_coordinates[1])*LAT_TO_METER/10000000;
                       lat_long_error.z = 0;
                                
                       /*
@@ -314,9 +312,11 @@ void loop() {
                       rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.x, 1), -10, 10); 
                       rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.y, 1), -10, 10); 
                       
-                      hal.console->print("heading, ");
-                      hal.console->print(current_heading);
-                      hal.console->printf(",  drone_long, %f, drone_lat, %f, ", drone_coordinates[0], drone_coordinates[1]);
+                      //hal.console->print("heading, ");
+                      //hal.console->print(current_heading);
+                      //hal.console->print(", desired_heading, ");
+                      //hal.console->print(desired_heading);
+                      hal.console->printf(",  drone_long, %l, drone_lat, %l, ", drone_coordinates[0], drone_coordinates[1]);
                       hal.console->print(" yaw, ");
                       hal.console->print(yaw);
                       hal.console->print(", rcpitch, ");
@@ -324,7 +324,14 @@ void loop() {
                       hal.console->print(", rcroll, ");
                       hal.console->print(rcroll);
                       hal.console->print(", t, ");
-                      hal.console->println(hal.scheduler->millis());
+                      if(hal.scheduler->millis() % 100)
+                            hal.console->println(hal.scheduler->millis());
+                      
+                }else{
+                  
+                      //PID Feedback system for pitch and roll input 0 is bad GPS state
+                      rcpit = 0; 
+                      rcroll = 0; 
                 }
              
 	}
@@ -350,7 +357,6 @@ void loop() {
       	//Feedback loop for altitude holding
       	alt_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
       	//float alt_output = constrain(pids[ALT_RATE].get_pid(alt_stab_output - climb_rate, 1), -100, 100);
-
 
 
 
@@ -428,7 +434,7 @@ void setPidConstants(int config) {
 	if (config == DEFAULT) {
                 //Below are the PIDs for drone stabilization
 		
-		//Attidude PID's - uses MPU
+		//Attidude PID's - uses Motion Processing Unit MPTU6050
                 pids[PID_PITCH_STAB].kP(6);
                 pids[PID_PITCH_STAB].kI(3);
                 pids[PID_PITCH_STAB].imax(50);
@@ -442,7 +448,7 @@ void setPidConstants(int config) {
 		pids[PID_YAW_STAB].imax(10);
                 
                 
-                //Rate PID's - uses Gyro
+                //Rate PID's - uses Gyros
                 pids[PID_PITCH_RATE].kP(0.2);
 		pids[PID_PITCH_RATE].kI(0.0);
 		pids[PID_PITCH_RATE].imax(50);
@@ -466,11 +472,11 @@ void setPidConstants(int config) {
 		pids[ALT_STAB].imax(100);
                 
                 //Below are the PIDs for autonomous control
-                pids[PITCH_CMD].kP(1.0);
+                pids[PITCH_CMD].kP(0.3);
 		pids[PITCH_CMD].kI(0.0);
 		pids[PITCH_CMD].imax(50);
 
-                pids[ROLL_CMD].kP(1.0);
+                pids[ROLL_CMD].kP(0.3);
 		pids[ROLL_CMD].kI(0.0);
 		pids[ROLL_CMD].imax(50);
 
@@ -731,6 +737,7 @@ void sendDataToPhone() {
 		uartMessaging.sendAltitude(alt);
 		uartMessaging.sendBattery(battery_mon.voltage());
                 
+                /*
                 //Send GPS Lock information
                 if (GPS_state == true){
                   uartMessaging.sendGPSLock(true);
@@ -744,6 +751,7 @@ void sendDataToPhone() {
                 }else{
                   uartMessaging.sendSafetyStatus(true);
                 }
+                */
 	}
 }
 
