@@ -870,7 +870,10 @@ void sendDataToPhone() {
 		//send alt and battery status
 		uartMessaging.sendAltitude(alt);
 		uartMessaging.sendBattery(battery_mon.voltage());
-		uartMessaging.sendClimbRate(climb_rate);
+                uartMessaging.sendDroneLat(gps->latitude);
+                uartMessaging.sendDroneLon(gps->longitude);
+                uartMessaging.sendGPSStatus((long)gps->status());
+                uartMessaging.sendClimbRate(getClimbRate());
 	}
 }
 

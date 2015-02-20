@@ -15,6 +15,16 @@ UP                | autonomous takeoff, then altitude hold
 
 ## Changelog
 
+February 20, 2015
+
+- Changed messaging UARTC port send and receive buffers from 16 bytes to 32 bytes
+- Changed the frequency of sending to the phone from once every two seconds to once every second
+- Added sendDroneLat, sendDroneLon, sendGPSStatus and sendClimbRate in the sendDataToPhone function
+- Disabled GPS lock requirement on startup
+
+
+------------------------------------------
+
 February 18, 2015
 
 - Added hover throttle adjustment based on battery level

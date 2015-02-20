@@ -4,14 +4,17 @@
 #include "UartMessaging.h"
 //#include <stdio.h>
 
+const char* StartCharacter = "$";
+const char* EndCharacter = "!";
 
-const char* BatteryStatus = "$BTS";
-const char* Altitude = "$ALT";
-const char* Latitude = "$LAT";
-const char* Longitude = "$LON";
-const char* GPSLock = "$GPL";
-const char* Safety = "$SFT";
-const char* ClimbRate = "$CRS";
+const char* BatteryStatus = "BTS";
+const char* Altitude = "ALT";
+const char* Latitude = "LAT";
+const char* Longitude = "LON";
+const char* GPSStatus = "GPS";
+const char* GPSAccuracy = "GPA";
+const char* Safety = "SFT";
+const char* ClimbRate = "CRS";
 
 
 void UartMessaging::init(AP_HAL::UARTDriver* _driver, AP_HAL::ConsoleDriver* _console)
@@ -19,15 +22,9 @@ void UartMessaging::init(AP_HAL::UARTDriver* _driver, AP_HAL::ConsoleDriver* _co
 	_UARTdriver = _driver;
 	_idNumBytes = _payloadNumBytes = 0;
 	console =_console;
+
 }
 
-/*void generateMessage(const char* messageID, float payload, char* buffer)
-{
-	memcpy(buffer, messageID, 4);
-	dtostrf(payload, 8, 4, &buffer[4]);
-	memcpy(&buffer[12], "!", 1); //End of packet
-	memcpy(&buffer[13], 0, 1); //Proper c-string termination
-}*/
 
 void UartMessaging::sendAltitude(float altitude)
 {
@@ -37,9 +34,9 @@ void UartMessaging::sendBattery(float battery)
 {
 	send(BatteryStatus, battery);
 }
-void UartMessaging::sendGPSLock(bool isGPSLock)
+void UartMessaging::sendGPSStatus(int gpsStatus)
 {
-	send(GPSLock, isGPSLock);
+	send(GPSStatus, (long)gpsStatus);
 }
 void UartMessaging::sendSafetyStatus(bool isSafety)
 {
@@ -48,6 +45,18 @@ void UartMessaging::sendSafetyStatus(bool isSafety)
 void UartMessaging::sendClimbRate(float climbRate)
 {
 	send(ClimbRate, climbRate);
+}
+void UartMessaging::sendDroneLat(int32_t lat)
+{
+	send(Latitude, lat);
+}
+void UartMessaging::sendDroneLon(int32_t lon)
+{
+	send(Longitude, lon);
+}
+void UartMessaging::sendGPSAccuracy(float accuracy)
+{
+	send(GPSAccuracy, accuracy);
 }
 
 //Receive User Lattitude
@@ -78,16 +87,19 @@ bool UartMessaging::isUserLonLatest()
 void UartMessaging::send(const char* messageID, float f)
 {
 	char buffer[16];
-	memcpy(buffer, messageID, 4);
+	memcpy(buffer, StartCharacter, 1);
+	memcpy(&buffer[1], messageID, 3);
 	dtostrf(f, 7, 5, &buffer[4]);
-	strcpy(&buffer[11], "!\n");
+	memcpy(&buffer[11], EndCharacter, 1);
+	memcpy(&buffer[12], "\n\0", 2);
 	send(buffer);
 }
 
 void UartMessaging::send(const char* messageID, bool b)
 {
 	char buffer[16];
-	memcpy(buffer, messageID, 4);
+	memcpy(buffer, StartCharacter, 1);
+	memcpy(&buffer[1], messageID, 4);
 	if(b)
 	{
 		memcpy(&buffer[4], "1", 1);
@@ -95,7 +107,21 @@ void UartMessaging::send(const char* messageID, bool b)
 	{
 		memcpy(&buffer[4], "0", 1);
 	}
-	strcpy(&buffer[5], "!\n");
+	memcpy(&buffer[5], EndCharacter, 1);
+	memcpy(&buffer[6], "\n\0", 2); //new line and properly terminate a c-string
+	send(buffer);
+}
+
+void UartMessaging::send(const char* messageID, long iPayload)
+{
+	char buffer[16];
+	memcpy(buffer, StartCharacter, 1);
+	memcpy(&buffer[1], messageID, 3);
+	ltoa(iPayload, &buffer[4], 10);
+
+	int iPayloadSize = strlen(&buffer[4]);
+	memcpy(&buffer[iPayloadSize + 4], EndCharacter, 1);
+	memcpy(&buffer[iPayloadSize + 5], "\n\0", 2);
 	send(buffer);
 }
 
