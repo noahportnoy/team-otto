@@ -15,6 +15,12 @@ UP                | autonomous takeoff, then altitude hold
 
 ## Changelog
 
+February 19, 2015
+
+- Fixed gps method so there is no lose of precision.
+- Seperated methods into different ino files
+
+------------------------------------------
 
 February 16, 2015
 

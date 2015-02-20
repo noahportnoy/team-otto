@@ -157,7 +157,7 @@ int switchState = 0;
 int autopilotState = 0;
 
 //Coordinate Arrays: [longitude, lattitude, last_longitude, last_la]
-float target_coordinates[2];
+int32_t target_coordinates[2];
 int32_t drone_coordinates[2];
 bool GPS_state = false; //Requires GPS status of 2 or 3 to be true
 
@@ -183,7 +183,7 @@ void setup() {
         //Get coordinates of takeoff point
         getTakeoffCoordinates(target_coordinates);
         
-        hal.console->printf("target_long, %f, target_lat, %f,  ", target_coordinates[0], target_coordinates[1]);
+        hal.console->printf("target_long, %ld, target_lat, %ld,  ", target_coordinates[0], target_coordinates[1]);
         hal.console->println("Otto Ready.");
 }
 
@@ -247,10 +247,10 @@ void loop() {
                 float desired_heading;
                 desired_heading = -50;
                 
-                getDroneCoordinates(drone_coordinates);
+                //getDroneCoordinates(drone_coordinates);
                 //getTargetCoordinates(target_coordinates);
                 
-                desired_heading = getDesiredHeading(drone_coordinates[0], drone_coordinates[1], target_coordinates[0], target_coordinates[1]);
+                //desired_heading = getDesiredHeading(drone_coordinates[0], drone_coordinates[1], target_coordinates[0], target_coordinates[1]);
                 
                 if((hal.scheduler->micros() - heading_timer) > 100000L){ //Run loop @ 10Hz ~ 100ms
                     current_heading = getHeading(last_heading);
@@ -276,12 +276,12 @@ void loop() {
     
                       //This should all be in an if statement that checks the status of GPS_state variable
                       getDroneCoordinates(drone_coordinates);
-                      getTargetCoordinates(target_coordinates);
+                      //getTargetCoordinates(target_coordinates);
                       
                       
                       //Get Lat and Long error
-                      lat_long_error.x = (target_coordinates[0] - drone_coordinates[0])*LONG_TO_METER/10000000;
-                      lat_long_error.y = (target_coordinates[1] - drone_coordinates[1])*LAT_TO_METER/10000000;
+                      lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*(LONG_TO_METER/10000000.0));
+                      lat_long_error.y = (float)((target_coordinates[1] - drone_coordinates[1])*(LAT_TO_METER/10000000.0));
                       lat_long_error.z = 0;
                                
                       /*
@@ -309,23 +309,28 @@ void loop() {
                       
                       //PID Feedback system for pitch and roll.
                       //Constrained to -10 and 10 degrees
-                      rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.x, 1), -10, 10); 
-                      rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.y, 1), -10, 10); 
+                      rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5); 
+                      rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.y, 1), -5, 5); 
+                      
                       
                       //hal.console->print("heading, ");
                       //hal.console->print(current_heading);
                       //hal.console->print(", desired_heading, ");
                       //hal.console->print(desired_heading);
-                      hal.console->printf(",  drone_long, %l, drone_lat, %l, ", drone_coordinates[0], drone_coordinates[1]);
-                      hal.console->print(" yaw, ");
+                      hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
+                      hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
+                      //hal.console->printf(",  long_diff, %f, lat_diff, %f, ", lat_long_error.x, lat_long_error.y);
+                      hal.console->print(" status, ");
+                      hal.console->print(gps->status());
+                      hal.console->print(",  yaw, ");
                       hal.console->print(yaw);
                       hal.console->print(", rcpitch, ");
                       hal.console->print(rcpit);
                       hal.console->print(", rcroll, ");
                       hal.console->print(rcroll);
-                      hal.console->print(", t, ");
-                      if(hal.scheduler->millis() % 100)
-                            hal.console->println(hal.scheduler->millis());
+                      //hal.console->print(", t, ");
+                      //hal.console->print(hal.scheduler->millis());
+                      hal.console->println();
                       
                 }else{
                   
@@ -472,11 +477,11 @@ void setPidConstants(int config) {
 		pids[ALT_STAB].imax(100);
                 
                 //Below are the PIDs for autonomous control
-                pids[PITCH_CMD].kP(0.3);
+                pids[PITCH_CMD].kP(0.5);
 		pids[PITCH_CMD].kI(0.0);
 		pids[PITCH_CMD].imax(50);
 
-                pids[ROLL_CMD].kP(0.3);
+                pids[ROLL_CMD].kP(0.5);
 		pids[ROLL_CMD].kI(0.0);
 		pids[ROLL_CMD].imax(50);
 
