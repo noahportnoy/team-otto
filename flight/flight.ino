@@ -180,7 +180,7 @@ void setup() {
 	ahrs.init();
 
 	//Get coordinates of takeoff point
-	getTakeoffCoordinates(target_coordinates);
+	// getTakeoffCoordinates(target_coordinates);
 	
 	hal.console->printf("target_long, %f, target_lat, %f,  ", target_coordinates[0], target_coordinates[1]);
 	hal.console->println("Otto Ready.");
@@ -244,7 +244,7 @@ void loop() {
 		if((hal.scheduler->micros() - heading_timer) > 100000L){		// Run loop @ 10Hz ~ 100ms
 			current_heading = getHeading();
 		}
-		
+
 		//Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
 		float heading_error = desired_heading - current_heading;
 		rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -180, 180);
@@ -261,13 +261,14 @@ void loop() {
 		yaw_stab_output = rcyaw;
 		yaw_target = yaw;   // remember this yaw for when pilot stops
 	}
-	
+
 	// rate PIDS
 	pitch_output =  (long) constrain(pids[PID_PITCH_RATE].get_pid(pitch_stab_output - gyroPitch, 1), -500, 500);
 	roll_output =  (long) constrain(pids[PID_ROLL_RATE].get_pid(roll_stab_output - gyroRoll, 1), -500, 500);
 	yaw_output =  (long) constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);
 
 	//Feedback loop for altitude holding
+	// TODO try changing this to alt_stab_output, passing into line below
 	alt_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
 	//float alt_output = constrain(pids[ALT_RATE].get_pid(alt_stab_output - climb_rate, 1), -100, 100);
 
@@ -371,17 +372,17 @@ void setPidConstants(int config) {
 		pids[PID_ROLL_RATE].imax(50);
 
 		pids[PID_YAW_RATE].kP(0.7);
-		pids[PID_YAW_RATE].kI(0.1);
+		pids[PID_YAW_RATE].kI(0.1);						// TODO ask why
 		pids[PID_YAW_RATE].imax(50);
 		
 		//Below are the PIDs for altitude hold
-		pids[ALT_RATE].kP(0.1);
-		pids[ALT_RATE].kI(0.0);
+		pids[ALT_STAB].kP(6.0);							// TODO adjust
+		pids[ALT_STAB].kI(0.0);							// TODO adjust
+		pids[ALT_STAB].imax(100);						// TODO adjust
+
+		pids[ALT_RATE].kP(0.1);							// TODO adjust
+		pids[ALT_RATE].kI(0.0);							// do not add I here!
 		pids[ALT_RATE].imax(50);
-		
-		pids[ALT_STAB].kP(6.0);
-		pids[ALT_STAB].kI(0.0);
-		pids[ALT_STAB].imax(100);
 		
 		//Below are the PIDs for autonomous control
 		pids[PITCH_CMD].kP(1.0);
@@ -614,7 +615,7 @@ void getAltitudeData() {
 	if(abs(climb_rate-last_climb_rate) > 100){
 		climb_rate=last_climb_rate;
 	}
-	
+
 	//Scheduling
 	interval = hal.scheduler->micros();
 	
@@ -708,10 +709,10 @@ void droneOff() {
 	//GET BATTERY STATS
 	//Update voltage and current readings
 	battery_mon.read();
-	hal.console->printf("\nVoltage: %.2f \tCurrent: %.2f \tTotCurr:%.2f  ",
-			battery_mon.voltage(), //voltage
-			battery_mon.current_amps(), //Inst current
-			battery_mon.current_total_mah()); //Accumulated current
+	// hal.console->printf("\nVoltage: %.2f \tCurrent: %.2f \tTotCurr:%.2f  ",
+	// 		battery_mon.voltage(), //voltage
+	// 		battery_mon.current_amps(), //Inst current
+	// 		battery_mon.current_total_mah()); //Accumulated current
 		
 	for(int i=0; i<11; i++) {											// reset PID integrals
 		pids[i].reset_I();
@@ -811,7 +812,7 @@ void setupTiming() {
 void setupRpi() {
 	//Initializes the UART C bus (begin(baudrate, rx buffer, tx buffer)
 	//See UARTDriver.h for more...
-	hal.uartC->begin(115200, 16, 16);
+	hal.uartC->begin(115200, 32, 32);
 	hal.console->println("UARTC (UART2) Test");
 	//Uart messaging
 	uartMessaging.init(hal.uartC, hal.console);
@@ -858,7 +859,7 @@ static void flash_leds(bool on) {
 
 void sendDataToPhone() {
 	//Send alt and battery info over UART to App every 2 seconds
-	if((hal.scheduler->micros() - send_interval) > 2000000UL) {
+	if((hal.scheduler->micros() - send_interval) > 1000000UL) {
 		//Scheduling
 		send_interval = hal.scheduler->micros();
 		
@@ -869,6 +870,7 @@ void sendDataToPhone() {
 		//send alt and battery status
 		uartMessaging.sendAltitude(alt);
 		uartMessaging.sendBattery(battery_mon.voltage());
+		uartMessaging.sendClimbRate(climb_rate);
 	}
 }
 
