@@ -811,7 +811,7 @@ void setupTiming() {
 void setupRpi() {
 	//Initializes the UART C bus (begin(baudrate, rx buffer, tx buffer)
 	//See UARTDriver.h for more...
-	hal.uartC->begin(115200, 16, 16);
+	hal.uartC->begin(115200, 32, 32);
 	hal.console->println("UARTC (UART2) Test");
 	//Uart messaging
 	uartMessaging.init(hal.uartC, hal.console);
@@ -858,7 +858,7 @@ static void flash_leds(bool on) {
 
 void sendDataToPhone() {
 	//Send alt and battery info over UART to App every 2 seconds
-	if((hal.scheduler->micros() - send_interval) > 2000000UL) {
+	if((hal.scheduler->micros() - send_interval) > 1000000UL) {
 		//Scheduling
 		send_interval = hal.scheduler->micros();
 		
@@ -869,6 +869,10 @@ void sendDataToPhone() {
 		//send alt and battery status
 		uartMessaging.sendAltitude(alt);
 		uartMessaging.sendBattery(battery_mon.voltage());
+                uartMessaging.sendDroneLat(gps->latitude);
+                uartMessaging.sendDroneLon(gps->longitude);
+                uartMessaging.sendGPSStatus((long)gps->status());
+                uartMessaging.sendClimbRate(getClimbRate());
 	}
 }
 
