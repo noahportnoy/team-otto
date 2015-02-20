@@ -873,7 +873,7 @@ void sendDataToPhone() {
                 uartMessaging.sendDroneLat(gps->latitude);
                 uartMessaging.sendDroneLon(gps->longitude);
                 uartMessaging.sendGPSStatus((long)gps->status());
-                uartMessaging.sendClimbRate(getClimbRate());
+                uartMessaging.sendClimbRate(climb_rate);
 	}
 }
 
