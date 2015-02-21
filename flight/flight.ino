@@ -69,7 +69,7 @@ AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
 #define RC_ALT_MIN   0
 #define RC_ALT_MAX   1
 
-#define HOVER_THR 1330
+#define HOVER_THR 1340
 
 #define BATTERY_ADJ_THR 1280
 
@@ -268,7 +268,6 @@ void loop() {
 	yaw_output =  (long) constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);
 
 	//Feedback loop for altitude holding
-	// TODO try changing this to alt_stab_output, passing into line below
 	alt_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
 	//float alt_output = constrain(pids[ALT_RATE].get_pid(alt_stab_output - climb_rate, 1), -100, 100);
 
@@ -372,17 +371,17 @@ void setPidConstants(int config) {
 		pids[PID_ROLL_RATE].imax(50);
 
 		pids[PID_YAW_RATE].kP(0.7);
-		pids[PID_YAW_RATE].kI(0.1);						// TODO ask why
+		pids[PID_YAW_RATE].kI(0.1);						// TODO investigate (but keep, it does help)
 		pids[PID_YAW_RATE].imax(50);
 		
 		//Below are the PIDs for altitude hold
 		pids[ALT_STAB].kP(6.0);							// TODO adjust
-		pids[ALT_STAB].kI(0.0);							// TODO adjust
+		pids[ALT_STAB].kI(0.4);							// TODO adjust
 		pids[ALT_STAB].imax(100);						// TODO adjust
 
 		pids[ALT_RATE].kP(0.1);							// TODO adjust
 		pids[ALT_RATE].kI(0.0);							// do not add I here!
-		pids[ALT_RATE].imax(50);
+		pids[ALT_RATE].imax(50);						// TODO adjust
 		
 		//Below are the PIDs for autonomous control
 		pids[PITCH_CMD].kP(1.0);
@@ -846,7 +845,7 @@ void adjustHoverThrottle() {
 		battery_mon.read();												// Get battery stats: update voltage and current readings
 		
 		float voltage = battery_mon.voltage();
-		float new_hover_thr = map(voltage, 10, 11.8, 1350, 1320);		// map HOVER_THR based on voltage of drone in flight
+		float new_hover_thr = map(voltage, 10, 11.8, 1360, 1330);		// map HOVER_THR based on voltage of drone in flight
 		#undef HOVER_THR;
 		#define HOVER_THR new_hover_thr;
 	}

@@ -15,6 +15,14 @@ UP                | autonomous takeoff, then altitude hold
 
 ## Changelog
 
+February 21, 2015
+
+- Adjusted hover throttle to account for weight
+- Brought ALT_STAB kI up to 0.4
+
+
+------------------------------------------
+
 February 20, 2015
 
 - Changed messaging UARTC port send and receive buffers from 16 bytes to 32 bytes
