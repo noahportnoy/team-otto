@@ -109,6 +109,7 @@ public:
     int32_t speed_3d;                   ///< 3D speed in cm/sec (not always available)
     int16_t hdop;                       ///< horizontal dilution of precision in cm
     uint8_t num_sats;           ///< Number of visible satelites
+	uint32_t horizontal_accuracy; //position accuracy in cm
 
     /// Set to true when new data arrives.  A client may set this
     /// to false in order to avoid processing data they have

@@ -223,6 +223,8 @@ AP_GPS_UBLOX::_parse_gps(void)
         latitude        = _buffer.posllh.latitude;
         altitude        = _buffer.posllh.altitude_msl / 10;
         fix             = next_fix;
+		horizontal_accuracy = _buffer.posllh.horizontal_accuracy;
+
         _new_position = true;
         break;
     case MSG_STATUS:
