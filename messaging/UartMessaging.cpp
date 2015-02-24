@@ -23,6 +23,14 @@ void UartMessaging::init(AP_HAL::UARTDriver* _driver, AP_HAL::ConsoleDriver* _co
 	_idNumBytes = _payloadNumBytes = 0;
 	console =_console;
 
+	_isUserLongLatest = _isUserLatLatest = false;
+	_userLat = _userLon = 0;
+
+	_isTakeOff = _isLand = false;
+
+	_seperationDistance = 20;
+	_isSeperationDistanceLatest = false;
+
 }
 
 
@@ -83,6 +91,26 @@ bool UartMessaging::isUserLonLatest()
 	return _isUserLongLatest;
 }
 
+bool UartMessaging::isTakeOff()
+{
+	return _isTakeOff;
+}
+
+bool UartMessaging::isLand()
+{
+	return _isLand;
+}
+
+bool UartMessaging::isSeperationDistanceLatest()
+{
+	return _isSeperationDistanceLatest;
+}
+
+void UartMessaging::getSeperationDistance(int* distance)
+{
+	_isSeperationDistanceLatest = false;
+	*distance = _seperationDistance;
+}
 //Generic send functions
 void UartMessaging::send(const char* messageID, float f)
 {
@@ -188,12 +216,16 @@ void UartMessaging::receive()
 	  
 		if(_idReceived[0] == 'T' && _idReceived[1] == 'K' && _idReceived[2] == 'F')
 		{
-			console->println("Turn on");
+			_isTakeOff = true;
+			_isLand = false;;
+			console->println("Take Off");
 		}  
     
 		else if(_idReceived[0] == 'S' && _idReceived[1] == 'T' && _idReceived[2] == 'P')
 		{
-			console->println("Turn off");
+			_isLand = true;
+			_isTakeOff = false;
+			console->println("Land");
 
 		} else if(_idReceived[0] == 'L' && _idReceived[1] == 'A' && _idReceived[2] == 'T')
 		{
@@ -216,6 +248,13 @@ void UartMessaging::receive()
 			_userLon = atol(_payloadReceived);
 			_isUserLongLatest = true;
 			
+		}else if(_idReceived[0] == 'S' && _idReceived[1] == 'R' && _idReceived[2] == 'D')
+		{
+			console->print("Seperation Distance: ");
+			console->println(_payloadReceived); 
+
+			_seperationDistance = atoi(_payloadReceived);
+			_isSeperationDistanceLatest = true;
 		}
 		
 		_currentState = START;

@@ -1,11 +1,3 @@
-// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: t -*-
-/*
- *       Example of GPS UBlox library.
- *       Code by Jordi Munoz and Jose Julio. DIYDrones.com
- *
- *       Works with Ardupilot Mega Hardware (GPS on Serial Port1)
- */
-
 #include <stdlib.h>
 #include <AP_Common.h>
 #include <AP_Progmem.h>
@@ -24,6 +16,7 @@ const AP_HAL::HAL& hal = AP_HAL_AVR_APM2;
 UartMessaging uartMessaging;
 
 int32_t lat, lon;
+int seperationDistance;
 
 
 unsigned long time = 0;
@@ -69,6 +62,15 @@ void loop()
     uartMessaging.getUserLat(&lat);
      hal.console->println(lat);
   }
+  
+  if(uartMessaging.isSeperationDistanceLatest())
+  {
+    uartMessaging.getSeperationDistance(&seperationDistance);
+     hal.console->println(seperationDistance);
+  }
+  
+  uartMessaging.isLand();
+  uartMessaging.isTakeOff();
     
 }
 

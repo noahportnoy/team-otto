@@ -24,8 +24,17 @@ private:
 	char _payloadReceived[32]; //Actual payload receive
 	short _payloadNumBytes; //number of bytes received on thepayload stage
 	
+	//User Lon and Lat
 	bool _isUserLatLatest, _isUserLongLatest;
 	int32_t _userLat, _userLon;
+
+	//TakeOff and Land
+	bool _isLand;
+	bool _isTakeOff;
+
+	int _seperationDistance;
+	bool _isSeperationDistanceLatest;
+
 
 	//generic send functions
 	void send(const char* messageID, float fPayload);
@@ -53,6 +62,12 @@ public:
 
 	bool isUserLonLatest();
 	void getUserLon(int32_t* lon);
+
+	bool isTakeOff();
+	bool isLand();
+
+	bool isSeperationDistanceLatest();
+	void getSeperationDistance(int* distance);
 
 	void receive();
 
