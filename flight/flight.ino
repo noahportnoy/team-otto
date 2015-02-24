@@ -50,6 +50,9 @@ AP_GPS_Auto GPS(&gps);
 //Otto uses the MS5611 Baro
 AP_Baro_MS5611 baro(&AP_Baro_MS5611::spi);
 
+//Initialize the HMC5843 compass.
+AP_Compass_HMC5843 compass;
+
 // choose which AHRS system to use
 //AP_AHRS_DCM  ahrs(&ins, gps);
 AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
@@ -69,7 +72,7 @@ AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
 #define RC_ALT_MAX   1
 
 //Hover throttle
-#define HOVER_THR 1330
+#define HOVER_THR 1340
 
 // Min/max throttle for autonomous takeoff
 #define MAX_TAKEOFF_THR 1340
@@ -83,9 +86,6 @@ AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
 
 #define OFF_BUTTON 0
 AP_HAL::AnalogSource* OFF_BUTTON_VALUE;
-
-//Initialize the HMC5843 compass.
-AP_Compass_HMC5843 compass;
 
 #define wrap_180(x) (x < -180 ? x+360 : (x > 180 ? x - 360: x))
 
@@ -244,20 +244,21 @@ void loop() {
         if (switchState == AUTO_ALT_HOLD) {
                                    
                 /////////Autonomous YAW using the compass & GPS
-                float desired_heading;
+                double desired_heading;
                 desired_heading = -50;
                 
-                //getDroneCoordinates(drone_coordinates);
+                getDroneCoordinates(drone_coordinates);
                 //getTargetCoordinates(target_coordinates);
                 
-                //desired_heading = getDesiredHeading(drone_coordinates[0], drone_coordinates[1], target_coordinates[0], target_coordinates[1]);
-                
-                if((hal.scheduler->micros() - heading_timer) > 100000L){ //Run loop @ 10Hz ~ 100ms
-                    current_heading = getHeading(last_heading);
-                }
+                //hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
+                //hal.console->printf(",  target_long, %ld, target_lat, %ld, ", target_coordinates[0], target_coordinates[1]);
+                      
+                desired_heading = getDesiredHeading();
+                last_heading = current_heading;
+                current_heading = getHeading();
                 
                 //Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
-                //rcyaw = -1* constrain(pids[YAW_CMD].get_pid(desired_heading - current_heading, 1), -180, 180);
+                rcyaw = -1* constrain(pids[YAW_CMD].get_pid(desired_heading - current_heading, 1), -180, 180);
         
         
         
@@ -275,9 +276,11 @@ void loop() {
                       //q.earth_to_body(lat_long_error);
     
                       //This should all be in an if statement that checks the status of GPS_state variable
-                      getDroneCoordinates(drone_coordinates);
+                      //getDroneCoordinates(drone_coordinates);
                       //getTargetCoordinates(target_coordinates);
                       
+                      //This could be used to control the pitch
+                      int32_t seperation_dist = getSeperationDistance();
                       
                       //Get Lat and Long error
                       lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*(LONG_TO_METER/10000000.0));
@@ -294,8 +297,9 @@ void loop() {
                       */
                       //q.rotation_matrix(m);
                       
-                      yaw_rotation_m.a = Vector3f(cos(yaw), sin(yaw), 0);
-                      yaw_rotation_m.b = Vector3f(-sin(yaw), cos(yaw), 0);
+                      current_heading = movingAvg(last_heading, current_heading, 0.8);
+                      yaw_rotation_m.a = Vector3f(cos(current_heading), sin(current_heading), 0);
+                      yaw_rotation_m.b = Vector3f(-sin(current_heading), cos(current_heading), 0);
                       yaw_rotation_m.c = Vector3f(0, 0, 1);
                       //hal.console->print("Yaw Rotation Matrix:  ");
                       //hal.console->printf("a: %f %f %f b: %f %f %f    ", yaw_rotation_m.a.x, yaw_rotation_m.a.y, yaw_rotation_m.a.z, yaw_rotation_m.b.x, yaw_rotation_m.b.y, yaw_rotation_m.b.z);
@@ -303,37 +307,46 @@ void loop() {
                       
                       //Multiply the lat_long_error matrix by the yaw rotation matrix to get pitch / roll proportions
                       autonomous_pitch_roll = yaw_rotation_m*lat_long_error;    //This may be incorrect 
-                      
                       //hal.console->printf("p/r: %f %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y, autonomous_pitch_roll.z);
                        
                       
                       //PID Feedback system for pitch and roll.
                       //Constrained to -10 and 10 degrees
+                      //rcpit = constrain(pids[PITCH_CMD].get_pid(seperation_distance, 1), -5, 5); 
                       rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5); 
                       rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.y, 1), -5, 5); 
                       
                       
-                      //hal.console->print("heading, ");
-                      //hal.console->print(current_heading);
+                      hal.console->print("currheading, ");
+                      hal.console->print(current_heading);
+                      hal.console->print("lastheading, ");
+                      hal.console->print(last_heading);
                       //hal.console->print(", desired_heading, ");
                       //hal.console->print(desired_heading);
-                      hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
-                      hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
+                      //hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
+                      //hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
                       //hal.console->printf(",  long_diff, %f, lat_diff, %f, ", lat_long_error.x, lat_long_error.y);
-                      hal.console->print(" status, ");
-                      hal.console->print(gps->status());
-                      hal.console->print(",  yaw, ");
-                      hal.console->print(yaw);
+                      //hal.console->print(" status, ");
+                      //hal.console->print(gps->status());
+                      //hal.console->print(",  desired heading, ");
+                      //hal.console->print(desired_heading);
+                      //hal.console->print(",  rcyaw, ");
+                      //hal.console->print(rcyaw);
+                      hal.console->print(", accurary, ");
+                      hal.console->print(gps->horizontal_accuracy/1000.0);
+                      hal.console->print(", seperation, ");
+                      hal.console->print(seperation_dist);
                       hal.console->print(", rcpitch, ");
                       hal.console->print(rcpit);
                       hal.console->print(", rcroll, ");
                       hal.console->print(rcroll);
+                      //hal.console->print(", heading, ");
+                      //hal.console->print(current_heading);
                       //hal.console->print(", t, ");
                       //hal.console->print(hal.scheduler->millis());
                       hal.console->println();
                       
                 }else{
-                  
                       //PID Feedback system for pitch and roll input 0 is bad GPS state
                       rcpit = 0; 
                       rcroll = 0; 
@@ -477,11 +490,11 @@ void setPidConstants(int config) {
 		pids[ALT_STAB].imax(100);
                 
                 //Below are the PIDs for autonomous control
-                pids[PITCH_CMD].kP(0.5);
+                pids[PITCH_CMD].kP(0.2);
 		pids[PITCH_CMD].kI(0.0);
 		pids[PITCH_CMD].imax(50);
 
-                pids[ROLL_CMD].kP(0.5);
+                pids[ROLL_CMD].kP(0.2);
 		pids[ROLL_CMD].kI(0.0);
 		pids[ROLL_CMD].imax(50);
 
@@ -729,8 +742,8 @@ float calculateYaw() {
 
 
 void sendDataToPhone() {
-	//Send alt and battery info over UART to App every 1 seconds
-	if((hal.scheduler->micros() - send_interval) > 1000000UL) {
+	//Send alt and battery info over UART to App every 2 second(s)
+	if((hal.scheduler->micros() - send_interval) > 2000000UL) {
 		//Scheduling
 		send_interval = hal.scheduler->micros();  
 		
@@ -738,26 +751,31 @@ void sendDataToPhone() {
 		// update voltage and current readings
 		battery_mon.read();
 		
-		//send alt and battery status
+		//send alt info and battery status
 		uartMessaging.sendAltitude(alt);
+                uartMessaging.sendClimbRate(climb_rate);
 		uartMessaging.sendBattery(battery_mon.voltage());
                 
-                /*
-                //Send GPS Lock information
-                if (GPS_state == true){
-                  uartMessaging.sendGPSLock(true);
-                }else{
-                  uartMessaging.sendGPSLock(false);
+                //Send Drone GPS Coordinates
+                gps->update();
+                uartMessaging.sendDroneLat(gps->latitude);
+                uartMessaging.sendDroneLon(gps->longitude);
+                
+                //Send GPS status
+                uartMessaging.sendGPSStatus((long)gps->status());
+                uartMessaging.sendGPSAccuracy(gps->horizontal_accuracy);    //GPS accuracy of the drone as a float in meters
+        }
+
+                
+                if(uartMessaging.isSeperationDistanceLatest())
+                {
+                  //uartMessaging.getSeperationDistance(&seperationDistance);
+                  //hal.console->println(seperationDistance);
                 }
                 
-                //Send Saftey Status
-                if (autopilotState == OFF){
-                  uartMessaging.sendSafetyStatus(false);
-                }else{
-                  uartMessaging.sendSafetyStatus(true);
-                }
-                */
-	}
+                uartMessaging.isLand();
+                uartMessaging.isTakeOff();
+
 }
 
 AP_HAL_MAIN();

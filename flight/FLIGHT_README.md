@@ -15,6 +15,22 @@ UP                | autonomous takeoff, then altitude hold
 
 ## Changelog
 
+February 23, 2015
+
+- Issue w/ oscillation in GPS lock seems to be from noisy heading signal (input to yaw rotation matrix)
+- Implemented seperation distance 
+- Drone should now point nose towards the target (phone). Must have GPS signal
+- Drone has knowledge of GPS accuracy
+
+TODO: 
+-Test Heading Follow Feature
+-Test Seperation Distance
+-Test heading -> pitch / roll issue
+-Test GPS accuracy
+-Upgrade to new library? (has so many great features)
+
+------------------------------------------
+
 February 19, 2015
 
 - Fixed gps method so there is no lose of precision.
