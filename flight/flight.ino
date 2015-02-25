@@ -69,7 +69,7 @@ AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
 #define RC_ALT_MIN   0
 #define RC_ALT_MAX   1
 
-#define HOVER_THR 1340
+unsigned int HOVER_THR = 1340;
 
 #define BATTERY_ADJ_THR 1280
 
@@ -267,13 +267,8 @@ void loop() {
 	roll_output =  (long) constrain(pids[PID_ROLL_RATE].get_pid(roll_stab_output - gyroRoll, 1), -500, 500);
 	yaw_output =  (long) constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);
 
-	float alt_rate_kD = 0.8;
-
 	//Feedback loop for altitude holding
-	alt_stab_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
-	alt_rate_output = alt_rate_kD * climb_rate;
-
-	alt_output = alt_stab_output - alt_rate_output;
+	alt_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
 
 	if (switchState == AUTO_TAKEOFF) {
 		// hal.console->print("DRONE IN AUTOPILOT MODE: ");
@@ -380,7 +375,8 @@ void setPidConstants(int config) {
 		
 		//Below are the PIDs for altitude hold
 		pids[ALT_STAB].kP(6.0);							// TODO adjust
-		pids[ALT_STAB].kI(0.8);							// TODO adjust`
+		pids[ALT_STAB].kI(1.2);							// TODO adjust
+		pids[ALT_STAB].kD(0.8);							// TODO adjust
 		pids[ALT_STAB].imax(20);						// TODO adjust
 
 		pids[ALT_RATE].kP(0.1);							// TODO adjust
@@ -840,7 +836,7 @@ void adjustHoverThrottle() {
 	if (autopilotState == TAKEOFF) {
 		delay = 200000UL;												// delay every 0.2 seconds when performing autonomous takeoff
 	} else {
-		delay = 10000000UL;												// delay every 10 seconds under normal operating conditions
+		delay = 2000000UL;												// delay every 10 seconds under normal operating conditions
 	}
 
 	if((hal.scheduler->micros() - hover_thr_timer) > delay) {
@@ -849,9 +845,8 @@ void adjustHoverThrottle() {
 		battery_mon.read();												// Get battery stats: update voltage and current readings
 		
 		float voltage = battery_mon.voltage();
-		float new_hover_thr = map(voltage, 10, 11.8, 1360, 1330);		// map HOVER_THR based on voltage of drone in flight
-		#undef HOVER_THR;
-		#define HOVER_THR new_hover_thr;
+		float new_hover_thr = map(voltage, 10, 11.8, 1364, 1330);		// map HOVER_THR based on voltage of drone in flight
+		HOVER_THR = new_hover_thr;
 	}
 }
 
@@ -876,7 +871,7 @@ void sendDataToPhone() {
                 //uartMessaging.sendDroneLat(gps->latitude);
                 //uartMessaging.sendDroneLon(gps->longitude);
 				uartMessaging.sendDroneLat(HOVER_THR);
-				uartMessaging.sendDroneLon(HOVER_THR);
+				uartMessaging.sendDroneLon(rcthr);
                 uartMessaging.sendGPSStatus((long)gps->status());
                 uartMessaging.sendClimbRate(climb_rate);
 	}
