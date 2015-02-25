@@ -207,7 +207,7 @@ void loop() {
 	float pitch, roll, yaw;
 
 	float pitch_stab_output, roll_stab_output, yaw_stab_output;
-	float alt_output;
+	float alt_output, alt_stab_output, alt_rate_output;
 	long pitch_output, roll_output, yaw_output;
 	
 	float AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
@@ -267,9 +267,13 @@ void loop() {
 	roll_output =  (long) constrain(pids[PID_ROLL_RATE].get_pid(roll_stab_output - gyroRoll, 1), -500, 500);
 	yaw_output =  (long) constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);
 
+	float alt_rate_kD = 0.4;
+
 	//Feedback loop for altitude holding
-	alt_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
-	//float alt_output = constrain(pids[ALT_RATE].get_pid(alt_stab_output - climb_rate, 1), -100, 100);
+	alt_stab_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
+	alt_rate_output = alt_rate_kD * climb_rate;
+
+	alt_output = alt_stab_output - alt_rate_output;
 
 	if (switchState == AUTO_TAKEOFF) {
 		// hal.console->print("DRONE IN AUTOPILOT MODE: ");
@@ -376,8 +380,8 @@ void setPidConstants(int config) {
 		
 		//Below are the PIDs for altitude hold
 		pids[ALT_STAB].kP(6.0);							// TODO adjust
-		pids[ALT_STAB].kI(0.4);							// TODO adjust
-		pids[ALT_STAB].imax(100);						// TODO adjust
+		pids[ALT_STAB].kI(0.4);							// TODO adjust`
+		pids[ALT_STAB].imax(20);						// TODO adjust
 
 		pids[ALT_RATE].kP(0.1);							// TODO adjust
 		pids[ALT_RATE].kI(0.0);							// do not add I here!
