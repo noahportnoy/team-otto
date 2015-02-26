@@ -15,6 +15,14 @@ UP                | autonomous takeoff, then altitude hold
 
 ## Changelog
 
+February 26, 2015
+
+- Adjust hover throttle some more
+- Tuned altitude hold, works pretty well now
+
+
+------------------------------------------
+
 February 21, 2015
 
 - Adjusted hover throttle to account for weight
