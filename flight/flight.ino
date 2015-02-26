@@ -547,7 +547,7 @@ void gpsTracking(long rcpit, long rcroll) {
 	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5); 
 
 
-	hal.console->printf(", currheading, %f, fixed_Heading, %f, ", current_heading, fixed_heading);
+	//hal.console->printf(", currheading, %f, fixed_Heading, %f, ", current_heading, fixed_heading);
 	//hal.console->print(", lastheading, ");
 	//hal.console->print(last_heading);
 	//hal.console->print(", desired_heading, ");
@@ -562,8 +562,8 @@ void gpsTracking(long rcpit, long rcroll) {
 	//hal.console->print(rcyaw);
 	//hal.console->print(", seperation, ");
 	//hal.console->print(seperation_dist);
-	hal.console->print(", accuracy, ");
-	hal.console->print(gps->horizontal_accuracy/1000.0);
+	//hal.console->print(", accuracy, ");
+	//hal.console->print(gps->horizontal_accuracy/1000.0);
 	hal.console->print(", rcpitch, ");
 	hal.console->print(rcpit);
 	hal.console->print(", rcroll, ");
