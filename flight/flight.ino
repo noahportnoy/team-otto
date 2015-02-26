@@ -248,17 +248,17 @@ void loop() {
                 desired_heading = -50;
                 
                 getDroneCoordinates(drone_coordinates);
-                //getTargetCoordinates(target_coordinates);
+                getTargetCoordinates(target_coordinates);
                 
-                //hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
-                //hal.console->printf(",  target_long, %ld, target_lat, %ld, ", target_coordinates[0], target_coordinates[1]);
+                hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
+                hal.console->printf(",  target_long, %ld, target_lat, %ld, ", target_coordinates[0], target_coordinates[1]);
                       
                 desired_heading = getDesiredHeading();
-                last_heading = current_heading;
-                current_heading = getHeading();
+                //last_heading = current_heading;
+                getHeading();
                 
                 //Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
-                rcyaw = -1* constrain(pids[YAW_CMD].get_pid(desired_heading - current_heading, 1), -180, 180);
+                rcyaw = -1* constrain(pids[YAW_CMD].get_pid(desired_heading - current_heading, 1), -10, 10);
         
         
         
@@ -297,7 +297,7 @@ void loop() {
                       */
                       //q.rotation_matrix(m);
                       
-                      current_heading = movingAvg(last_heading, current_heading, 0.8);
+                      //current_heading = movingAvg(last_heading, current_heading, 0.8);
                       yaw_rotation_m.a = Vector3f(cos(current_heading), sin(current_heading), 0);
                       yaw_rotation_m.b = Vector3f(-sin(current_heading), cos(current_heading), 0);
                       yaw_rotation_m.c = Vector3f(0, 0, 1);
@@ -313,14 +313,14 @@ void loop() {
                       //PID Feedback system for pitch and roll.
                       //Constrained to -10 and 10 degrees
                       //rcpit = constrain(pids[PITCH_CMD].get_pid(seperation_distance, 1), -5, 5); 
-                      rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5); 
-                      rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.y, 1), -5, 5); 
+                      rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.x, 1), -10, 10); 
+                      rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.y, 1), -10, 10); 
                       
                       
                       hal.console->print("currheading, ");
                       hal.console->print(current_heading);
-                      hal.console->print("lastheading, ");
-                      hal.console->print(last_heading);
+                      //hal.console->print("lastheading, ");
+                      //hal.console->print(last_heading);
                       //hal.console->print(", desired_heading, ");
                       //hal.console->print(desired_heading);
                       //hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
@@ -332,16 +332,14 @@ void loop() {
                       //hal.console->print(desired_heading);
                       //hal.console->print(",  rcyaw, ");
                       //hal.console->print(rcyaw);
-                      hal.console->print(", accurary, ");
+                      //hal.console->print(", seperation, ");
+                      //hal.console->print(seperation_dist);
+                      hal.console->print(", accuracy, ");
                       hal.console->print(gps->horizontal_accuracy/1000.0);
-                      hal.console->print(", seperation, ");
-                      hal.console->print(seperation_dist);
-                      hal.console->print(", rcpitch, ");
-                      hal.console->print(rcpit);
-                      hal.console->print(", rcroll, ");
-                      hal.console->print(rcroll);
-                      //hal.console->print(", heading, ");
-                      //hal.console->print(current_heading);
+                      //hal.console->print(", rcpitch, ");
+                      //hal.console->print(rcpit);
+                      //hal.console->print(", rcroll, ");
+                      //hal.console->print(rcroll);
                       //hal.console->print(", t, ");
                       //hal.console->print(hal.scheduler->millis());
                       hal.console->println();
@@ -753,7 +751,7 @@ void sendDataToPhone() {
 		
 		//send alt info and battery status
 		uartMessaging.sendAltitude(alt);
-                uartMessaging.sendClimbRate(climb_rate);
+                uartMessaging.sendClimbRate(current_heading);
 		uartMessaging.sendBattery(battery_mon.voltage());
                 
                 //Send Drone GPS Coordinates
