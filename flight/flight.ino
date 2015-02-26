@@ -375,14 +375,14 @@ void setPidConstants(int config) {
 		pids[PID_YAW_RATE].imax(50);
 		
 		//Below are the PIDs for altitude hold
-		pids[ALT_STAB].kP(6.0);							// TODO adjust
-		pids[ALT_STAB].kI(1.2);							// TODO adjust
-		pids[ALT_STAB].kD(0.8);							// TODO adjust
+		pids[ALT_STAB].kP(8);							// TODO adjust
+		pids[ALT_STAB].kI(1.5);							// TODO adjust
+		pids[ALT_STAB].kD(9);							// TODO adjust
 		pids[ALT_STAB].imax(20);						// TODO adjust
 
-		pids[ALT_RATE].kP(0.1);							// TODO adjust
-		pids[ALT_RATE].kI(0.0);							// do not add I here!
-		pids[ALT_RATE].imax(50);						// TODO adjust
+		// pids[ALT_RATE].kP(0.1);							// TODO adjust
+		// pids[ALT_RATE].kI(0.0);							// do not add I here!
+		// pids[ALT_RATE].imax(50);						// TODO adjust
 		
 		//Below are the PIDs for autonomous control
 		pids[PITCH_CMD].kP(1.0);
@@ -854,7 +854,7 @@ static void flash_leds(bool on) {
 }
 
 void sendDataToPhone() {
-	//Send alt and battery info over UART to App every 2 seconds
+	//Send alt and battery info over UART to App every 1 second
 	if((hal.scheduler->micros() - send_interval) > 1000000UL) {
 		//Scheduling
 		send_interval = hal.scheduler->micros();
