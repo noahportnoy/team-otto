@@ -16,19 +16,6 @@ void getHeading(){
             gps->update();
             
             Vector3f drift  = ahrs.get_gyro_drift();
-            /*
-            hal.console->printf_P(
-                    PSTR("r:%4.1f  p:%4.1f y:%4.1f "
-                        "drift=(%5.1f %5.1f %5.1f) hdg=%.1f\n"),
-                            ToDeg(ahrs.roll),
-                            ToDeg(ahrs.pitch),
-                            ToDeg(ahrs.yaw),
-                            ToDeg(drift.x),
-                            ToDeg(drift.y),
-                            ToDeg(drift.z),
-                            compass.use_for_yaw() ? ToDeg(heading) : 2.67767789
-            );
-            */
             last_heading = current_heading;
             current_heading =  ToDeg(heading);
         }
@@ -87,7 +74,7 @@ double getDesiredHeading(){
           desired_heading = atan(angle);
           desired_heading = desired_heading * 180/PI;
           
-          hal.console->printf("lat_seperation: %ld, long_seperation: %ld, angle: %f, desiredHeading: %f", lat_seperation, long_seperation, angle, desired_heading);
+          //hal.console->printf("lat_seperation: %ld, long_seperation: %ld, angle: %f, desiredHeading: %f", lat_seperation, long_seperation, angle, desired_heading);
           
           /*COMPASS OPERATION: 
              True North is 0 (degrees)
@@ -130,8 +117,8 @@ void getDroneCoordinates(int32_t coords[]){
                   hal.console->print("Long Coordinates more than 20m apart");   
      
             //if points are less than 1 meters apart, then ignore             
-            }else if (abs(temp) - abs(drone_coordinates[0]) <= 70){
-                  coords[0] = drone_coordinates[0];   
+            //}else if (abs(temp) - abs(drone_coordinates[0]) < 70){
+            //      coords[0] = drone_coordinates[0];   
                   
             }else{
                   coords[0] = movingAvg(drone_coordinates[0], temp, .5);
@@ -147,8 +134,8 @@ void getDroneCoordinates(int32_t coords[]){
                   hal.console->print("Lat Coordinates more than 20m apart");  
                        
             //if points are less than 1 meters apart, then ignore             
-            }else if (abs(temp) - abs(drone_coordinates[1]) <= 121){
-                  coords[1] = drone_coordinates[1];  
+            //}else if (abs(temp) - abs(drone_coordinates[1]) < 121){
+            //      coords[1] = drone_coordinates[1];  
                   
             }else{
                   coords[1] = movingAvg(drone_coordinates[1], temp, .5);

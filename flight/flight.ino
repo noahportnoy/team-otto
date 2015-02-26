@@ -24,8 +24,11 @@
 #include <AP_Math.h>
 #include <AP_Buffer.h>
 #include <Filter.h>
-#include <AP_Baro.h>  //altitude
-#include <AP_BattMonitor.h>  //battery Monitor
+#include <LowPassFilter2p.h>
+#include <ModeFilter.h>         // ModeFilter class (inherits from Filter class)
+#include <AverageFilter.h>      // AverageFilter class (inherits from Filter class)
+#include <AP_Baro.h>            // Altitude
+#include <AP_BattMonitor.h>     // Battery Monitor
 #include <AP_GPS.h>
 
 //include uart messaging header file
@@ -57,6 +60,12 @@ AP_Compass_HMC5843 compass;
 //AP_AHRS_DCM  ahrs(&ins, gps);
 AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
 
+// craete an instance with 100Hz sample rate and 5Hz cutoff
+static LowPassFilter2p low_pass_filter(100, 1);
+
+//Averaging filter
+AverageFilterFloat_Size5 _temp_filter;
+
 
 /*------------------------------------------------ SYSTEM DEFINITIONS ------------------------------------------------------*/
 // Radio min/max values for each stick for my radio (worked out at beginning of article)
@@ -72,7 +81,7 @@ AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
 #define RC_ALT_MAX   1
 
 //Hover throttle
-#define HOVER_THR 1340
+#define HOVER_THR 1335
 
 // Min/max throttle for autonomous takeoff
 #define MAX_TAKEOFF_THR 1340
@@ -148,7 +157,7 @@ float originalOrientation = 0.0;
 float currentOrientation = 0.0;
 float alt = 0;
 float last_alt = 0;
-float current_heading = 0, last_heading = 0;
+float current_heading = 0, last_heading = 0, desired_heading;
 float climb_rate = 0;
 float last_climb_rate = 0;
 long rcthr = 1000;
@@ -156,9 +165,9 @@ int heightLock = 0;
 int switchState = 0;
 int autopilotState = 0;
 
-//Coordinate Arrays: [longitude, lattitude, last_longitude, last_la]
-int32_t target_coordinates[2];
-int32_t drone_coordinates[2];
+//Coordinate Arrays: [longitude, lattitude]
+int32_t target_coordinates[2];// = {10,20};
+int32_t drone_coordinates[2];// = {0,0};
 bool GPS_state = false; //Requires GPS status of 2 or 3 to be true
 
 Matrix3f dcm_matrix;
@@ -244,21 +253,21 @@ void loop() {
         if (switchState == AUTO_ALT_HOLD) {
                                    
                 /////////Autonomous YAW using the compass & GPS
-                double desired_heading;
-                desired_heading = -50;
+                float fixed_heading, current_heading_rad;
+                desired_heading = 0;
                 
                 getDroneCoordinates(drone_coordinates);
-                getTargetCoordinates(target_coordinates);
+                //getTargetCoordinates(target_coordinates);
                 
-                hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
-                hal.console->printf(",  target_long, %ld, target_lat, %ld, ", target_coordinates[0], target_coordinates[1]);
+                //hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
+                //hal.console->printf(",  target_long, %ld, target_lat, %ld, ", target_coordinates[0], target_coordinates[1]);
                       
-                desired_heading = getDesiredHeading();
+                //desired_heading = getDesiredHeading();
                 //last_heading = current_heading;
                 getHeading();
                 
                 //Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
-                rcyaw = -1* constrain(pids[YAW_CMD].get_pid(desired_heading - current_heading, 1), -10, 10);
+                //rcyaw = -1* constrain(pids[YAW_CMD].get_pid(desired_heading - current_heading, 1), -10, 10);
         
         
         
@@ -266,7 +275,7 @@ void loop() {
                 /////////Autonomous Pitch / Roll using the Rotation Matrix Method
                 //First we must verify that we have a reliable GPS connection
                 
-                if(getGpsState()){
+                //if(getGpsState()){
                   
                       //Vector format is x,y,z                       
                       Vector3f lat_long_error, autonomous_pitch_roll;
@@ -286,7 +295,7 @@ void loop() {
                       lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*(LONG_TO_METER/10000000.0));
                       lat_long_error.y = (float)((target_coordinates[1] - drone_coordinates[1])*(LAT_TO_METER/10000000.0));
                       lat_long_error.z = 0;
-                               
+
                       /*
                       Generic Matrix Setup
                       ----           ----
@@ -297,9 +306,13 @@ void loop() {
                       */
                       //q.rotation_matrix(m);
                       
-                      //current_heading = movingAvg(last_heading, current_heading, 0.8);
-                      yaw_rotation_m.a = Vector3f(cos(current_heading), sin(current_heading), 0);
-                      yaw_rotation_m.b = Vector3f(-sin(current_heading), cos(current_heading), 0);
+                      fixed_heading = sousaFilter(current_heading);
+                      //current_heading = 0;
+                      
+                      //Get the radian representation of current_heading
+                      current_heading_rad = current_heading*PI/180;
+                      yaw_rotation_m.a = Vector3f(cos(current_heading_rad), sin(current_heading_rad), 0);
+                      yaw_rotation_m.b = Vector3f(-sin(current_heading_rad), cos(current_heading_rad), 0);
                       yaw_rotation_m.c = Vector3f(0, 0, 1);
                       //hal.console->print("Yaw Rotation Matrix:  ");
                       //hal.console->printf("a: %f %f %f b: %f %f %f    ", yaw_rotation_m.a.x, yaw_rotation_m.a.y, yaw_rotation_m.a.z, yaw_rotation_m.b.x, yaw_rotation_m.b.y, yaw_rotation_m.b.z);
@@ -307,25 +320,22 @@ void loop() {
                       
                       //Multiply the lat_long_error matrix by the yaw rotation matrix to get pitch / roll proportions
                       autonomous_pitch_roll = yaw_rotation_m*lat_long_error;    //This may be incorrect 
-                      //hal.console->printf("p/r: %f %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y, autonomous_pitch_roll.z);
+                      hal.console->printf("p/r: %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y);
                        
                       
                       //PID Feedback system for pitch and roll.
-                      //Constrained to -10 and 10 degrees
                       //rcpit = constrain(pids[PITCH_CMD].get_pid(seperation_distance, 1), -5, 5); 
-                      rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.x, 1), -10, 10); 
-                      rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.y, 1), -10, 10); 
+                      rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -5, 5); 
+                      rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5); 
                       
                       
-                      hal.console->print("currheading, ");
-                      hal.console->print(current_heading);
-                      //hal.console->print("lastheading, ");
+                      hal.console->printf(", currheading, %f, fixed_Heading, %f, ", current_heading, fixed_heading);
+                      //hal.console->print(", lastheading, ");
                       //hal.console->print(last_heading);
                       //hal.console->print(", desired_heading, ");
                       //hal.console->print(desired_heading);
-                      //hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
-                      //hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
-                      //hal.console->printf(",  long_diff, %f, lat_diff, %f, ", lat_long_error.x, lat_long_error.y);
+                      hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
+                      hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
                       //hal.console->print(" status, ");
                       //hal.console->print(gps->status());
                       //hal.console->print(",  desired heading, ");
@@ -336,19 +346,19 @@ void loop() {
                       //hal.console->print(seperation_dist);
                       hal.console->print(", accuracy, ");
                       hal.console->print(gps->horizontal_accuracy/1000.0);
-                      //hal.console->print(", rcpitch, ");
-                      //hal.console->print(rcpit);
-                      //hal.console->print(", rcroll, ");
-                      //hal.console->print(rcroll);
+                      hal.console->print(", rcpitch, ");
+                      hal.console->print(rcpit);
+                      hal.console->print(", rcroll, ");
+                      hal.console->print(rcroll);
                       //hal.console->print(", t, ");
                       //hal.console->print(hal.scheduler->millis());
                       hal.console->println();
                       
-                }else{
+                /*}else{
                       //PID Feedback system for pitch and roll input 0 is bad GPS state
                       rcpit = 0; 
                       rcroll = 0; 
-                }
+                }*/
              
 	}
 
@@ -401,7 +411,8 @@ void loop() {
 	} else if (switchState == AUTO_ALT_HOLD) {							// Autonomous altitude hold
 	
 		// hal.console->println("DRONE IN AUTO_ALT_HOLD MODE");
-		rcthr = autonomousHold(alt_output);
+		//rcthr = autonomousHold(alt_output);
+                rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MIN, 1500);
 	
 	} else {
 		hal.console->print("Error: switchState of ");
@@ -446,6 +457,20 @@ float movingAvg(float previous, float current, float a){
 	return (previous*a + (1-a)*current);
 }
 
+//Average Filter and Low pass filter
+float sousaFilter(float input){
+       float output;
+       
+       //Averaging filter followed by a low pass filter
+       //Filter specs set above in declaration
+       input = _temp_filter.apply(input);
+       output = low_pass_filter.apply(input);
+       
+       //hal.console->printf("input, %f, output, %f, ", input, output);
+
+       return (output);
+}
+
 void setPidConstants(int config) {
 	if (config == DEFAULT) {
                 //Below are the PIDs for drone stabilization
@@ -488,7 +513,7 @@ void setPidConstants(int config) {
 		pids[ALT_STAB].imax(100);
                 
                 //Below are the PIDs for autonomous control
-                pids[PITCH_CMD].kP(0.2);
+                pids[PITCH_CMD].kP(0.25);
 		pids[PITCH_CMD].kI(0.0);
 		pids[PITCH_CMD].imax(50);
 
@@ -751,7 +776,7 @@ void sendDataToPhone() {
 		
 		//send alt info and battery status
 		uartMessaging.sendAltitude(alt);
-                uartMessaging.sendClimbRate(current_heading);
+                uartMessaging.sendClimbRate(desired_heading);
 		uartMessaging.sendBattery(battery_mon.voltage());
                 
                 //Send Drone GPS Coordinates
