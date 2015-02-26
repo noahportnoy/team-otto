@@ -136,7 +136,8 @@ PID pids[11];
  # define MAG_ORIENTATION  AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD
 #endif
 
-
+#define LAT_TO_METER 111080.90
+#define LONG_TO_METER 82338.05
 
 
 /*------------------------------------------------ DECLARE GLOBAL VARIABLES ------------------------------------------------------*/
@@ -179,10 +180,7 @@ void setup() {
 	setupBatteryMonitor();
 	//Initizlize the Altitude Hold Refernece System
 	ahrs.init();
-
-	//Get coordinates of takeoff point
-	// getTakeoffCoordinates(target_coordinates);
-	
+	getGPSLock();
 	hal.console->printf("target_long, %f, target_lat, %f,  ", target_coordinates[0], target_coordinates[1]);
 	hal.console->println("Otto Ready.");
 }
@@ -525,8 +523,7 @@ bool getTargetCoordinates(float coords[]){
 	return false;
 }
 
-//Coordinate Arrays: [longitude, lattitude]
-void getTakeoffCoordinates(float coords[]){
+void getGPSLock(){
 	int counter=0;
 	hal.console->println("getting GPS lock");
 	gps->update();
@@ -535,11 +532,9 @@ void getTakeoffCoordinates(float coords[]){
 		gps->update();
 
 		flash_leds(true);
-		hal.scheduler->delay(50);
+		hal.scheduler->delay(200);
 		flash_leds(false);
-		hal.scheduler->delay(50);
-		flash_leds(true);
-		hal.scheduler->delay(50);
+		hal.scheduler->delay(200);
 		
 		//Counter to exit while loop if cannot get GPS coordinate
 		counter++;
@@ -557,15 +552,10 @@ void getTakeoffCoordinates(float coords[]){
 			hal.scheduler->delay(50);
 			flash_leds(false);
 			hal.scheduler->delay(50);
-			flash_leds(true);
-			hal.scheduler->delay(50);
 		}
 	}
 
-	coords[1] = gps->latitude/10000000.0;
-	coords[0] = gps->longitude/10000000.0;
 	hal.console->println(gps->status());
-	return;
 }
 
 float getAltitude() {
