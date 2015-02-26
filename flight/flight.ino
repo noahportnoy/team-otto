@@ -242,6 +242,7 @@ void loop() {
 
 	if (switchState == AUTO_ALT_HOLD || switchState == AUTO_TAKEOFF) {	// Autonomous YAW using the compass and GPS
 		if((hal.scheduler->micros() - heading_timer) > 100000L){		// Run loop @ 10Hz ~ 100ms
+			heading_timer = hal.scheduler->micros();
 			current_heading = getHeading();
 		}
 
@@ -459,34 +460,27 @@ float calculateYaw() {
 
 float getHeading(){
 	//Use AHRS for Heading
-	static uint32_t last_t, last_print;
-	uint32_t now = hal.scheduler->micros();
 	float heading = 0;
-
 	ahrs.update();
-	if((hal.scheduler->micros() - heading_timer) > 100000L){ 			//Run loop @ 10Hz
-		heading_timer = hal.scheduler->micros();
-		
-		compass.read();
-		heading = compass.calculate_heading(ahrs.get_dcm_matrix());
-		gps->update();
-		
-		Vector3f drift  = ahrs.get_gyro_drift();
-		/*
-		hal.console->printf_P(
-				PSTR("r:%4.1f  p:%4.1f y:%4.1f "
-					"drift=(%5.1f %5.1f %5.1f) hdg=%.1f\n"),
-						ToDeg(ahrs.roll),
-						ToDeg(ahrs.pitch),
-						ToDeg(ahrs.yaw),
-						ToDeg(drift.x),
-						ToDeg(drift.y),
-						ToDeg(drift.z),
-						compass.use_for_yaw() ? ToDeg(heading) : 2.67767789
-		);
-		*/
-		current_heading =  ToDeg(heading);
-	}
+	
+	compass.read();
+	heading = compass.calculate_heading(ahrs.get_dcm_matrix());
+	Vector3f drift  = ahrs.get_gyro_drift();
+	/*
+	hal.console->printf_P(
+			PSTR("r:%4.1f  p:%4.1f y:%4.1f "
+				"drift=(%5.1f %5.1f %5.1f) hdg=%.1f\n"),
+					ToDeg(ahrs.roll),
+					ToDeg(ahrs.pitch),
+					ToDeg(ahrs.yaw),
+					ToDeg(drift.x),
+					ToDeg(drift.y),
+					ToDeg(drift.z),
+					compass.use_for_yaw() ? ToDeg(heading) : 2.67767789
+	);
+	*/
+	current_heading =  ToDeg(heading);
+
 	//current_heading = movingAvg(last_heading, current_heading, .5);
 	return current_heading;
 }
@@ -662,12 +656,14 @@ void getSwitchPosition(uint16_t channels[]) {
 		if (switchState == MANUAL || switchState == AUTO_TAKEOFF) {				// If switching to AUTO_ALT_HOLD, reset PIDs and set autopilotState to ALT_HOLD
 			pids[ALT_STAB].reset_I();											// reset i; reset PID integrals while in manual mode
 			autopilotState = ALT_HOLD;
-			desired_heading = getHeading();
+			current_heading = getHeading();
+			desired_heading = current_heading;
 		}
 
 		if (autopilotState == OFF) {											// If safety was just turned off
 			autopilotState = ALT_HOLD;
-			desired_heading = getHeading();
+			current_heading = getHeading();
+			desired_heading = current_heading;
 		}
 
 		switchState = AUTO_ALT_HOLD;
@@ -677,12 +673,14 @@ void getSwitchPosition(uint16_t channels[]) {
 		if (switchState == MANUAL || switchState == AUTO_ALT_HOLD) {			// If switching to AUTO_TAKEOFF, reset PIDs and set autopilotState to TAKEOFF
 			pids[ALT_STAB].reset_I();											// reset i; reset PID integrals while in manual mode
 			autopilotState = TAKEOFF;
-			desired_heading = getHeading();
+			current_heading = getHeading();
+			desired_heading = current_heading;
 		}
 
 		if (autopilotState == OFF) {											// If safety was just turned off
 			autopilotState = TAKEOFF;
-			desired_heading = getHeading();
+			current_heading = getHeading();
+			desired_heading = current_heading;
 		}
 
 		switchState = AUTO_TAKEOFF;
