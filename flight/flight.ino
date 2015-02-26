@@ -1,4 +1,3 @@
-// going to work on GPS tracking
 #include <AP_Compass.h>
 #include <AP_Compass_HMC5843.h>
 #include <Compass.h>
@@ -501,7 +500,7 @@ void gpsTracking(long rcpit, long rcroll) {
 	//q.earth_to_body(lat_long_error);
 
 	//This should all be in an if statement that checks the status of GPS_state variable
-	if (gps->status() >= 1) {
+	if (gps->status() >= 2) {
 		getDroneCoordinates(drone_coordinates);
 	} else {
 		///PID Feedback system for pitch and roll input 0 is bad GPS state
@@ -511,8 +510,8 @@ void gpsTracking(long rcpit, long rcroll) {
 	}
 
 	//Get Lat and Long error
-	lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*(LONG_TO_METER/10000000.0));
-	lat_long_error.y = (float)((target_coordinates[1] - drone_coordinates[1])*(LAT_TO_METER/10000000.0));
+	lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*LONG_TO_METER);
+	lat_long_error.y = (float)((target_coordinates[1] - drone_coordinates[1])*LAT_TO_METER);
 	lat_long_error.z = 0;
 
 	/*
@@ -538,7 +537,8 @@ void gpsTracking(long rcpit, long rcroll) {
 
 	//Multiply the lat_long_error matrix by the yaw rotation matrix to get pitch / roll proportions
 	autonomous_pitch_roll = yaw_rotation_m*lat_long_error;    //This may be incorrect 
-	hal.console->printf("p/r: %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y);
+	hal.console->printf("gps status: %d", gps->status());
+	hal.console->printf(", p/r: %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y);
 
 
 	//PID Feedback system for pitch and roll.
@@ -552,7 +552,7 @@ void gpsTracking(long rcpit, long rcroll) {
 	//hal.console->print(last_heading);
 	//hal.console->print(", desired_heading, ");
 	//hal.console->print(desired_heading);
-	hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
+	hal.console->printf(",  drone_long, %f, drone_lat, %f, ", drone_coordinates[0], drone_coordinates[1]);
 	hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
 	//hal.console->print(" status, ");
 	//hal.console->print(gps->status());
