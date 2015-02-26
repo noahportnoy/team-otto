@@ -484,43 +484,30 @@ float getHeading(){
 	return current_heading;
 }
 
-//Coordinate Arrays: [longitude, lattitude]
-void getDroneCoordinates(float coords[]){
+//Coordinate Arrays: [latitude, longitude]
+void getDroneCoordinates( float &drone_coordinates[] ){
+
 	gps->update();
 	if (gps->new_data) {
-		// hal.console->print("Lat, ");
-		// hal.console->print(gps->latitude/10000000.0);
-		// hal.console->print(", Lon, ");
-		// hal.console->print(gps->longitude/10000000.0);
-		// hal.console->print(", g_speed, ");
-		// hal.console->println(gps->ground_speed/100.0);
-		// hal.console->printf(" Alt: %.2fm GSP: %.2fm/s CoG: %d SAT: %d TIM: %lu STATUS: %u\n",
-		//               (float)gps->altitude / 100.0,
-		//               (float)gps->ground_speed / 100.0,
-		//               (int)gps->ground_course / 100,
-		//               gps->num_sats,
-		//               gps->time,
-		//               gps->status()
-		//               );
-
-			coords[1] = gps->latitude/10000000.0;
-			coords[0] = gps->longitude/10000000.0;
+			drone_coordinates[0] = gps->latitude/10000000.0;
+			drone_coordinates[1] = gps->longitude/10000000.0;
 	} else {
-		hal.console->print("~~~~~~~~~~~~~~~~  Error. NO NEW GPS DATA!  ~~~~~~~~~~~~~~");
+		hal.console->print("~~~~~~~~~~~~~~~~  Error : NO NEW GPS DATA!  ~~~~~~~~~~~~~~~~");
 	}
+
 }
 
-//Coordinate Arrays: [longitude, lattitude]
-bool getTargetCoordinates(float coords[]){
+//Coordinate Arrays: [latitude, longitude]
+void getTargetCoordinates( float &target_coordinates[] ){
+
 	gps->update();
 	if (gps->new_data) {
-			coords[1] = gps->latitude/10000000.0;
-			coords[0] = gps->longitude/10000000.0;
-			hal.console->println(gps->status());
-			return true;
+			target_coordinates[0] = gps->latitude/10000000.0;
+			target_coordinates[1] = gps->longitude/10000000.0;
+	} else {
+		hal.console->print("~~~~~~~~~~~~~~~~  Error : NO NEW GPS DATA!  ~~~~~~~~~~~~~~~~");
 	}
-	hal.console->print("~~~~~~~~~~~~~~~~  Error. NO NEW GPS DATA!  ~~~~~~~~~~~~~~");
-	return false;
+
 }
 
 void getGPSLock(){
