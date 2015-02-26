@@ -207,7 +207,7 @@ void loop() {
 	float pitch, roll, yaw;
 
 	float pitch_stab_output, roll_stab_output, yaw_stab_output;
-	float alt_output, alt_stab_output, alt_rate_output;
+	float alt_output;
 	long pitch_output, roll_output, yaw_output;
 	
 	float AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
@@ -866,10 +866,10 @@ void sendDataToPhone() {
 		//send alt and battery status
 		uartMessaging.sendAltitude(alt);
 		uartMessaging.sendBattery(battery_mon.voltage());
-                //uartMessaging.sendDroneLat(gps->latitude);
-                //uartMessaging.sendDroneLon(gps->longitude);
-				uartMessaging.sendDroneLat(HOVER_THR);
-				uartMessaging.sendDroneLon(rcthr);
+                uartMessaging.sendDroneLat(gps->latitude);
+                uartMessaging.sendDroneLon(gps->longitude);
+				//uartMessaging.sendDroneLat(HOVER_THR);
+				//uartMessaging.sendDroneLon(rcthr);
                 uartMessaging.sendGPSStatus((long)gps->status());
                 uartMessaging.sendClimbRate(climb_rate);
 	}
