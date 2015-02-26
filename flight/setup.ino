@@ -56,7 +56,7 @@ void setupTiming() {
 void setupRpi() {
 		//Initializes the UART C bus (begin(baudrate, rx buffer, tx buffer)
 		//See UARTDriver.h for more...
-		hal.uartC->begin(115200, 16, 16); 
+		hal.uartC->begin(115200, 32, 32); 
 		hal.console->println("UARTC (UART2) Test");
 		//Uart messaging
 		uartMessaging.init(hal.uartC, hal.console);
