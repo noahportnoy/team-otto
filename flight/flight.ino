@@ -162,7 +162,7 @@ int autopilotState = 0;
 
 Matrix3f dcm_matrix;
 Quaternion q;
-float target_coordinates[2];
+float target_coordinates[] = {0, 0};
 float desired_heading;
 
 
@@ -495,13 +495,13 @@ void gpsTracking(long rcpit, long rcroll) {
 	//Vector format is x,y,z                       
 	Vector3f lat_long_error, autonomous_pitch_roll;
 	Matrix3f yaw_rotation_m;
-	float drone_coordinates[2];
+	float drone_coordinates[] = {0, 0};
 
 	//lat_long_error = Vector3f(1, 2, .1);
 	//q.earth_to_body(lat_long_error);
 
 	//This should all be in an if statement that checks the status of GPS_state variable
-	if (gps->status() >= 2) {
+	if (gps->status() >= 1) {
 		getDroneCoordinates(drone_coordinates);
 	} else {
 		///PID Feedback system for pitch and roll input 0 is bad GPS state
