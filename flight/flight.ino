@@ -397,12 +397,12 @@ void setPidConstants(int config) {
 		// pids[ALT_RATE].imax(50);						// TODO adjust
 		
 		//Below are the PIDs for autonomous control
-		pids[PITCH_CMD].kP(0.05);
+		pids[PITCH_CMD].kP(0.1);
 		pids[PITCH_CMD].kI(0.0);
 		// pids[PITCH_CMD].kD(0.005);
 		pids[PITCH_CMD].imax(50);
 
-		pids[ROLL_CMD].kP(0.05);
+		pids[ROLL_CMD].kP(0.1);
 		pids[ROLL_CMD].kI(0.0);
 		// pids[ROLL_CMD].kD(0.0005);
 		pids[ROLL_CMD].imax(50);
@@ -606,6 +606,8 @@ void getTargetCoordinates( float target_coordinates[] ){
 	if (gps->new_data) {
 			target_coordinates[1] = gps->latitude/10000000.0;
 			target_coordinates[0] = gps->longitude/10000000.0;
+			// target_coordinates[1] = 42.394586/10000000.0;			// desired coordinates
+			// target_coordinates[0] = -72.529186/10000000.0;			// desired coordinates
 	} else {
 		hal.console->print("~~~~~~~~~~~~~~~~  Error : NO NEW GPS DATA!  ~~~~~~~~~~~~~~~~");
 	}
