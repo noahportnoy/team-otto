@@ -271,6 +271,13 @@ void loop() {
 	roll_output =  (long) constrain(pids[PID_ROLL_RATE].get_pid(roll_stab_output - gyroRoll, 1), -500, 500);
 	yaw_output =  (long) constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);
 
+	// hal.console->print(", pitch_out: ");
+	// hal.console->print(pitch_output);
+	// hal.console->print(", roll_out: ");
+	// hal.console->print(roll_output);
+	// hal.console->print(", yaw_out: ");
+	// hal.console->print(yaw_output);
+
 	//Feedback loop for altitude holding
 	alt_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
 
@@ -328,6 +335,8 @@ void loop() {
 		adjustHoverThrottle();											// adjusts HOVER_THR based on battery voltage
 	}
 
+	// hal.console->println();
+
 	//Send data to user App
 	sendDataToPhone();
 }
@@ -342,7 +351,7 @@ float movingAvg(float previous, float current, float a){
 	//a is a constant smoothing factor. Large a means a lot of weight is put on the previous value
 	//a must be between 0 and 1
 	if(abs(a) > 0) {
-		hal.console->println("Error: a must be between 0 and 1");
+		// hal.console->println("Error: a must be between 0 and 1");
 		a = 0;
 	}
 
@@ -388,12 +397,14 @@ void setPidConstants(int config) {
 		// pids[ALT_RATE].imax(50);						// TODO adjust
 		
 		//Below are the PIDs for autonomous control
-		pids[PITCH_CMD].kP(1.0);
+		pids[PITCH_CMD].kP(0.05);
 		pids[PITCH_CMD].kI(0.0);
+		// pids[PITCH_CMD].kD(0.005);
 		pids[PITCH_CMD].imax(50);
 
-		pids[ROLL_CMD].kP(1.0);
+		pids[ROLL_CMD].kP(0.05);
 		pids[ROLL_CMD].kI(0.0);
+		// pids[ROLL_CMD].kD(0.0005);
 		pids[ROLL_CMD].imax(50);
 
 		pids[YAW_CMD].kP(0.7);
@@ -502,6 +513,8 @@ void gpsTracking(long rcpit, long rcroll) {
 	//This should all be in an if statement that checks the status of GPS_state variable
 	if (gps->status() >= 2) {
 		getDroneCoordinates(drone_coordinates);
+		// drone_coordinates[0] = target_coordinates[0]; 		// TODO change back, testing
+		// drone_coordinates[1] = target_coordinates[1]; 		// TODO change back, testing
 	} else {
 		///PID Feedback system for pitch and roll input 0 is bad GPS state
 		rcpit = 0;
@@ -528,6 +541,7 @@ void gpsTracking(long rcpit, long rcroll) {
 
 	//Get the radian representation of current_heading
 	current_heading_rad = current_heading*PI/180;
+
 	yaw_rotation_m.a = Vector3f(cos(current_heading_rad), sin(current_heading_rad), 0);
 	yaw_rotation_m.b = Vector3f(-sin(current_heading_rad), cos(current_heading_rad), 0);
 	yaw_rotation_m.c = Vector3f(0, 0, 1);
@@ -537,8 +551,8 @@ void gpsTracking(long rcpit, long rcroll) {
 
 	//Multiply the lat_long_error matrix by the yaw rotation matrix to get pitch / roll proportions
 	autonomous_pitch_roll = yaw_rotation_m*lat_long_error;    //This may be incorrect 
-	hal.console->printf("gps status: %d", gps->status());
-	hal.console->printf(", p/r: %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y);
+	// hal.console->printf("gps status: %d", gps->status());
+	//hal.console->printf(", p/r: %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y);
 
 
 	//PID Feedback system for pitch and roll.
@@ -552,8 +566,8 @@ void gpsTracking(long rcpit, long rcroll) {
 	//hal.console->print(last_heading);
 	//hal.console->print(", desired_heading, ");
 	//hal.console->print(desired_heading);
-	hal.console->printf(",  drone_long, %f, drone_lat, %f, ", drone_coordinates[0], drone_coordinates[1]);
-	hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
+	// hal.console->printf(",  drone_long, %f, drone_lat, %f, ", drone_coordinates[0], drone_coordinates[1]);
+	// hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
 	//hal.console->print(" status, ");
 	//hal.console->print(gps->status());
 	//hal.console->print(",  desired heading, ");
@@ -564,13 +578,12 @@ void gpsTracking(long rcpit, long rcroll) {
 	//hal.console->print(seperation_dist);
 	//hal.console->print(", accuracy, ");
 	//hal.console->print(gps->horizontal_accuracy/1000.0);
-	hal.console->print(", rcpitch, ");
-	hal.console->print(rcpit);
-	hal.console->print(", rcroll, ");
-	hal.console->print(rcroll);
+	// hal.console->print(", rcpitch, ");
+	// hal.console->print(rcpit);
+	// hal.console->print(", rcroll, ");
+	// hal.console->print(rcroll);
 	//hal.console->print(", t, ");
 	//hal.console->print(hal.scheduler->millis());
-	hal.console->println();
 }
 
 //Coordinate Arrays: [latitude, longitude]
