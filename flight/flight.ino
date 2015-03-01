@@ -329,11 +329,11 @@ void loop() {
 	//Send data to user App
 	sendDataToPhone();
 
-	hal.console->print("rcpitch, ");
-	hal.console->print(rcpit);
-	hal.console->print(", rcroll, ");
-	hal.console->print(rcroll);
-	hal.console->println();
+	// hal.console->print("rcpitch, ");
+	// hal.console->print(rcpit);
+	// hal.console->print(", rcroll, ");
+	// hal.console->print(rcroll);
+	// hal.console->println();
 	// hal.console->print(", ");
 	// hal.console->print(", pitch_out: ");
 	// hal.console->print(pitch_output);
@@ -564,7 +564,7 @@ void gpsTracking(long &rcpit, long &rcroll) {
 	rcpit = -rcpit;		// flip rcpit for proper mapping (neg pitch is forward)
 	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5);
 
-	hal.console->printf("gps status: %d", gps->status());
+	// hal.console->printf("gps status: %d", gps->status());
 	//hal.console->printf(", currheading, %f, fixed_Heading, %f, ", current_heading, fixed_heading);
 	//hal.console->print(", lastheading, ");
 	//hal.console->print(last_heading);
@@ -572,7 +572,7 @@ void gpsTracking(long &rcpit, long &rcroll) {
 	//hal.console->print(desired_heading);
 	// hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
 	// hal.console->printf(", target_long, %ld, target_lat, %ld, ", target_coordinates[0], target_coordinates[1]);
-	hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
+	// hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
 	//hal.console->print(",  desired heading, ");
 	//hal.console->print(desired_heading);
 	//hal.console->print(",  rcyaw, ");
@@ -581,7 +581,7 @@ void gpsTracking(long &rcpit, long &rcroll) {
 	//hal.console->print(seperation_dist);
 	//hal.console->print(", accuracy, ");
 	//hal.console->print(gps->horizontal_accuracy/1000.0);
-	hal.console->println();
+	// hal.console->println();
 }
 
 //Coordinate Arrays: [latitude, longitude]
