@@ -135,9 +135,8 @@ PID pids[11];
  # define MAG_ORIENTATION  AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD
 #endif
 
-#define LAT_TO_METER 111080.90
-#define LONG_TO_METER 82338.05
-
+float INT_LAT_TO_METER = 0.01110809;
+float INT_LONG_TO_METER = 0.00823380;
 
 /*------------------------------------------------ DECLARE GLOBAL VARIABLES ------------------------------------------------------*/
 uint32_t timer;
@@ -161,7 +160,7 @@ int autopilotState = 0;
 
 Matrix3f dcm_matrix;
 Quaternion q;
-float target_coordinates[] = {0, 0};
+int32_t target_coordinates[] = {0, 0};
 float desired_heading;
 
 
@@ -181,7 +180,6 @@ void setup() {
 	ahrs.init();
 	getGPSLock();
 	getTargetCoordinates(target_coordinates);
-	hal.console->printf("target_long, %f, target_lat, %f,  ", target_coordinates[0], target_coordinates[1]);
 	hal.console->println("Otto Ready.");
 }
 
@@ -271,13 +269,6 @@ void loop() {
 	roll_output =  (long) constrain(pids[PID_ROLL_RATE].get_pid(roll_stab_output - gyroRoll, 1), -500, 500);
 	yaw_output =  (long) constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);
 
-	// hal.console->print(", pitch_out: ");
-	// hal.console->print(pitch_output);
-	// hal.console->print(", roll_out: ");
-	// hal.console->print(roll_output);
-	// hal.console->print(", yaw_out: ");
-	// hal.console->print(yaw_output);
-
 	//Feedback loop for altitude holding
 	alt_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
 
@@ -335,10 +326,23 @@ void loop() {
 		adjustHoverThrottle();											// adjusts HOVER_THR based on battery voltage
 	}
 
-	// hal.console->println();
-
 	//Send data to user App
 	sendDataToPhone();
+
+	hal.console->print("rcpitch, ");
+	hal.console->print(rcpit);
+	hal.console->print(", rcroll, ");
+	hal.console->print(rcroll);
+	hal.console->println();
+	// hal.console->print(", ");
+	// hal.console->print(", pitch_out: ");
+	// hal.console->print(pitch_output);
+	// hal.console->print(", roll_out: ");
+	// hal.console->print(roll_output);
+	// hal.console->print(", yaw_out: ");
+	// hal.console->print(yaw_output);
+	//hal.console->print(", t, ");
+	//hal.console->print(hal.scheduler->millis());
 }
 
 // Arduino map function
@@ -397,12 +401,12 @@ void setPidConstants(int config) {
 		// pids[ALT_RATE].imax(50);						// TODO adjust
 		
 		//Below are the PIDs for autonomous control
-		pids[PITCH_CMD].kP(0.1);
+		pids[PITCH_CMD].kP(0.6);
 		pids[PITCH_CMD].kI(0.0);
 		// pids[PITCH_CMD].kD(0.005);
 		pids[PITCH_CMD].imax(50);
 
-		pids[ROLL_CMD].kP(0.1);
+		pids[ROLL_CMD].kP(0.6);
 		pids[ROLL_CMD].kI(0.0);
 		// pids[ROLL_CMD].kD(0.0005);
 		pids[ROLL_CMD].imax(50);
@@ -500,12 +504,12 @@ float getHeading(){
 }
 
 
-void gpsTracking(long rcpit, long rcroll) {
+void gpsTracking(long &rcpit, long &rcroll) {
 	float current_heading_rad;
 	//Vector format is x,y,z                       
 	Vector3f lat_long_error, autonomous_pitch_roll;
 	Matrix3f yaw_rotation_m;
-	float drone_coordinates[] = {0, 0};
+	int32_t drone_coordinates[] = {0, 0};
 
 	//lat_long_error = Vector3f(1, 2, .1);
 	//q.earth_to_body(lat_long_error);
@@ -523,8 +527,8 @@ void gpsTracking(long rcpit, long rcroll) {
 	}
 
 	//Get Lat and Long error
-	lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*LONG_TO_METER);
-	lat_long_error.y = (float)((target_coordinates[1] - drone_coordinates[1])*LAT_TO_METER);
+	lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*INT_LONG_TO_METER);
+	lat_long_error.y = (float)((target_coordinates[1] - drone_coordinates[1])*INT_LAT_TO_METER);
 	lat_long_error.z = 0;
 
 	/*
@@ -551,25 +555,24 @@ void gpsTracking(long rcpit, long rcroll) {
 
 	//Multiply the lat_long_error matrix by the yaw rotation matrix to get pitch / roll proportions
 	autonomous_pitch_roll = yaw_rotation_m*lat_long_error;    //This may be incorrect 
-	// hal.console->printf("gps status: %d", gps->status());
 	//hal.console->printf(", p/r: %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y);
 
 
 	//PID Feedback system for pitch and roll.
 	//rcpit = constrain(pids[PITCH_CMD].get_pid(seperation_distance, 1), -5, 5); 
-	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -5, 5); 
-	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5); 
+	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -5, 5);
+	rcpit = -rcpit;		// flip rcpit for proper mapping (neg pitch is forward)
+	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5);
 
-
+	hal.console->printf("gps status: %d", gps->status());
 	//hal.console->printf(", currheading, %f, fixed_Heading, %f, ", current_heading, fixed_heading);
 	//hal.console->print(", lastheading, ");
 	//hal.console->print(last_heading);
 	//hal.console->print(", desired_heading, ");
 	//hal.console->print(desired_heading);
-	// hal.console->printf(",  drone_long, %f, drone_lat, %f, ", drone_coordinates[0], drone_coordinates[1]);
-	// hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
-	//hal.console->print(" status, ");
-	//hal.console->print(gps->status());
+	// hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
+	// hal.console->printf(", target_long, %ld, target_lat, %ld, ", target_coordinates[0], target_coordinates[1]);
+	hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
 	//hal.console->print(",  desired heading, ");
 	//hal.console->print(desired_heading);
 	//hal.console->print(",  rcyaw, ");
@@ -578,21 +581,16 @@ void gpsTracking(long rcpit, long rcroll) {
 	//hal.console->print(seperation_dist);
 	//hal.console->print(", accuracy, ");
 	//hal.console->print(gps->horizontal_accuracy/1000.0);
-	// hal.console->print(", rcpitch, ");
-	// hal.console->print(rcpit);
-	// hal.console->print(", rcroll, ");
-	// hal.console->print(rcroll);
-	//hal.console->print(", t, ");
-	//hal.console->print(hal.scheduler->millis());
+	hal.console->println();
 }
 
 //Coordinate Arrays: [latitude, longitude]
-void getDroneCoordinates( float drone_coordinates[] ){
+void getDroneCoordinates( int32_t drone_coordinates[] ){
 
 	gps->update();
 	if (gps->new_data) {
-			drone_coordinates[1] = gps->latitude/10000000.0;
-			drone_coordinates[0] = gps->longitude/10000000.0;
+			drone_coordinates[1] = gps->latitude;
+			drone_coordinates[0] = gps->longitude;
 	} else {
 		hal.console->print("~~~~~~~~~~~~~~~~  Error : NO NEW GPS DATA!  ~~~~~~~~~~~~~~~~");
 	}
@@ -600,14 +598,14 @@ void getDroneCoordinates( float drone_coordinates[] ){
 }
 
 //Coordinate Arrays: [latitude, longitude]
-void getTargetCoordinates( float target_coordinates[] ){
+void getTargetCoordinates( int32_t target_coordinates[] ){
 
 	gps->update();
 	if (gps->new_data) {
-			target_coordinates[1] = gps->latitude/10000000.0;
-			target_coordinates[0] = gps->longitude/10000000.0;
-			// target_coordinates[1] = 42.394586/10000000.0;			// desired coordinates
-			// target_coordinates[0] = -72.529186/10000000.0;			// desired coordinates
+			//target_coordinates[1] = gps->latitude;
+			//target_coordinates[0] = gps->longitude;
+			target_coordinates[1] = 423945860;			// desired coordinates
+			target_coordinates[0] = -725291860;			// desired coordinates
 	} else {
 		hal.console->print("~~~~~~~~~~~~~~~~  Error : NO NEW GPS DATA!  ~~~~~~~~~~~~~~~~");
 	}
@@ -948,12 +946,13 @@ void sendDataToPhone() {
 		//send alt and battery status
 		uartMessaging.sendAltitude(alt);
 		uartMessaging.sendBattery(battery_mon.voltage());
-                uartMessaging.sendDroneLat(gps->latitude);
-                uartMessaging.sendDroneLon(gps->longitude);
-				//uartMessaging.sendDroneLat(HOVER_THR);
-				//uartMessaging.sendDroneLon(rcthr);
-                uartMessaging.sendGPSStatus((long)gps->status());
-                uartMessaging.sendClimbRate(climb_rate);
+		uartMessaging.sendDroneLat(gps->latitude);
+		uartMessaging.sendDroneLon(gps->longitude);
+		//uartMessaging.sendDroneLat(HOVER_THR);
+		//uartMessaging.sendDroneLon(rcthr);
+		// uartMessaging.sendGPSAccuracy(gps->horizontal_accuracy);    //GPS accuracy of the drone as a float in meters
+		uartMessaging.sendGPSStatus((long)gps->status());
+		uartMessaging.sendClimbRate(climb_rate);
 	}
 }
 
