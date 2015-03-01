@@ -333,6 +333,7 @@ void loop() {
 	// hal.console->print(rcpit);
 	// hal.console->print(", rcroll, ");
 	// hal.console->print(rcroll);
+	// hal.console->print(", ");
 	// hal.console->println();
 	// hal.console->print(", ");
 	// hal.console->print(", pitch_out: ");
@@ -565,7 +566,7 @@ void gpsTracking(long &rcpit, long &rcroll) {
 	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5);
 
 	// hal.console->printf("gps status: %d", gps->status());
-	//hal.console->printf(", currheading, %f, fixed_Heading, %f, ", current_heading, fixed_heading);
+	// hal.console->printf(", currheading, %f, ", current_heading);
 	//hal.console->print(", lastheading, ");
 	//hal.console->print(last_heading);
 	//hal.console->print(", desired_heading, ");
@@ -604,8 +605,10 @@ void getTargetCoordinates( int32_t target_coordinates[] ){
 	if (gps->new_data) {
 			//target_coordinates[1] = gps->latitude;
 			//target_coordinates[0] = gps->longitude;
-			target_coordinates[1] = 423945860;			// desired coordinates
-			target_coordinates[0] = -725291860;			// desired coordinates
+			//target_coordinates[1] = 423945860;			// desired coordinates
+			//target_coordinates[0] = -725291860;			// desired coordinates
+			target_coordinates[1] = 423942870;
+			target_coordinates[0] = -725294590;
 	} else {
 		hal.console->print("~~~~~~~~~~~~~~~~  Error : NO NEW GPS DATA!  ~~~~~~~~~~~~~~~~");
 	}
