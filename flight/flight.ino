@@ -333,8 +333,8 @@ void loop() {
 	// hal.console->print(rcpit);
 	// hal.console->print(", rcroll, ");
 	// hal.console->print(rcroll);
-	// hal.console->print(", ");
-	// hal.console->println();
+	// hal.console->print(",  rcyaw, ");
+	// hal.console->print(rcyaw);
 	// hal.console->print(", ");
 	// hal.console->print(", pitch_out: ");
 	// hal.console->print(pitch_output);
@@ -402,12 +402,12 @@ void setPidConstants(int config) {
 		// pids[ALT_RATE].imax(50);						// TODO adjust
 		
 		//Below are the PIDs for autonomous control
-		pids[PITCH_CMD].kP(0.6);
+		pids[PITCH_CMD].kP(0.4);
 		pids[PITCH_CMD].kI(0.0);
 		// pids[PITCH_CMD].kD(0.005);
 		pids[PITCH_CMD].imax(50);
 
-		pids[ROLL_CMD].kP(0.6);
+		pids[ROLL_CMD].kP(0.4);
 		pids[ROLL_CMD].kI(0.0);
 		// pids[ROLL_CMD].kD(0.0005);
 		pids[ROLL_CMD].imax(50);
@@ -541,7 +541,7 @@ void gpsTracking(long &rcpit, long &rcroll) {
 	----           ----
 	*/
 	//q.rotation_matrix(m);
-	//current_heading = getHeading();
+	// current_heading = getHeading();
 	//fixed_heading = sousaFilter(current_heading);		// TODO investigate
 
 	//Get the radian representation of current_heading
@@ -565,19 +565,17 @@ void gpsTracking(long &rcpit, long &rcroll) {
 	rcpit = -rcpit;		// flip rcpit for proper mapping (neg pitch is forward)
 	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5);
 
-	// hal.console->printf("gps status: %d", gps->status());
+	// hal.console->printf(", gps status: %d", gps->status());
 	// hal.console->printf(", currheading, %f, ", current_heading);
 	//hal.console->print(", lastheading, ");
 	//hal.console->print(last_heading);
-	//hal.console->print(", desired_heading, ");
-	//hal.console->print(desired_heading);
+	// hal.console->print(", desired_heading, ");
+	// hal.console->print(desired_heading);
 	// hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
 	// hal.console->printf(", target_long, %ld, target_lat, %ld, ", target_coordinates[0], target_coordinates[1]);
 	// hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
 	//hal.console->print(",  desired heading, ");
 	//hal.console->print(desired_heading);
-	//hal.console->print(",  rcyaw, ");
-	//hal.console->print(rcyaw);
 	//hal.console->print(", seperation, ");
 	//hal.console->print(seperation_dist);
 	//hal.console->print(", accuracy, ");
