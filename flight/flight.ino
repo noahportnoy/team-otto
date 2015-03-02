@@ -249,8 +249,13 @@ void loop() {
 		rcyaw = rcyaw * -1;
 	}
 
-	if (switchState == AUTO_ALT_HOLD) {
+	if ((switchState == AUTO_ALT_HOLD) || (switchState == AUTO_TAKEOFF && autopilotState == ALT_HOLD)) {
 		gpsTracking(rcpit, rcroll);
+	}
+
+	if (switchState == AUTO_TAKEOFF && autopilotState == TAKEOFF) {			// Try to maintain 0 pitch and roll during takeoff
+		rcpit = 0;
+		rcroll = 0;
 	}
 
 	// Stablize PIDS
@@ -286,7 +291,11 @@ void loop() {
 
 		} else if (autopilotState == LAND){
 			rcthr = autonomousLand();									// Autonomous land
-		
+
+		} else if (autopilotState == OFF){
+			// don't do anything yet, takeoff command has not been received by phone
+			rcthr = RC_THR_MIN;
+
 		} else {
 			hal.console->print("Error: autopilotState of ");
 			hal.console->print(autopilotState);
@@ -756,6 +765,7 @@ void getSwitchPosition(uint16_t channels[]) {
 
 		if (switchState == AUTO_ALT_HOLD || switchState == AUTO_TAKEOFF) {		// If switching to manual control, reset PIDs
 			pids[ALT_STAB].reset_I();											// reset i; reset PID integrals while in manual mode
+			autopilotState = OFF;
 		}
 
 		switchState = MANUAL;
@@ -779,15 +789,10 @@ void getSwitchPosition(uint16_t channels[]) {
 
 	} else if (channels[5] < 1200) {
 
-		if (switchState == MANUAL || switchState == AUTO_ALT_HOLD) {			// If switching to AUTO_TAKEOFF, reset PIDs and set autopilotState to TAKEOFF
+		if (autopilotState == OFF && uartMessaging.isTakeOff()) {				// If user requests takeoff from phone and drone was last in autopilot OFF state
 			pids[ALT_STAB].reset_I();											// reset i; reset PID integrals while in manual mode
 			autopilotState = TAKEOFF;
-			current_heading = getHeading();
-			desired_heading = current_heading;
-		}
-
-		if (autopilotState == OFF) {											// If safety was just turned off
-			autopilotState = TAKEOFF;
+			uartMessaging.resetTakeOff();										// reset takeoff boolean -> isTakeOff will become true again only if phone requests takeoff again
 			current_heading = getHeading();
 			desired_heading = current_heading;
 		}
@@ -797,7 +802,7 @@ void getSwitchPosition(uint16_t channels[]) {
 	}
 }
 
-//Saftey Switch Function
+//Safety Switch Function
 void droneOff() {
 
 	autopilotState = OFF;

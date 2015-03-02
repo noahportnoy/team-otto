@@ -65,6 +65,8 @@ public:
 
 	bool isTakeOff();
 	bool isLand();
+	void resetTakeOff();
+	void resetLand();
 
 	bool isSeperationDistanceLatest();
 	void getSeperationDistance(int* distance);
