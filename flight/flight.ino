@@ -244,13 +244,13 @@ void loop() {
 		}
 
 		//Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
-		float heading_error = desired_heading - current_heading;
-		rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -180, 180);
+		float heading_error = wrap_180(desired_heading - current_heading);
+		rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -10, 10);
 		rcyaw = rcyaw * -1;
 	}
 
 	if (switchState == AUTO_ALT_HOLD) {
-		gpsTracking(rcpit, rcroll);
+		//gpsTracking(rcpit, rcroll);
 	}
 
 	// Stablize PIDS
@@ -301,7 +301,8 @@ void loop() {
 	} else if (switchState == AUTO_ALT_HOLD) {							// Autonomous altitude hold
 	
 		// hal.console->println("DRONE IN AUTO_ALT_HOLD MODE");
-		rcthr = autonomousHold(alt_output);
+		//rcthr = autonomousHold(alt_output);
+                rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MIN, 1500);
 	
 	} else {
 		hal.console->print("Error: switchState of ");
@@ -413,7 +414,7 @@ void setPidConstants(int config) {
 		pids[ROLL_CMD].imax(50);
 
 		pids[YAW_CMD].kP(0.7);
-		pids[YAW_CMD].kI(0.0);
+		pids[YAW_CMD].kI(0.1);
 		pids[YAW_CMD].imax(50);
 	} else {
 		hal.console->print("Error: PID constants not set for provided configuration");
@@ -480,24 +481,14 @@ float calculateYaw() {
 float getHeading(){
 	//Use AHRS for Heading
 	float heading = 0;
-	ahrs.update();
-	
-	compass.read();
+
 	heading = compass.calculate_heading(ahrs.get_dcm_matrix());
 	Vector3f drift  = ahrs.get_gyro_drift();
-	/*
-	hal.console->printf_P(
-			PSTR("r:%4.1f  p:%4.1f y:%4.1f "
-				"drift=(%5.1f %5.1f %5.1f) hdg=%.1f\n"),
-					ToDeg(ahrs.roll),
-					ToDeg(ahrs.pitch),
-					ToDeg(ahrs.yaw),
-					ToDeg(drift.x),
-					ToDeg(drift.y),
-					ToDeg(drift.z),
-					compass.use_for_yaw() ? ToDeg(heading) : 2.67767789
-	);
-	*/
+	ahrs.update();
+	compass.read();
+        
+        //NOTE: AHRS can provide pitch, roll, and yaw angles
+
 	current_heading =  ToDeg(heading);
 	if (0 <= current_heading && current_heading < 63) {
 		current_heading = map(current_heading, 0, 63, 24, 116);
