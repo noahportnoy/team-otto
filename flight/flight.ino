@@ -92,7 +92,7 @@ AverageFilterFloat_Size5 _temp_filter;
 #define MOTOR_FR   0    // Front right
 #define MOTOR_BL   1    // back left
 #define MOTOR_BR   3    // back right
-
+ 
 #define OFF_BUTTON 0
 AP_HAL::AnalogSource* OFF_BUTTON_VALUE;
 
@@ -171,6 +171,8 @@ int32_t drone_coordinates[2];// = {0,0};
 bool GPS_state = false; //Requires GPS status of 2 or 3 to be true
 
 Matrix3f dcm_matrix;
+Matrix3f dcm_matrix2;
+
 Quaternion q;
 
 
@@ -190,7 +192,7 @@ void setup() {
         ahrs.init();  
         
         //Get coordinates of takeoff point
-        getTakeoffCoordinates(target_coordinates);
+        //getTakeoffCoordinates(target_coordinates);
         
         hal.console->printf("target_long, %ld, target_lat, %ld,  ", target_coordinates[0], target_coordinates[1]);
         hal.console->println("Otto Ready.");
@@ -248,15 +250,17 @@ void loop() {
 	getGyro(gyroPitch, gyroRoll, gyroYaw);
 	
         getSwitchPosition(channels);									// Sets switchStatus to: OFF, AUTONOMOUS, or MANUAL
-		
+	
+        getHeading();
+
         //Autonomous 										// depending on RC top-right switch position  
         if (switchState == AUTO_ALT_HOLD) {
                                    
                 /////////Autonomous YAW using the compass & GPS
-                float fixed_heading, current_heading_rad;
-                desired_heading = 0;
+                float fixed_heading, current_heading_rad, heading_error;
+                desired_heading = -140;
                 
-                getDroneCoordinates(drone_coordinates);
+                //getDroneCoordinates(drone_coordinates);
                 //getTargetCoordinates(target_coordinates);
                 
                 //hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
@@ -264,10 +268,12 @@ void loop() {
                       
                 //desired_heading = getDesiredHeading();
                 //last_heading = current_heading;
-                getHeading();
+                
                 
                 //Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
-                //rcyaw = -1* constrain(pids[YAW_CMD].get_pid(desired_heading - current_heading, 1), -10, 10);
+                heading_error = wrap_180(desired_heading - current_heading);
+                heading_error = sousaFilter(heading_error);
+                rcyaw = -1* constrain(pids[YAW_CMD].get_pid(heading_error, 1), -10, 10);
         
         
         
@@ -275,7 +281,7 @@ void loop() {
                 /////////Autonomous Pitch / Roll using the Rotation Matrix Method
                 //First we must verify that we have a reliable GPS connection
                 
-                //if(getGpsState()){
+                /*if(getGpsState()){
                   
                       //Vector format is x,y,z                       
                       Vector3f lat_long_error, autonomous_pitch_roll;
@@ -303,10 +309,10 @@ void loop() {
                       |  b.x  b.y  b.z  |
                       |  c.x  c.y  c.z  |
                       ----           ----
-                      */
+                      *
                       //q.rotation_matrix(m);
                       
-                      fixed_heading = sousaFilter(current_heading);
+                      //fixed_heading = sousaFilter(current_heading);
                       //current_heading = 0;
                       
                       //Get the radian representation of current_heading
@@ -320,28 +326,24 @@ void loop() {
                       
                       //Multiply the lat_long_error matrix by the yaw rotation matrix to get pitch / roll proportions
                       autonomous_pitch_roll = yaw_rotation_m*lat_long_error;    //This may be incorrect 
-                      hal.console->printf("p/r: %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y);
+                      //hal.console->printf("p/r: %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y);
                        
                       
                       //PID Feedback system for pitch and roll.
                       //rcpit = constrain(pids[PITCH_CMD].get_pid(seperation_distance, 1), -5, 5); 
-                      rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -5, 5); 
-                      rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5); 
+                      //rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -5, 5); 
+                      //rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5); 
                       
                       
-                      hal.console->printf(", currheading, %f, fixed_Heading, %f, ", current_heading, fixed_heading);
+                      hal.console->printf(", currheading, %f, desired_heading, %f, error, %f ", current_heading, desired_heading, heading_error);
                       //hal.console->print(", lastheading, ");
                       //hal.console->print(last_heading);
-                      //hal.console->print(", desired_heading, ");
-                      //hal.console->print(desired_heading);
-                      hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
-                      hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
+                      //hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
+                      //hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
                       //hal.console->print(" status, ");
                       //hal.console->print(gps->status());
-                      //hal.console->print(",  desired heading, ");
-                      //hal.console->print(desired_heading);
-                      //hal.console->print(",  rcyaw, ");
-                      //hal.console->print(rcyaw);
+                      hal.console->print(",  rcyaw, ");
+                      hal.console->print(rcyaw);
                       //hal.console->print(", seperation, ");
                       //hal.console->print(seperation_dist);
                       hal.console->print(", accuracy, ");
@@ -353,12 +355,13 @@ void loop() {
                       //hal.console->print(", t, ");
                       //hal.console->print(hal.scheduler->millis());
                       hal.console->println();
-                      
-                /*}else{
+                            
+                }else{
                       //PID Feedback system for pitch and roll input 0 is bad GPS state
                       rcpit = 0; 
                       rcroll = 0; 
-                }*/
+                }
+                */
              
 	}
 
@@ -499,7 +502,7 @@ void setPidConstants(int config) {
 		pids[PID_ROLL_RATE].imax(50);
 
 		pids[PID_YAW_RATE].kP(0.7);
-		pids[PID_YAW_RATE].kI(0.1);
+		pids[PID_YAW_RATE].kI(0.2);
 		pids[PID_YAW_RATE].imax(50);
 		
 
@@ -513,11 +516,11 @@ void setPidConstants(int config) {
 		pids[ALT_STAB].imax(100);
                 
                 //Below are the PIDs for autonomous control
-                pids[PITCH_CMD].kP(0.25);
+                pids[PITCH_CMD].kP(0.1);
 		pids[PITCH_CMD].kI(0.0);
 		pids[PITCH_CMD].imax(50);
 
-                pids[ROLL_CMD].kP(0.2);
+                pids[ROLL_CMD].kP(0.1);
 		pids[ROLL_CMD].kI(0.0);
 		pids[ROLL_CMD].imax(50);
 
@@ -588,11 +591,34 @@ void getAltitudeData() {
 void getOrientation(float &pitch, float &roll, float &yaw) {
 	ins.update();	
         //q = ins.quaternion;										// Ask MPU6050 for orientation
-	ins.quaternion.to_euler(&roll, &pitch, &yaw);
-	
-	pitch = ToDeg(pitch);
-	roll = ToDeg(roll);
-	yaw = ToDeg(yaw);
+	//ins.quaternion.to_euler(&roll, &pitch, &yaw);
+        ahrs.update();
+	dcm_matrix2 = ahrs.get_dcm_matrix();
+        float sssss = ahrs.roll;
+        
+	//pitch = ToDeg(pitch);
+	//roll = ToDeg(roll);
+	//yaw = ToDeg(yaw);
+        
+        pitch = ToDeg(ahrs.pitch);
+	roll = ToDeg(ahrs.roll);
+	yaw = ToDeg(ahrs.yaw);
+
+        Vector3f accel;
+        Vector3f gyro;
+    
+        accel = ins.get_accel();
+        gyro = ins.get_gyro();
+
+        //length = accel.length();
+
+		/*if (1) {
+			// display results
+			hal.console->printf_P(PSTR("yaw:%f  , Accel X:%4.2f \t Y:%4.2f \t Z:%4.2f \t   Gyro X:%4.2f \t Y:%4.2f \t Z:%4.2f\n"), 
+								  yaw, accel.x, accel.y, accel.z, gyro.x, gyro.y, gyro.z);
+		}*/
+        hal.console->printf("roll: %f, pitch: %f, yaw: %f" ,roll, pitch, yaw);
+    
 }
 
 void getGyro(float &gyroPitch, float &gyroRoll, float &gyroYaw) {
@@ -667,7 +693,7 @@ void droneOff() {
 	//GET BATTERY STATS
 	//Update voltage and current readings
 	battery_mon.read();
-	hal.console->printf("\nVoltage: %.2f \tCurrent: %.2f \tTotCurr:%.2f  ",
+	hal.console->printf("\nVoltasdkfjahdslkfja;lsdkjfge: %.2f \tCurrent: %.2f \tTotCurr:%.2f  ",
 	        battery_mon.voltage(), //voltage
 	        battery_mon.current_amps(), //Inst current
 	        battery_mon.current_total_mah()); //Accumulated current
@@ -790,14 +816,14 @@ void sendDataToPhone() {
         }
 
                 
-                if(uartMessaging.isSeperationDistanceLatest())
-                {
+                //if(uartMessaging.isSeperationDistanceLatest())
+                //{
                   //uartMessaging.getSeperationDistance(&seperationDistance);
                   //hal.console->println(seperationDistance);
-                }
+                //}
                 
-                uartMessaging.isLand();
-                uartMessaging.isTakeOff();
+                //uartMessaging.isLand();
+                //uartMessaging.isTakeOff();
 
 }
 

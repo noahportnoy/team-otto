@@ -5,10 +5,10 @@ void getHeading(){
         static uint32_t last_t, last_print;
         float heading = 0;
    
-        ahrs.update();
-        
-        
         if((hal.scheduler->micros() - heading_timer) > 100000L){ //Run loop @ 10Hz
+            
+            ahrs.update();
+        
             heading_timer = hal.scheduler->micros();
             
             compass.read();
@@ -94,7 +94,7 @@ double getDesiredHeading(){
             desired_heading = desired_heading*(-1);
           } 
           
-          hal.console->printf("  desired_heading_fixed: %f, ", desired_heading);
+          //hal.console->printf("  desired_heading_fixed: %f, ", desired_heading);
           
           return desired_heading;
 }
@@ -111,36 +111,12 @@ void getDroneCoordinates(int32_t coords[]){
             
             temp = gps->longitude;
             //Longitude Checks
-            //points cannot be greater than 20 meters apart.
-            if (abs(temp) - abs(drone_coordinates[0]) > 1800){
-                  coords[0] = drone_coordinates[0]; 
-                  hal.console->print("Long Coordinates more than 20m apart");   
-     
-            //if points are less than 1 meters apart, then ignore             
-            //}else if (abs(temp) - abs(drone_coordinates[0]) < 70){
-            //      coords[0] = drone_coordinates[0];   
-                  
-            }else{
-                  coords[0] = movingAvg(drone_coordinates[0], temp, .5);
-                  //hal.console->printf(", longitude,  %ld", coords[0]);
-            }
+            coords[0] =  temp;
             
             
             temp = gps->latitude;
             //Lattitude Checks
-            //points cannot be greater than 20 meters apart.
-            if (abs(temp) - abs(drone_coordinates[1]) > 2430){
-                  coords[1] = drone_coordinates[1];
-                  hal.console->print("Lat Coordinates more than 20m apart");  
-                       
-            //if points are less than 1 meters apart, then ignore             
-            //}else if (abs(temp) - abs(drone_coordinates[1]) < 121){
-            //      coords[1] = drone_coordinates[1];  
-                  
-            }else{
-                  coords[1] = movingAvg(drone_coordinates[1], temp, .5);
-                  //hal.console->printf("latitude: %ld", coords[1]);
-            }
+            coords[1] =temp;
   
 	} else {
             hal.console->print("~~~~~~~~~~~~~~~~  Error. NO NEW GPS DATA!  ~~~~~~~~~~~~~~");
@@ -173,11 +149,11 @@ bool getTargetCoordinates(int32_t coords[]){
           {
             uartMessaging.getUserLon(&temp[0]);
             coords[0] = temp[0];
-            hal.console->println(coords[0]);
+            //hal.console->println(coords[0]);
             
             uartMessaging.getUserLat(&temp[1]);
             coords[1] = temp[1];
-            hal.console->println(coords[1]);
+            //hal.console->println(coords[1]);
             return true;
           }
         
