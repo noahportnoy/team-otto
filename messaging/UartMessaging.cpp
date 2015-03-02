@@ -160,7 +160,7 @@ void UartMessaging::send(const char* messageID, char* buffer)
 
 void UartMessaging::send(char* buffer)
 {
-	console->println(buffer);
+	// console->println(buffer);
 	_UARTdriver->write(buffer);
 }
 
@@ -218,20 +218,20 @@ void UartMessaging::receive()
 		{
 			_isTakeOff = true;
 			_isLand = false;;
-			console->println("Take Off");
+			// console->println("Take Off");
 		}  
     
 		else if(_idReceived[0] == 'S' && _idReceived[1] == 'T' && _idReceived[2] == 'P')
 		{
 			_isLand = true;
 			_isTakeOff = false;
-			console->println("Land");
+			// console->println("Land");
 
 		} else if(_idReceived[0] == 'L' && _idReceived[1] == 'A' && _idReceived[2] == 'T')
 		{
 			//Print the latitude
-			console->print("User Latitude: ");
-			console->println(_payloadReceived); 
+			// console->print("User Latitude: ");
+			// console->println(_payloadReceived); 
 			
 			//convert latitude from string to double
 			_userLat = atol(_payloadReceived);
@@ -241,8 +241,8 @@ void UartMessaging::receive()
 		}else if(_idReceived[0] == 'L' && _idReceived[1] == 'O' && _idReceived[2] == 'N')
 		{
 			//Print the latitude
-			console->print("User Longitude: ");
-			console->println(_payloadReceived); 
+			// console->print("User Longitude: ");
+			// console->println(_payloadReceived); 
 			
 			//convert latitude from string to double
 			_userLon = atol(_payloadReceived);
@@ -250,8 +250,8 @@ void UartMessaging::receive()
 			
 		}else if(_idReceived[0] == 'S' && _idReceived[1] == 'R' && _idReceived[2] == 'D')
 		{
-			console->print("Seperation Distance: ");
-			console->println(_payloadReceived); 
+			// console->print("Seperation Distance: ");
+			// console->println(_payloadReceived); 
 
 			_seperationDistance = atoi(_payloadReceived);
 			_isSeperationDistanceLatest = true;

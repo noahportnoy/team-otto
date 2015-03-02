@@ -179,7 +179,7 @@ void setup() {
 	//Initizlize the Altitude Hold Refernece System
 	ahrs.init();
 	getGPSLock();
-	getTargetCoordinates(target_coordinates);
+	getDroneCoordinates(target_coordinates);		// start out with drone as target until phone location is acquired
 	hal.console->println("Otto Ready.");
 }
 
@@ -533,6 +533,8 @@ void gpsTracking(long &rcpit, long &rcroll) {
 	//lat_long_error = Vector3f(1, 2, .1);
 	//q.earth_to_body(lat_long_error);
 
+	getPhoneCoordinates(target_coordinates);
+
 	//This should all be in an if statement that checks the status of GPS_state variable
 	if (gps->status() >= 2) {
 		getDroneCoordinates(drone_coordinates);
@@ -615,7 +617,7 @@ void getDroneCoordinates( int32_t drone_coordinates[] ){
 }
 
 //Coordinate Arrays: [latitude, longitude]
-void getTargetCoordinates( int32_t target_coordinates[] ){
+void getTargetCoordinates(int32_t target_coordinates[]){
 
 	gps->update();
 	if (gps->new_data) {
@@ -628,7 +630,15 @@ void getTargetCoordinates( int32_t target_coordinates[] ){
 	} else {
 		hal.console->print("~~~~~~~~~~~~~~~~  Error : NO NEW GPS DATA!  ~~~~~~~~~~~~~~~~");
 	}
+}
 
+//Coordinate Arrays: [longitude, lattitude]
+void getPhoneCoordinates(int32_t target_coordinates[]){         
+	
+	if(uartMessaging.isUserLonLatest() && uartMessaging.isUserLatLatest()) {
+		uartMessaging.getUserLat(&target_coordinates[1]);
+		uartMessaging.getUserLon(&target_coordinates[0]);
+	}
 }
 
 void getGPSLock(){
