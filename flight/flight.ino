@@ -499,6 +499,24 @@ float getHeading(){
 	);
 	*/
 	current_heading =  ToDeg(heading);
+	if (0 <= current_heading && current_heading < 63) {
+		current_heading = map(current_heading, 0, 63, 24, 116);
+
+	} else if (-68 <= current_heading && current_heading < 0) {
+		current_heading = map(current_heading, -68, 0, -64, 24);
+
+	} else if(-155 <= current_heading && current_heading < -68) {
+		current_heading = map(current_heading, -155, -68, -158, -64);
+
+	} else if(-180 <= current_heading && current_heading < -169) {
+		current_heading = map(current_heading, -180, -155, 163, 180);
+	
+	} else if(-169 <= current_heading && current_heading < -155) {
+		current_heading = map(current_heading, -169, -155, -180, -158);
+
+	} else if(63 <= current_heading && current_heading <= 180) {
+		current_heading = map(current_heading, 63, 180, 116, 163);
+	}
 
 	//current_heading = movingAvg(last_heading, current_heading, .5);
 	return current_heading;
@@ -915,7 +933,7 @@ void adjustHoverThrottle() {
 	if (autopilotState == TAKEOFF) {
 		delay = 200000UL;												// delay every 0.2 seconds when performing autonomous takeoff
 	} else {
-		delay = 2000000UL;												// delay every 10 seconds under normal operating conditions
+		delay = 2000000UL;												// delay every 2 seconds under normal operating conditions
 	}
 
 	if((hal.scheduler->micros() - hover_thr_timer) > delay) {
@@ -953,7 +971,8 @@ void sendDataToPhone() {
 		//uartMessaging.sendDroneLon(rcthr);
 		// uartMessaging.sendGPSAccuracy(gps->horizontal_accuracy);    //GPS accuracy of the drone as a float in meters
 		uartMessaging.sendGPSStatus((long)gps->status());
-		uartMessaging.sendClimbRate(climb_rate);
+		//uartMessaging.sendClimbRate(climb_rate);
+		uartMessaging.sendClimbRate(current_heading);
 	}
 }
 
