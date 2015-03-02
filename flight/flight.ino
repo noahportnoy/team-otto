@@ -256,7 +256,12 @@ void loop() {
 	}
 
 	if (switchState == AUTO_ALT_HOLD) {
-	        gpsTracking(rcpit, rcroll);
+	    gpsTracking(rcpit, rcroll);
+	}
+
+	if (switchState == AUTO_TAKEOFF && autopilotState == TAKEOFF) {			// Try to maintain 0 pitch and roll during takeoff
+		rcpit = 0;
+		rcroll = 0;
 	}
 
 	// Stablize PIDS
@@ -336,12 +341,14 @@ void loop() {
 	sendDataToPhone();
         
         if (PRINT_DEBUG) {
-        	 hal.console->print("rcpitch, ");
-        	 hal.console->print(rcpit);
-        	 hal.console->print(", rcroll, ");
-        	 hal.console->print(rcroll);
-        	 hal.console->print(",  rcyaw, ");
-        	 hal.console->print(rcyaw);
+        	hal.console->print("rcthr, ");
+        	hal.console->print(rcthr);
+        	// hal.console->print("rcpitch, ");
+        	// hal.console->print(rcpit);
+        	 // hal.console->print(", rcroll, ");
+        	 // hal.console->print(rcroll);
+        	 // hal.console->print(",  rcyaw, ");
+        	 // hal.console->print(rcyaw);
         	// hal.console->print(", ");
         	// hal.console->print(", pitch_out: ");
         	// hal.console->print(pitch_output);
@@ -603,7 +610,7 @@ void gpsTracking(long &rcpit, long &rcroll) {
         	// hal.console->print(desired_heading);
         	// hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
         	// hal.console->printf(", target_long, %ld, target_lat, %ld, ", target_coordinates[0], target_coordinates[1]);
-        	hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
+        	// hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
         	//hal.console->print(",  desired heading, ");
         	//hal.console->print(desired_heading);
         	//hal.console->print(", seperation, ");
@@ -634,10 +641,10 @@ void getTargetCoordinates( int32_t target_coordinates[] ){
 	if (gps->new_data) {
 			//target_coordinates[1] = gps->latitude;
 			//target_coordinates[0] = gps->longitude;
-			//target_coordinates[1] = 423945860;			// desired coordinates
-			//target_coordinates[0] = -725291860;			// desired coordinates
-			target_coordinates[1] = 423942870;
-			target_coordinates[0] = -725294590;
+			target_coordinates[1] = 423945860;			// desired coordinates
+			target_coordinates[0] = -725291860;			// desired coordinates
+			// target_coordinates[1] = 423942870;
+			//target_coordinates[0] = -725294590;
 	} else {
 		hal.console->print("~~~~~~~~~~~~~~~~  Error : NO NEW GPS DATA!  ~~~~~~~~~~~~~~~~");
 	}
