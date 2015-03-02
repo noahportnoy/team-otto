@@ -250,7 +250,7 @@ void loop() {
 	}
 
 	if (switchState == AUTO_ALT_HOLD) {
-		//gpsTracking(rcpit, rcroll);
+	        gpsTracking(rcpit, rcroll);
 	}
 
 	// Stablize PIDS
