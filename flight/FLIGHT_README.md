@@ -15,6 +15,20 @@ UP                | autonomous takeoff, then altitude hold
 
 ## Changelog
 
+March 2, 2015 (Morning)
+
+- Added a PRINT_DEBUG define so we can easily turn print verbosity ON or OFF with one switch.
+
+- Modifications to Heading_hold, namely:
+- Set the compass *inclination offset (this is the offset from magnetic north. At our location on earth it is a vector that points north and about 67deg into the earth. I got the measurement from the MissionPlanner software after an outdoor calibration)
+- Added compass.accumulate(); which accumulates readings from compass
+- Added null_offsets(): which attempts to maintain the offset that was set at init
+
+- Result: after a quick test this seems to provide more accurate headings.
+
+
+------------------------------------------
+
 February 26, 2015
 
 - Adjust hover throttle some more
