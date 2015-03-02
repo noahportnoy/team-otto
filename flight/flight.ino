@@ -121,7 +121,7 @@ PID pids[11];
 #define CUSTOM 1
 
 //Debug ON/OFF
-#define PRINT_DEBUG 1
+#define PRINT_DEBUG 0
 
 // Define the HW LED setup & Compass orientation
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
@@ -239,10 +239,11 @@ void loop() {
 
 	getSwitchPosition(channels);										// Sets switchStatus to: OFF, AUTONOMOUS, or MANUAL
 																		// depending on RC top-right switch position
-        //Compass accumulate should be called frequently to accumulate readings from the compass
-        compass.accumulate();
         
 	if (switchState == AUTO_ALT_HOLD || switchState == AUTO_TAKEOFF) {	// Autonomous YAW using the compass and GPS
+		//Compass accumulate should be called frequently to accumulate readings from the compass
+    	compass.accumulate();
+
 		if((hal.scheduler->micros() - heading_timer) > 100000L){		// Run loop @ 10Hz ~ 100ms
 			heading_timer = hal.scheduler->micros();
 			current_heading = getHeading();
@@ -306,8 +307,7 @@ void loop() {
 	} else if (switchState == AUTO_ALT_HOLD) {							// Autonomous altitude hold
 	
 		// hal.console->println("DRONE IN AUTO_ALT_HOLD MODE");
-		//rcthr = autonomousHold(alt_output);
-                rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MIN, 1500);
+		rcthr = autonomousHold(alt_output);
 	
 	} else {
 		hal.console->print("Error: switchState of ");
@@ -496,15 +496,16 @@ float getHeading(){
              South is 180 or -180
         */
 
-	heading = compass.calculate_heading(ahrs.get_dcm_matrix());
-	Vector3f drift  = ahrs.get_gyro_drift();
-	ahrs.update();
+    ahrs.update();
 	compass.read();
-        compass.null_offsets();
+	heading = compass.calculate_heading(ahrs.get_dcm_matrix());
+	//Vector3f drift  = ahrs.get_gyro_drift();
+    compass.null_offsets();
         
         //NOTE: AHRS can provide pitch, roll, and yaw angles
 
-	current_heading =  ToDeg(heading);
+	current_heading = ToDeg(heading);
+	current_heading = -current_heading; 	// correct for proper handling in the rotation matrix
         
         //temporary comment of heading mapping
         /*
@@ -591,7 +592,7 @@ void gpsTracking(long &rcpit, long &rcroll) {
         
         if (PRINT_DEBUG) {
                 //hal.console->print("Yaw Rotation Matrix:  ");
-	        hal.console->printf("a: %f %f %f b: %f %f %f    ", yaw_rotation_m.a.x, yaw_rotation_m.a.y, yaw_rotation_m.a.z, yaw_rotation_m.b.x, yaw_rotation_m.b.y, yaw_rotation_m.b.z);
+	        //hal.console->printf("a: %f %f %f b: %f %f %f    ", yaw_rotation_m.a.x, yaw_rotation_m.a.y, yaw_rotation_m.a.z, yaw_rotation_m.b.x, yaw_rotation_m.b.y, yaw_rotation_m.b.z);
                 //hal.console->printf(", p/r: %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y);
         	
                 // hal.console->printf(", gps status: %d", gps->status());
@@ -602,7 +603,7 @@ void gpsTracking(long &rcpit, long &rcroll) {
         	// hal.console->print(desired_heading);
         	// hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
         	// hal.console->printf(", target_long, %ld, target_lat, %ld, ", target_coordinates[0], target_coordinates[1]);
-        	// hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
+        	hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
         	//hal.console->print(",  desired heading, ");
         	//hal.console->print(desired_heading);
         	//hal.console->print(", seperation, ");
@@ -901,11 +902,12 @@ void setupCompass() {
 		while (1) ;
 	}
 
-	compass.set_orientation(MAG_ORIENTATION);							// set compass's orientation on aircraft.
-        
-        //These offsets came from the ARDU_PILOT Compass calibratio
+	compass.set_orientation(ROTATION_ROLL_180);							// set compass's orientation on aircraft.
+    
+    //These offsets came from the ARDU_PILOT Compass calibratio
 	compass.set_offsets(-42.642, 16.306, 18.598);							// set offsets to account for surrounding interference
-	compass.set_declination(ToRad(0.0));								// set local difference between magnetic north and true north
+	//compass.set_offsets(-37, 7, 18);									// noah's offsets from mission planner
+	compass.set_declination(ToRad(-14.167));								// set local difference between magnetic north and true north
 		
 	//Otto uses the HMC5883L Compass
 }
