@@ -78,10 +78,10 @@ unsigned int HOVER_THR = 1340;
 #define MIN_TAKEOFF_THR (HOVER_THR-10)
 
 // Motor numbers definitions
-#define MOTOR_FL   2    // Front left
+#define MOTOR_FL   1    // Front left
 #define MOTOR_FR   0    // Front right
-#define MOTOR_BL   1    // back left
-#define MOTOR_BR   3    // back right
+#define MOTOR_BL   3    // back left
+#define MOTOR_BR   2    // back right
 
 #define OFF_BUTTON 0
 AP_HAL::AnalogSource* OFF_BUTTON_VALUE;
@@ -340,25 +340,25 @@ void loop() {
 	//Send data to user App
 	sendDataToPhone();
         
-        if (PRINT_DEBUG) {
-        	hal.console->print("rcthr, ");
-        	hal.console->print(rcthr);
-        	// hal.console->print("rcpitch, ");
-        	// hal.console->print(rcpit);
-        	 // hal.console->print(", rcroll, ");
-        	 // hal.console->print(rcroll);
-        	 // hal.console->print(",  rcyaw, ");
-        	 // hal.console->print(rcyaw);
-        	// hal.console->print(", ");
-        	// hal.console->print(", pitch_out: ");
-        	// hal.console->print(pitch_output);
-        	// hal.console->print(", roll_out: ");
-        	// hal.console->print(roll_output);
-        	// hal.console->print(", yaw_out: ");
-        	// hal.console->print(yaw_output);
-        	//hal.console->print(", t, ");
-        	//hal.console->print(hal.scheduler->millis());
-        }
+    if (PRINT_DEBUG) {
+    	hal.console->print("rcthr, ");
+    	hal.console->print(rcthr);
+    	// hal.console->print("rcpitch, ");
+    	// hal.console->print(rcpit);
+    	 // hal.console->print(", rcroll, ");
+    	 // hal.console->print(rcroll);
+    	 // hal.console->print(",  rcyaw, ");
+    	 // hal.console->print(rcyaw);
+    	// hal.console->print(", ");
+    	// hal.console->print(", pitch_out: ");
+    	// hal.console->print(pitch_output);
+    	// hal.console->print(", roll_out: ");
+    	// hal.console->print(roll_output);
+    	// hal.console->print(", yaw_out: ");
+    	// hal.console->print(yaw_output);
+    	//hal.console->print(", t, ");
+    	//hal.console->print(hal.scheduler->millis());
+    }
 }
 
 // Arduino map function
