@@ -120,6 +120,9 @@ PID pids[11];
 #define DEFAULT 0
 #define CUSTOM 1
 
+//Debug ON/OFF
+#define PRINT_DEBUG 0
+
 // Define the HW LED setup & Compass orientation
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
  # define A_LED_PIN        27
@@ -236,21 +239,24 @@ void loop() {
 
 	getSwitchPosition(channels);										// Sets switchStatus to: OFF, AUTONOMOUS, or MANUAL
 																		// depending on RC top-right switch position
-
+        
 	if (switchState == AUTO_ALT_HOLD || switchState == AUTO_TAKEOFF) {	// Autonomous YAW using the compass and GPS
+		//Compass accumulate should be called frequently to accumulate readings from the compass
+    	compass.accumulate();
+
 		if((hal.scheduler->micros() - heading_timer) > 100000L){		// Run loop @ 10Hz ~ 100ms
 			heading_timer = hal.scheduler->micros();
 			current_heading = getHeading();
 		}
 
 		//Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
-		float heading_error = desired_heading - current_heading;
-		rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -180, 180);
+		float heading_error = wrap_180(desired_heading - current_heading);
+		rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -10, 10);
 		rcyaw = rcyaw * -1;
 	}
 
 	if ((switchState == AUTO_ALT_HOLD) || (switchState == AUTO_TAKEOFF && autopilotState == ALT_HOLD)) {
-		gpsTracking(rcpit, rcroll);
+	    gpsTracking(rcpit, rcroll);
 	}
 
 	if (switchState == AUTO_TAKEOFF && autopilotState == TAKEOFF) {			// Try to maintain 0 pitch and roll during takeoff
@@ -337,22 +343,26 @@ void loop() {
 
 	//Send data to user App
 	sendDataToPhone();
-
-	// hal.console->print("rcpitch, ");
-	// hal.console->print(rcpit);
-	// hal.console->print(", rcroll, ");
-	// hal.console->print(rcroll);
-	// hal.console->print(",  rcyaw, ");
-	// hal.console->print(rcyaw);
-	// hal.console->print(", ");
-	// hal.console->print(", pitch_out: ");
-	// hal.console->print(pitch_output);
-	// hal.console->print(", roll_out: ");
-	// hal.console->print(roll_output);
-	// hal.console->print(", yaw_out: ");
-	// hal.console->print(yaw_output);
-	//hal.console->print(", t, ");
-	//hal.console->print(hal.scheduler->millis());
+        
+        if (PRINT_DEBUG) {
+        	hal.console->print("rcthr, ");
+        	hal.console->print(rcthr);
+        	// hal.console->print("rcpitch, ");
+        	// hal.console->print(rcpit);
+        	 // hal.console->print(", rcroll, ");
+        	 // hal.console->print(rcroll);
+        	 // hal.console->print(",  rcyaw, ");
+        	 // hal.console->print(rcyaw);
+        	// hal.console->print(", ");
+        	// hal.console->print(", pitch_out: ");
+        	// hal.console->print(pitch_output);
+        	// hal.console->print(", roll_out: ");
+        	// hal.console->print(roll_output);
+        	// hal.console->print(", yaw_out: ");
+        	// hal.console->print(yaw_output);
+        	//hal.console->print(", t, ");
+        	//hal.console->print(hal.scheduler->millis());
+        }
 }
 
 // Arduino map function
@@ -422,7 +432,7 @@ void setPidConstants(int config) {
 		pids[ROLL_CMD].imax(50);
 
 		pids[YAW_CMD].kP(0.7);
-		pids[YAW_CMD].kI(0.0);
+		pids[YAW_CMD].kI(0.1);
 		pids[YAW_CMD].imax(50);
 	} else {
 		hal.console->print("Error: PID constants not set for provided configuration");
@@ -489,25 +499,27 @@ float calculateYaw() {
 float getHeading(){
 	//Use AHRS for Heading
 	float heading = 0;
-	ahrs.update();
-	
+
+        /*COMPASS OPERATION: 
+             True North is 0 (degrees)
+             Eastern headings are negative numbers
+             Western headings are positive numbers
+             South is 180 or -180
+        */
+
+    ahrs.update();
 	compass.read();
 	heading = compass.calculate_heading(ahrs.get_dcm_matrix());
-	Vector3f drift  = ahrs.get_gyro_drift();
-	/*
-	hal.console->printf_P(
-			PSTR("r:%4.1f  p:%4.1f y:%4.1f "
-				"drift=(%5.1f %5.1f %5.1f) hdg=%.1f\n"),
-					ToDeg(ahrs.roll),
-					ToDeg(ahrs.pitch),
-					ToDeg(ahrs.yaw),
-					ToDeg(drift.x),
-					ToDeg(drift.y),
-					ToDeg(drift.z),
-					compass.use_for_yaw() ? ToDeg(heading) : 2.67767789
-	);
-	*/
-	current_heading =  ToDeg(heading);
+	//Vector3f drift  = ahrs.get_gyro_drift();
+    compass.null_offsets();
+        
+        //NOTE: AHRS can provide pitch, roll, and yaw angles
+
+	current_heading = ToDeg(heading);
+	current_heading = -current_heading; 	// correct for proper handling in the rotation matrix
+        
+        //temporary comment of heading mapping
+        /*
 	if (0 <= current_heading && current_heading < 63) {
 		current_heading = map(current_heading, 0, 63, 24, 116);
 
@@ -526,6 +538,8 @@ float getHeading(){
 	} else if(63 <= current_heading && current_heading <= 180) {
 		current_heading = map(current_heading, 63, 180, 116, 163);
 	}
+
+        */
 
 	//current_heading = movingAvg(last_heading, current_heading, .5);
 	return current_heading;
@@ -579,37 +593,38 @@ void gpsTracking(long &rcpit, long &rcroll) {
 	yaw_rotation_m.a = Vector3f(cos(current_heading_rad), sin(current_heading_rad), 0);
 	yaw_rotation_m.b = Vector3f(-sin(current_heading_rad), cos(current_heading_rad), 0);
 	yaw_rotation_m.c = Vector3f(0, 0, 1);
-	//hal.console->print("Yaw Rotation Matrix:  ");
-	//hal.console->printf("a: %f %f %f b: %f %f %f    ", yaw_rotation_m.a.x, yaw_rotation_m.a.y, yaw_rotation_m.a.z, yaw_rotation_m.b.x, yaw_rotation_m.b.y, yaw_rotation_m.b.z);
-
-
+	
 	//Multiply the lat_long_error matrix by the yaw rotation matrix to get pitch / roll proportions
-	autonomous_pitch_roll = yaw_rotation_m*lat_long_error;    //This may be incorrect 
-	//hal.console->printf(", p/r: %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y);
-
+	autonomous_pitch_roll = yaw_rotation_m*lat_long_error;    
 
 	//PID Feedback system for pitch and roll.
 	//rcpit = constrain(pids[PITCH_CMD].get_pid(seperation_distance, 1), -5, 5); 
 	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -5, 5);
 	rcpit = -rcpit;		// flip rcpit for proper mapping (neg pitch is forward)
 	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5);
-
-	// hal.console->printf(", gps status: %d", gps->status());
-	// hal.console->printf(", currheading, %f, ", current_heading);
-	//hal.console->print(", lastheading, ");
-	//hal.console->print(last_heading);
-	// hal.console->print(", desired_heading, ");
-	// hal.console->print(desired_heading);
-	// hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
-	// hal.console->printf(", target_long, %ld, target_lat, %ld, ", target_coordinates[0], target_coordinates[1]);
-	// hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
-	//hal.console->print(",  desired heading, ");
-	//hal.console->print(desired_heading);
-	//hal.console->print(", seperation, ");
-	//hal.console->print(seperation_dist);
-	//hal.console->print(", accuracy, ");
-	//hal.console->print(gps->horizontal_accuracy/1000.0);
-	// hal.console->println();
+        
+        if (PRINT_DEBUG) {
+                //hal.console->print("Yaw Rotation Matrix:  ");
+	        //hal.console->printf("a: %f %f %f b: %f %f %f    ", yaw_rotation_m.a.x, yaw_rotation_m.a.y, yaw_rotation_m.a.z, yaw_rotation_m.b.x, yaw_rotation_m.b.y, yaw_rotation_m.b.z);
+                //hal.console->printf(", p/r: %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y);
+        	
+                // hal.console->printf(", gps status: %d", gps->status());
+        	hal.console->printf(", currheading, %f, ", current_heading);
+        	//hal.console->print(", lastheading, ");
+        	//hal.console->print(last_heading);
+        	// hal.console->print(", desired_heading, ");
+        	// hal.console->print(desired_heading);
+        	// hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
+        	// hal.console->printf(", target_long, %ld, target_lat, %ld, ", target_coordinates[0], target_coordinates[1]);
+        	// hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
+        	//hal.console->print(",  desired heading, ");
+        	//hal.console->print(desired_heading);
+        	//hal.console->print(", seperation, ");
+        	//hal.console->print(seperation_dist);
+        	//hal.console->print(", accuracy, ");
+        	//hal.console->print(gps->horizontal_accuracy/1000.0);
+        	hal.console->println();
+        }
 }
 
 //Coordinate Arrays: [latitude, longitude]
@@ -632,10 +647,10 @@ void getTargetCoordinates(int32_t target_coordinates[]){
 	if (gps->new_data) {
 			//target_coordinates[1] = gps->latitude;
 			//target_coordinates[0] = gps->longitude;
-			//target_coordinates[1] = 423945860;			// desired coordinates
-			//target_coordinates[0] = -725291860;			// desired coordinates
-			target_coordinates[1] = 423942870;
-			target_coordinates[0] = -725294590;
+			target_coordinates[1] = 423945860;			// desired coordinates
+			target_coordinates[0] = -725291860;			// desired coordinates
+			// target_coordinates[1] = 423942870;
+			//target_coordinates[0] = -725294590;
 	} else {
 		hal.console->print("~~~~~~~~~~~~~~~~  Error : NO NEW GPS DATA!  ~~~~~~~~~~~~~~~~");
 	}
@@ -904,11 +919,14 @@ void setupCompass() {
 		while (1) ;
 	}
 
-	compass.set_orientation(MAG_ORIENTATION);							// set compass's orientation on aircraft.
-	compass.set_offsets(0,0,0);											// set offsets to account for surrounding interference
-	compass.set_declination(ToRad(0.0));								// set local difference between magnetic north and true north
+	compass.set_orientation(ROTATION_ROLL_180);							// set compass's orientation on aircraft.
+    
+    //These offsets came from the ARDU_PILOT Compass calibratio
+	compass.set_offsets(-42.642, 16.306, 18.598);							// set offsets to account for surrounding interference
+	//compass.set_offsets(-37, 7, 18);									// noah's offsets from mission planner
+	compass.set_declination(ToRad(-14.167));								// set local difference between magnetic north and true north
 		
-		//Otto uses the HMC5883L Compass
+	//Otto uses the HMC5883L Compass
 }
 
 void setupTiming() {
