@@ -57,8 +57,18 @@ AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
 
 
 /*------------------------------------------------ SYSTEM DEFINITIONS ------------------------------------------------------*/
-// Radio min/max values for each stick for my radio (worked out at beginning of article)
+// Definitions to assist in the recalibration of the system's throttle response
 #define CALIBRATION  0
+#define PID_GAIN 1
+#define RC_THR_CAL_MIN	1107
+#define RC_THR_CAL_MAX	1907
+#define RC_THR_FLIGHT_MIN 1107
+#define RC_THR_FLIGHT_MAX 1500
+unsigned int HOVER_THR = 1340;
+// -----------------------------------------------------------------------------
+
+
+// Radio min/max values for each stick for my radio (worked out at beginning of article)
 #define RC_THR_MIN   1107
 #define RC_THR_MAX   1907
 #define RC_YAW_MIN   1106
@@ -70,9 +80,7 @@ AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
 #define RC_ALT_MIN   0
 #define RC_ALT_MAX   1
 
-unsigned int HOVER_THR = 1340;
-
-#define BATTERY_ADJ_THR 1280
+#define BATTERY_ADJ_THR HOVER_THR-60
 
 // Min/max throttle for autonomous takeoff
 #define MAX_TAKEOFF_THR (HOVER_THR+10)
@@ -170,16 +178,6 @@ float desired_heading;
 
 /*---------------------------------------------------- SETUP ----------------------------------------------*/
 void setup() {
-	if (CALIBRATION) {
-		#define ESC_FREQ     50
-		#define RC_THR_MAPPED_MIN   1107
-		#define RC_THR_MAPPED_MAX   1600
-	} else {
-		#define ESC_FREQ     490
-		#define RC_THR_MAPPED_MIN   1107
-		#define RC_THR_MAPPED_MAX   1500
-	}
-
 	setupMotors();
 	setPidConstants(DEFAULT);
 	setupMPU();
@@ -318,7 +316,11 @@ void loop() {
 
 	} else if (switchState == MANUAL) {									// Manual mode
 		// hal.console->println("DRONE IN MANUAL MODE");
-		rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MAPPED_MIN, RC_THR_MAPPED_MAX);
+		if(CALIBRATION) {
+			rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_CAL_MIN, RC_THR_CAL_MAX);
+		} else {
+			rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_FLIGHT_MIN, RC_THR_FLIGHT_MAX);
+		}
 	
 	} else if (switchState == AUTO_ALT_HOLD) {							// Autonomous altitude hold
 	
@@ -331,28 +333,40 @@ void loop() {
 		hal.console->println(" has not been configured");
 		while(1);
 	}
-		
-	//Motor Control
-	if(rcthr >= RC_THR_MIN+50) {  										// Throttle raised, turn on motors.
-		// mix pid outputs and send to the motors.
-		if(CALIBRATION) {
-			hal.rcout->write(MOTOR_FL, rcthr);
-			hal.rcout->write(MOTOR_BL, rcthr);
-			hal.rcout->write(MOTOR_FR, rcthr);
-			hal.rcout->write(MOTOR_BR, rcthr);
-		} else {
+	
+	if(CALIBRATION) {
+		// Calibrate the ESCs using constant throttle across all four motors
+
+		hal.rcout->write(MOTOR_FL, rcthr);
+		hal.rcout->write(MOTOR_BL, rcthr);
+		hal.rcout->write(MOTOR_FR, rcthr);
+		hal.rcout->write(MOTOR_BR, rcthr);
+
+	} else {
+		// Regular flight
+
+		// Add gain to compensate for a 1107-1907 calibration
+		pitch_output = PID_GAIN * pitch_output;
+		roll_output = PID_GAIN * roll_output;
+		yaw_output = PID_GAIN * yaw_output;
+		alt_output = PID_GAIN * alt_output;
+
+		//Motor Control
+		if(rcthr >= RC_THR_MIN+50) {  										// Throttle raised, turn on motors.
+			// mix pid outputs and send to the motors.
 			hal.rcout->write(MOTOR_FL, rcthr + roll_output + pitch_output - yaw_output);
 			hal.rcout->write(MOTOR_BL, rcthr + roll_output - pitch_output + yaw_output);
 			hal.rcout->write(MOTOR_FR, rcthr - roll_output + pitch_output + yaw_output);
 			hal.rcout->write(MOTOR_BR, rcthr - roll_output - pitch_output - yaw_output);
-		}
-	} else {
-		droneOff();
-		yaw_target = yaw;
-	}
 
-	if (rcthr > BATTERY_ADJ_THR) {
-		adjustHoverThrottle();											// adjusts HOVER_THR based on battery voltage
+		} else {
+			droneOff();
+			yaw_target = yaw;
+		}
+
+		if (rcthr > BATTERY_ADJ_THR) {
+			adjustHoverThrottle();											// adjusts HOVER_THR based on battery voltage
+		}
 	}
 
 	//Send data to user App
@@ -872,7 +886,7 @@ long autonomousTakeoff(float rcalt) {
 long autonomousHold(float alt_output) {
 	//Map the Throttle
 	rcthr = HOVER_THR + alt_output;
-	rcthr = constrain(rcthr, 1200, 1400);
+	rcthr = constrain(rcthr, HOVER_THR-140, HOVER_THR+60);
 
 	return rcthr;
 }
@@ -891,6 +905,12 @@ long autonomousLand(){
 }
 
 void setupMotors() {
+	if(CALIBRATION) {
+		#define ESC_FREQ     50
+	} else {
+		#define ESC_FREQ     490
+	}
+
 	// Enable the motors and set at 490Hz update
 	hal.rcout->set_freq(0xF, ESC_FREQ);
 	hal.rcout->enable_mask(0xFF);
@@ -983,7 +1003,7 @@ void adjustHoverThrottle() {
 		battery_mon.read();												// Get battery stats: update voltage and current readings
 		
 		float voltage = battery_mon.voltage();
-		float new_hover_thr = map(voltage, 10, 11.8, 1364, 1330);		// map HOVER_THR based on voltage of drone in flight
+		float new_hover_thr = map(voltage, 10, 11.8, HOVER_THR+24, HOVER_THR-10);		// map HOVER_THR based on voltage of drone in flight
 		HOVER_THR = new_hover_thr;
 	}
 }
