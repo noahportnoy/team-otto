@@ -58,6 +58,7 @@ AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
 
 /*------------------------------------------------ SYSTEM DEFINITIONS ------------------------------------------------------*/
 // Radio min/max values for each stick for my radio (worked out at beginning of article)
+#define CALIBRATION  0
 #define RC_THR_MIN   1107
 #define RC_THR_MAX   1907
 #define RC_YAW_MIN   1106
@@ -78,10 +79,10 @@ unsigned int HOVER_THR = 1340;
 #define MIN_TAKEOFF_THR (HOVER_THR-10)
 
 // Motor numbers definitions
-#define MOTOR_FL   1    // Front left
+#define MOTOR_FL   2    // Front left
 #define MOTOR_FR   0    // Front right
-#define MOTOR_BL   3    // back left
-#define MOTOR_BR   2    // back right
+#define MOTOR_BL   1    // back left
+#define MOTOR_BR   3    // back right
 
 #define OFF_BUTTON 0
 AP_HAL::AnalogSource* OFF_BUTTON_VALUE;
@@ -169,6 +170,16 @@ float desired_heading;
 
 /*---------------------------------------------------- SETUP ----------------------------------------------*/
 void setup() {
+	if (CALIBRATION) {
+		#define ESC_FREQ     50
+		#define RC_THR_MAPPED_MIN   1107
+		#define RC_THR_MAPPED_MAX   1600
+	} else {
+		#define ESC_FREQ     490
+		#define RC_THR_MAPPED_MIN   1107
+		#define RC_THR_MAPPED_MAX   1500
+	}
+
 	setupMotors();
 	setPidConstants(DEFAULT);
 	setupMPU();
@@ -181,7 +192,7 @@ void setup() {
 	setupBatteryMonitor();
 	//Initizlize the Altitude Hold Refernece System
 	ahrs.init();
-	getGPSLock();
+	// getGPSLock();
 	getTargetCoordinates(target_coordinates);
 	hal.console->println("Otto Ready.");
 }
@@ -307,7 +318,7 @@ void loop() {
 
 	} else if (switchState == MANUAL) {									// Manual mode
 		// hal.console->println("DRONE IN MANUAL MODE");
-		rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MIN, 1500);
+		rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MAPPED_MIN, RC_THR_MAPPED_MAX);
 	
 	} else if (switchState == AUTO_ALT_HOLD) {							// Autonomous altitude hold
 	
@@ -324,10 +335,17 @@ void loop() {
 	//Motor Control
 	if(rcthr >= RC_THR_MIN+50) {  										// Throttle raised, turn on motors.
 		// mix pid outputs and send to the motors.
-		hal.rcout->write(MOTOR_FL, rcthr + roll_output + pitch_output - yaw_output);
-		hal.rcout->write(MOTOR_BL, rcthr + roll_output - pitch_output + yaw_output);
-		hal.rcout->write(MOTOR_FR, rcthr - roll_output + pitch_output + yaw_output);
-		hal.rcout->write(MOTOR_BR, rcthr - roll_output - pitch_output - yaw_output);
+		if(CALIBRATION) {
+			hal.rcout->write(MOTOR_FL, rcthr);
+			hal.rcout->write(MOTOR_BL, rcthr);
+			hal.rcout->write(MOTOR_FR, rcthr);
+			hal.rcout->write(MOTOR_BR, rcthr);
+		} else {
+			hal.rcout->write(MOTOR_FL, rcthr + roll_output + pitch_output - yaw_output);
+			hal.rcout->write(MOTOR_BL, rcthr + roll_output - pitch_output + yaw_output);
+			hal.rcout->write(MOTOR_FR, rcthr - roll_output + pitch_output + yaw_output);
+			hal.rcout->write(MOTOR_BR, rcthr - roll_output - pitch_output - yaw_output);
+		}
 	} else {
 		droneOff();
 		yaw_target = yaw;
@@ -874,7 +892,7 @@ long autonomousLand(){
 
 void setupMotors() {
 	// Enable the motors and set at 490Hz update
-	hal.rcout->set_freq(0xF, 490);
+	hal.rcout->set_freq(0xF, ESC_FREQ);
 	hal.rcout->enable_mask(0xFF);
 }
 
