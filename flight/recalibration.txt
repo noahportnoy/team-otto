@@ -10,7 +10,6 @@ calibration min/max	| PID_GAIN 		| origin of min/max | calibration performed | r
 1100 - 1350 		| 3.2 			| old code			|						| 
 1107 - 1400 		| 2.7304		| old code			|						| 
 1107 - 1500 		| 2.0356		| old code			| ESC calibration		| uncontrollable
-1400 - 1907 		| 1.5779		| old code			|						| 
 1107 - 1600 		| 1.3491		| guess				| ESC calibration		| promising but somewhat difficult to control
 1107 - 1600 		| 1.3491		| guess				| SW calibration		| ??
 1107 - 1700 		| 1.3491		| old code			|						| 
