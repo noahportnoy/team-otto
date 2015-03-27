@@ -57,13 +57,50 @@ AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
 
 
 /*------------------------------------------------ SYSTEM DEFINITIONS ------------------------------------------------------*/
-// Definitions to assist in the recalibration of the system's throttle response
-#define CALIBRATION  0
+// Definitions for calibration compensation types
+#define NONE 0
 #define PID_GAIN 1
-#define RC_THR_CAL_MIN	1107
-#define RC_THR_CAL_MAX	1907
-#define RC_THR_FLIGHT_MIN 1107
-#define RC_THR_FLIGHT_MAX 1500
+#define SW_CAL 2
+
+// Definitions to assist in the recalibration of the system's throttle response
+
+
+/* 	------------Recalibration Documentation------------
+*
+*
+*	You have several options to try to recover Otto's throttle response.
+*
+* 	ESC CALIBRATION
+*		To calibrate the ESCs, set ESC_CALIBRATION to 1 and specify ESC_CAL_MIN and ESC_CAL_MAX as you desire.
+*
+*	
+*	CALIBRATION COMPENSATION
+*		1. Use type NONE when you are trying out a different ESC calibration and do not need compensation in software.
+*
+*		2. Use type PID_GAIN **only** when you are using an 1107-1907 ESC calibration and wish to compensate by scaling the PID output.
+*				REQUIRED: PID_GAIN_VAL
+*
+*		3. Use type SW_CAL when you would like to emulate an ESC calibration in software.
+*				REQUIRED: SW_CAL_MIN  and  SW_CAL_MAX
+*
+*/
+
+
+// These MUST be kept up to date
+#define ESC_CALIBRATION	0
+#define ESC_CAL_MIN		1107
+#define ESC_CAL_MAX		1907
+#define CAL_COMP_TYPE	NONE
+
+
+#define PID_GAIN_VAL	1.3491
+
+#define SW_CAL_MIN		1107
+#define SW_CAL_MAX		1600
+
+// keep these as they are for now
+#define FLIGHT_MIN		1107
+#define FLIGHT_MAX		1500
 unsigned int HOVER_THR = 1340;
 // -----------------------------------------------------------------------------
 
@@ -209,7 +246,7 @@ void loop() {
 	uint16_t channels[8];  // array for raw channel values
 	hal.rcin->read(channels, 8);
 
-	long rcyaw, rcpit, rcroll, safety, last_rcthr; 						 // Variables to store radio in
+	long rcyaw, rcpit, rcroll, safety; 						 // Variables to store radio in
 	float rcalt;
 
 	safety = channels[4];
@@ -285,12 +322,18 @@ void loop() {
 	}
 
 	// rate PIDS
-	pitch_output =  (long) constrain(pids[PID_PITCH_RATE].get_pid(pitch_stab_output - gyroPitch, 1), -500, 500);
-	roll_output =  (long) constrain(pids[PID_ROLL_RATE].get_pid(roll_stab_output - gyroRoll, 1), -500, 500);
-	yaw_output =  (long) constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);
-
-	//Feedback loop for altitude holding
-	alt_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);
+	if (CAL_COMP_TYPE == PID_GAIN) {
+		pitch_output =  (long) PID_GAIN_VAL * constrain(pids[PID_PITCH_RATE].get_pid(pitch_stab_output - gyroPitch, 1), -500, 500);
+		roll_output =  (long) PID_GAIN_VAL * constrain(pids[PID_ROLL_RATE].get_pid(roll_stab_output - gyroRoll, 1), -500, 500);
+		yaw_output =  (long) PID_GAIN_VAL * constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);
+		alt_output = PID_GAIN_VAL * constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);			//Feedback loop for altitude hold
+	
+	} else {
+		pitch_output =  (long) constrain(pids[PID_PITCH_RATE].get_pid(pitch_stab_output - gyroPitch, 1), -500, 500);
+		roll_output =  (long) constrain(pids[PID_ROLL_RATE].get_pid(roll_stab_output - gyroRoll, 1), -500, 500);
+		yaw_output =  (long) constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);
+		alt_output = constrain(pids[ALT_STAB].get_pid((float)rcalt - alt, 1), -250, 250);							//Feedback loop for altitude hold
+	}
 
 	if (switchState == AUTO_TAKEOFF) {
 		// hal.console->print("DRONE IN AUTOPILOT MODE: ");
@@ -316,14 +359,23 @@ void loop() {
 
 	} else if (switchState == MANUAL) {									// Manual mode
 		// hal.console->println("DRONE IN MANUAL MODE");
-		if(CALIBRATION) {
-			rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_CAL_MIN, RC_THR_CAL_MAX);
+
+		if(ESC_CALIBRATION) {
+			rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, ESC_CAL_MIN, ESC_CAL_MAX);
+
 		} else {
-			rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_FLIGHT_MIN, RC_THR_FLIGHT_MAX);
+			if (CAL_COMP_TYPE == PID_GAIN) {
+				rcthr = channels[2];															// rcthr passthrough (1107-1907)
+			
+			} else if (CAL_COMP_TYPE == SW_CAL) {
+				rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, FLIGHT_MIN, FLIGHT_MAX);		// standard rcthr mapping from old working code
+			
+			} else if (CAL_COMP_TYPE == NONE) {
+				rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, FLIGHT_MIN, FLIGHT_MAX);		// standard rcthr mapping from old working code
+			}
 		}
 	
 	} else if (switchState == AUTO_ALT_HOLD) {							// Autonomous altitude hold
-	
 		// hal.console->println("DRONE IN AUTO_ALT_HOLD MODE");
 		rcthr = autonomousHold(alt_output);
 	
@@ -334,7 +386,7 @@ void loop() {
 		while(1);
 	}
 	
-	if(CALIBRATION) {
+	if(ESC_CALIBRATION) {
 		// Calibrate the ESCs using constant throttle across all four motors
 
 		hal.rcout->write(MOTOR_FL, rcthr);
@@ -345,19 +397,26 @@ void loop() {
 	} else {
 		// Regular flight
 
-		// Add gain to compensate for a 1107-1907 calibration
-		pitch_output = PID_GAIN * pitch_output;
-		roll_output = PID_GAIN * roll_output;
-		yaw_output = PID_GAIN * yaw_output;
-		alt_output = PID_GAIN * alt_output;
-
 		//Motor Control
 		if(rcthr >= RC_THR_MIN+50) {  										// Throttle raised, turn on motors.
 			// mix pid outputs and send to the motors.
-			hal.rcout->write(MOTOR_FL, rcthr + roll_output + pitch_output - yaw_output);
-			hal.rcout->write(MOTOR_BL, rcthr + roll_output - pitch_output + yaw_output);
-			hal.rcout->write(MOTOR_FR, rcthr - roll_output + pitch_output + yaw_output);
-			hal.rcout->write(MOTOR_BR, rcthr - roll_output - pitch_output - yaw_output);
+			long MOTOR_FL_output = rcthr + roll_output + pitch_output - yaw_output;
+			long MOTOR_BL_output = rcthr + roll_output - pitch_output + yaw_output;
+			long MOTOR_FR_output = rcthr - roll_output + pitch_output + yaw_output;
+			long MOTOR_BR_output = rcthr - roll_output - pitch_output - yaw_output;
+
+			// gain to simulate an ESC calibration
+			if (CAL_COMP_TYPE == SW_CAL) {
+				MOTOR_FL_output = map(MOTOR_FL_output, SW_CAL_MIN, SW_CAL_MAX, ESC_CAL_MIN, ESC_CAL_MAX);
+				MOTOR_BL_output = map(MOTOR_BL_output, SW_CAL_MIN, SW_CAL_MAX, ESC_CAL_MIN, ESC_CAL_MAX);
+				MOTOR_FR_output = map(MOTOR_FR_output, SW_CAL_MIN, SW_CAL_MAX, ESC_CAL_MIN, ESC_CAL_MAX);
+				MOTOR_BR_output = map(MOTOR_BR_output, SW_CAL_MIN, SW_CAL_MAX, ESC_CAL_MIN, ESC_CAL_MAX);
+			}
+
+			hal.rcout->write(MOTOR_FL, MOTOR_FL_output);
+			hal.rcout->write(MOTOR_BL, MOTOR_BL_output);
+			hal.rcout->write(MOTOR_FR, MOTOR_FR_output);
+			hal.rcout->write(MOTOR_BR, MOTOR_BR_output);
 
 		} else {
 			droneOff();
@@ -905,7 +964,7 @@ long autonomousLand(){
 }
 
 void setupMotors() {
-	if(CALIBRATION) {
+	if(ESC_CALIBRATION) {
 		#define ESC_FREQ     50
 	} else {
 		#define ESC_FREQ     490

@@ -1,0 +1,17 @@
+TODO:
+- Ask Andrew to reinstall Raspberry Pi, rotate main plate, tidy up wiring, and let me know the new motor mapping
+- Put props on the correct motors
+- Observe the rcthr value needed for hover on the phone, and use that against our 1340 to determine the necessary scaling factor
+- Ensure that a SW calibration for 1107-1600 works the same as the ESC calibration did
+
+
+calibration min/max	| PID_GAIN 		| origin of min/max | calibration performed | results
+--------------------|---------------|-------------------|-----------------------|--------------------------------------------
+1100 - 1350 		| 3.2 			| old code			|						| 
+1107 - 1400 		| 2.7304		| old code			|						| 
+1107 - 1500 		| 2.0356		| old code			| ESC calibration		| uncontrollable
+1400 - 1907 		| 1.5779		| old code			|						| 
+1107 - 1600 		| 1.3491		| guess				| ESC calibration		| promising but somewhat difficult to control
+1107 - 1600 		| 1.3491		| guess				| SW calibration		| ??
+1107 - 1700 		| 1.3491		| old code			|						| 
+1100 - 1800 		| 1.1429		| old code			|						| 
