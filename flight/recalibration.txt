@@ -14,3 +14,11 @@ calibration min/max	| PID_GAIN 		| origin of min/max | calibration performed | r
 1107 - 1600 		| 1.3491		| guess				| SW calibration		| ??
 1107 - 1700 		| 1.3491		| old code			|						| 
 1100 - 1800 		| 1.1429		| old code			|						| 
+
+––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+1107 - 1600			| n/a 			| previous test		| ESC Calibration 		| On Rig: The I term isn't strong enough to drive it back to place
+1107 - 1550 		| n/a 			| based on prev 	| ESC Calibration 		| On Rig: Much more responsive to roll commands than the 1600 max calibration.
+1107 - 1510			| n/a 			| previous			| ESC Calibration 		| Even more responsive to roll commands (on the rig). Experienced a sucessful, but not great, flight with this calibration. Hover thr == 1363 for this test.
+1107 - 1550			| n/a 			| previous 	 		| ESC Calibration 		| Flight: A bit more unstable (expecially in yaw, it kept rotating by itself).
+1107 - 1500			| n/a 			| previous			| ESC Calibration 		| Flight: A bit better than the 1550 version. Hovers around 1563 Video on Google Drive.
+1107 - 1480 		| n/a 			| previous			| ESC Calibration 		| Flight: A bit better than the 1500 test. This was an attempt to get the hover throttle to ~1340 but battery died on me. Seems to want to constantly pitch, roll, and yaw in one direction (presumably Feedback control issues).
