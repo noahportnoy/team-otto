@@ -15,6 +15,17 @@ UP                | autonomous takeoff, then altitude hold
 
 ## Changelog
 
+April 1, 2015 
+
+- Made the mapping for battery voltage and alt hold static to the input of Static_HOVER_THR
+- Added constraint to adjustHoverThrottle method 
+- Tuning improvements to ESC Calibration; more in recalibration.txt
+
+
+
+------------------------------------------
+
+
 March 2, 2015 (Morning)
 
 - Added a PRINT_DEBUG define so we can easily turn print verbosity ON or OFF with one switch.

@@ -89,19 +89,22 @@ AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
 // These MUST be kept up to date
 #define ESC_CALIBRATION	0
 #define ESC_CAL_MIN		1107
-#define ESC_CAL_MAX		1907
-#define CAL_COMP_TYPE	NONE
-
+#define ESC_CAL_MAX		1460
+#define CAL_COMP_TYPE	SW_CAL
 
 #define PID_GAIN_VAL	1.3491
 
-#define SW_CAL_MIN		1107
-#define SW_CAL_MAX		1600
+#define SW_CAL_MIN		1100
+#define SW_CAL_MAX		1460
 
 // keep these as they are for now
 #define FLIGHT_MIN		1107
 #define FLIGHT_MAX		1500
-unsigned int HOVER_THR = 1340;
+
+//Set Hover Throttle definition
+#define Static_HOVER_THR	1335
+unsigned int HOVER_THR = Static_HOVER_THR;
+
 // -----------------------------------------------------------------------------
 
 
@@ -227,7 +230,7 @@ void setup() {
 	setupBatteryMonitor();
 	//Initizlize the Altitude Hold Refernece System
 	ahrs.init();
-	// getGPSLock();
+	//getGPSLock();
 	getTargetCoordinates(target_coordinates);
 	hal.console->println("Otto Ready.");
 }
@@ -287,6 +290,7 @@ void loop() {
 																		// depending on RC top-right switch position
         
 	if (switchState == AUTO_ALT_HOLD || switchState == AUTO_TAKEOFF) {	// Autonomous YAW using the compass and GPS
+		
 		//Compass accumulate should be called frequently to accumulate readings from the compass
     	compass.accumulate();
 
@@ -302,7 +306,7 @@ void loop() {
 	}
 
 	if (switchState == AUTO_ALT_HOLD) {
-	    gpsTracking(rcpit, rcroll);
+	    //gpsTracking(rcpit, rcroll);
 	}
 
 	if (switchState == AUTO_TAKEOFF && autopilotState == TAKEOFF) {			// Try to maintain 0 pitch and roll during takeoff
@@ -432,23 +436,37 @@ void loop() {
 	sendDataToPhone();
         
     if (PRINT_DEBUG) {
-    	hal.console->print("rcthr, ");
-    	hal.console->print(rcthr);
-    	// hal.console->print("rcpitch, ");
-    	// hal.console->print(rcpit);
-    	 // hal.console->print(", rcroll, ");
-    	 // hal.console->print(rcroll);
-    	 // hal.console->print(",  rcyaw, ");
-    	 // hal.console->print(rcyaw);
-    	// hal.console->print(", ");
-    	// hal.console->print(", pitch_out: ");
-    	// hal.console->print(pitch_output);
-    	// hal.console->print(", roll_out: ");
-    	// hal.console->print(roll_output);
-    	// hal.console->print(", yaw_out: ");
-    	// hal.console->print(yaw_output);
-    	//hal.console->print(", t, ");
+    	//hal.console->print("rcthr, ");
+    	//hal.console->print(rcthr);
+    	//hal.console->print(", hoverthr, ");
+    	//hal.console->print(HOVER_THR);
+    	//hal.console->print(", rcpitch, ");
+		//hal.console->print(rcpit);
+		//hal.console->print(", rcroll, ");
+		//hal.console->print(rcroll);
+		//hal.console->print(",  yaw, ");
+		//hal.console->print(yaw);
+		//hal.console->print(",  pitch, ");
+		//hal.console->print(pitch);
+		//hal.console->print(",  roll, ");
+		//hal.console->print(roll);
+		//hal.console->print(", battery, ");
+		//hal.console->print(battery_mon.voltage());
+		//hal.console->print(", switch_state, ");
+		//hal.console->print(channels[5]);
+
+		hal.console->print(", heading, ");
+		hal.console->print(current_heading);
+
+		//hal.console->print(", pitch_out: ");
+		//hal.console->print(pitch_output);
+		//hal.console->print(", roll_out: ");
+		//hal.console->print(roll_output);
+		//hal.console->print(", yaw_out: ");
+		//hal.console->print(yaw_output);
+		//hal.console->print(", t, ");
     	//hal.console->print(hal.scheduler->millis());
+    	hal.console->println("");
     }
 }
 
@@ -694,7 +712,7 @@ void gpsTracking(long &rcpit, long &rcroll) {
                 //hal.console->printf(", p/r: %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y);
         	
                 // hal.console->printf(", gps status: %d", gps->status());
-        	hal.console->printf(", currheading, %f, ", current_heading);
+        	//hal.console->printf(", currheading, %f, ", current_heading);
         	//hal.console->print(", lastheading, ");
         	//hal.console->print(last_heading);
         	// hal.console->print(", desired_heading, ");
@@ -945,7 +963,7 @@ long autonomousTakeoff(float rcalt) {
 long autonomousHold(float alt_output) {
 	//Map the Throttle
 	rcthr = HOVER_THR + alt_output;
-	rcthr = constrain(rcthr, HOVER_THR-140, HOVER_THR+60);
+	rcthr = constrain(rcthr, Static_HOVER_THR-140, Static_HOVER_THR+60);
 
 	return rcthr;
 }
@@ -1062,7 +1080,8 @@ void adjustHoverThrottle() {
 		battery_mon.read();												// Get battery stats: update voltage and current readings
 		
 		float voltage = battery_mon.voltage();
-		float new_hover_thr = map(voltage, 10, 11.8, HOVER_THR+24, HOVER_THR-10);		// map HOVER_THR based on voltage of drone in flight
+		float new_hover_thr = map(voltage, 10, 11.8, Static_HOVER_THR+24, Static_HOVER_THR-10);		// map HOVER_THR based on voltage of drone in flight
+		new_hover_thr = constrain(new_hover_thr, 1200, 1400);										// constrain hover throttle for saftey
 		HOVER_THR = new_hover_thr;
 	}
 }
@@ -1092,7 +1111,7 @@ void sendDataToPhone() {
 		// uartMessaging.sendGPSAccuracy(gps->horizontal_accuracy);    //GPS accuracy of the drone as a float in meters
 		uartMessaging.sendGPSStatus((long)gps->status());
 		//uartMessaging.sendClimbRate(climb_rate);
-		uartMessaging.sendClimbRate(current_heading);
+		uartMessaging.sendClimbRate(rcthr);
 	}
 }
 

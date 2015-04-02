@@ -21,4 +21,11 @@ calibration min/max	| PID_GAIN 		| origin of min/max	| calibration performed	| r
 1107 - 1510 		| n/a 			| previous			| ESC Calibration 		| Even more responsive to roll commands (on the rig). Experienced a successful, flight with this calibration. Hover thr == 1363 for this test.
 1107 - 1550 		| n/a 			| previous 	 		| ESC Calibration 		| Flight: A bit more unstable (especially in yaw, it kept rotating by itself).
 1107 - 1500 		| n/a 			| previous			| ESC Calibration 		| Flight: A bit better than the 1550 version. Hovers around 1563 Video on Google Drive.
-1107 - 1480 		| n/a 			| previous			| ESC Calibration 		| Flight: A bit better than the 1500 test. This was an attempt to get the hover throttle to ~1340 but battery died on me. Seems to want to constantly pitch, roll, and yaw in one direction (presumably Feedback control issues).
+1107 - 1480 		| n/a 			| previous			| ESC Calibration 		| Flight: A bit better than the 1500 test. This was an attempt to get the hover throttle to ~1340 but battery died on me. Seems to want to constantly pitch, roll, and yaw in one direction (presumably Feedback control issues). Hover thr == 1344 (full battery)
+1107 - 1460			| n/a 			| previous trial	| ESC calibration 		| Flight: flys well under manual control
+
+
+––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+1107 - 1460 		| n/a 			| previous test 	| ESC Calibration 		| Flight: flys well in manual. When in auto_alt_hold Otto makes some odd sounds as if some pistons are changing too quickly.
+1107 - 1460 		| n/a 			| previous test 	| SW Calibration 		| Worked in approx the same way as previous (qualitatively)
+1100 - 1460 		| n/a 			| previous test 	| SW Calibration 		| Flight: Alt_hold seemed smoother than 1107-1460
