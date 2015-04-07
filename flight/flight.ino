@@ -92,17 +92,17 @@ AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
 #define ESC_CAL_MAX		1460
 #define CAL_COMP_TYPE	SW_CAL
 
-#define PID_GAIN_VAL	1.3491
+#define PID_GAIN_VAL	2.859
 
-#define SW_CAL_MIN		1100
-#define SW_CAL_MAX		1460
+#define SW_CAL_MIN		1107
+#define SW_CAL_MAX		1907
 
 // keep these as they are for now
 #define FLIGHT_MIN		1107
 #define FLIGHT_MAX		1500
 
 //Set Hover Throttle definition
-#define Static_HOVER_THR	1335
+#define Static_HOVER_THR	1340
 unsigned int HOVER_THR = Static_HOVER_THR;
 
 // -----------------------------------------------------------------------------
@@ -123,8 +123,8 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 #define BATTERY_ADJ_THR HOVER_THR-60
 
 // Min/max throttle for autonomous takeoff
-#define MAX_TAKEOFF_THR (HOVER_THR+10)
-#define MIN_TAKEOFF_THR (HOVER_THR-10)
+#define MAX_TAKEOFF_THR (Static_HOVER_THR+10)
+#define MIN_TAKEOFF_THR (Static_HOVER_THR-10)
 
 // Motor numbers definitions
 #define MOTOR_FL   2    // Front left
@@ -187,6 +187,16 @@ PID pids[11];
  # define MAG_ORIENTATION  AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD
 #endif
 
+
+//testing 								//TODO remove after testing
+	//First points are that of the drone 42.394414, -72.528998
+	//Second is the target 42.394403, -72.528940 and 5.05
+
+// #define lat1	42.394414
+// #define long1	-72.528998
+// #define lat2	42.394403
+// #define long2	-72.528940
+
 float INT_LAT_TO_METER = 0.01110809;
 float INT_LONG_TO_METER = 0.00823380;
 
@@ -230,7 +240,7 @@ void setup() {
 	setupBatteryMonitor();
 	//Initizlize the Altitude Hold Refernece System
 	ahrs.init();
-	//getGPSLock();
+	// getGPSLock();
 	getTargetCoordinates(target_coordinates);
 	hal.console->println("Otto Ready.");
 }
@@ -239,7 +249,7 @@ void setup() {
 void loop() {
 	//receive from uart
 	uartMessaging.receive();
-	
+
 	static float yaw_target = 0;
 
 	// Wait until new orientation data (normally 5ms max)
@@ -299,6 +309,8 @@ void loop() {
 			current_heading = getHeading();
 		}
 
+		//desired_heading = getBearing();
+
 		//Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
 		float heading_error = wrap_180(desired_heading - current_heading);
 		rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -10, 10);
@@ -306,6 +318,8 @@ void loop() {
 	}
 
 	if (switchState == AUTO_ALT_HOLD) {
+
+
 	    //gpsTracking(rcpit, rcroll);
 	}
 
@@ -326,7 +340,7 @@ void loop() {
 	}
 
 	// rate PIDS
-	if (CAL_COMP_TYPE == PID_GAIN) {
+	if (CAL_COMP_TYPE == SW_CAL || CAL_COMP_TYPE == PID_GAIN) {
 		pitch_output =  (long) PID_GAIN_VAL * constrain(pids[PID_PITCH_RATE].get_pid(pitch_stab_output - gyroPitch, 1), -500, 500);
 		roll_output =  (long) PID_GAIN_VAL * constrain(pids[PID_ROLL_RATE].get_pid(roll_stab_output - gyroRoll, 1), -500, 500);
 		yaw_output =  (long) PID_GAIN_VAL * constrain(pids[PID_YAW_RATE].get_pid(yaw_stab_output - gyroYaw, 1), -500, 500);
@@ -372,7 +386,8 @@ void loop() {
 				rcthr = channels[2];															// rcthr passthrough (1107-1907)
 			
 			} else if (CAL_COMP_TYPE == SW_CAL) {
-				rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, FLIGHT_MIN, FLIGHT_MAX);		// standard rcthr mapping from old working code
+				rcthr = channels[2];
+				// rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, FLIGHT_MIN, FLIGHT_MAX);		// standard rcthr mapping from old working code
 			
 			} else if (CAL_COMP_TYPE == NONE) {
 				rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, FLIGHT_MIN, FLIGHT_MAX);		// standard rcthr mapping from old working code
@@ -440,12 +455,12 @@ void loop() {
     	//hal.console->print(rcthr);
     	//hal.console->print(", hoverthr, ");
     	//hal.console->print(HOVER_THR);
-    	//hal.console->print(", rcpitch, ");
-		//hal.console->print(rcpit);
-		//hal.console->print(", rcroll, ");
-		//hal.console->print(rcroll);
-		//hal.console->print(",  yaw, ");
-		//hal.console->print(yaw);
+  //   	hal.console->print(", rcpitch, ");
+		// hal.console->print(rcpit);
+		// hal.console->print(", rcroll, ");
+		// hal.console->print(rcroll);
+		// hal.console->print(",  yaw, ");
+		// hal.console->print(yaw);
 		//hal.console->print(",  pitch, ");
 		//hal.console->print(pitch);
 		//hal.console->print(",  roll, ");
@@ -455,15 +470,15 @@ void loop() {
 		//hal.console->print(", switch_state, ");
 		//hal.console->print(channels[5]);
 
-		hal.console->print(", heading, ");
-		hal.console->print(current_heading);
+		// hal.console->print(", heading, ");
+		// hal.console->print(current_heading);
 
-		//hal.console->print(", pitch_out: ");
-		//hal.console->print(pitch_output);
-		//hal.console->print(", roll_out: ");
-		//hal.console->print(roll_output);
-		//hal.console->print(", yaw_out: ");
-		//hal.console->print(yaw_output);
+		hal.console->print(", pitch_out: ");
+		hal.console->print(pitch_output);
+		hal.console->print(", roll_out: ");
+		hal.console->print(roll_output);
+		hal.console->print(", yaw_out: ");
+		hal.console->print(yaw_output);
 		//hal.console->print(", t, ");
     	//hal.console->print(hal.scheduler->millis());
     	hal.console->println("");
@@ -706,28 +721,30 @@ void gpsTracking(long &rcpit, long &rcroll) {
 	rcpit = -rcpit;		// flip rcpit for proper mapping (neg pitch is forward)
 	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5);
         
-        if (PRINT_DEBUG) {
-                //hal.console->print("Yaw Rotation Matrix:  ");
-	        //hal.console->printf("a: %f %f %f b: %f %f %f    ", yaw_rotation_m.a.x, yaw_rotation_m.a.y, yaw_rotation_m.a.z, yaw_rotation_m.b.x, yaw_rotation_m.b.y, yaw_rotation_m.b.z);
-                //hal.console->printf(", p/r: %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y);
-        	
-                // hal.console->printf(", gps status: %d", gps->status());
-        	//hal.console->printf(", currheading, %f, ", current_heading);
-        	//hal.console->print(", lastheading, ");
-        	//hal.console->print(last_heading);
-        	// hal.console->print(", desired_heading, ");
-        	// hal.console->print(desired_heading);
-        	// hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
-        	// hal.console->printf(", target_long, %ld, target_lat, %ld, ", target_coordinates[0], target_coordinates[1]);
-        	// hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
-        	//hal.console->print(",  desired heading, ");
-        	//hal.console->print(desired_heading);
-        	//hal.console->print(", seperation, ");
-        	//hal.console->print(seperation_dist);
-        	//hal.console->print(", accuracy, ");
-        	//hal.console->print(gps->horizontal_accuracy/1000.0);
-        	hal.console->println();
-        }
+    if (PRINT_DEBUG) {
+            //hal.console->print("Yaw Rotation Matrix:  ");
+        //hal.console->printf("a: %f %f %f b: %f %f %f    ", yaw_rotation_m.a.x, yaw_rotation_m.a.y, yaw_rotation_m.a.z, yaw_rotation_m.b.x, yaw_rotation_m.b.y, yaw_rotation_m.b.z);
+            //hal.console->printf(", p/r: %f %f  ", autonomous_pitch_roll.x, autonomous_pitch_roll.y);
+    	
+        // hal.console->printf(", gps status: %d", gps->status());
+    	//hal.console->printf(", currheading, %f, ", current_heading);
+    	// hal.console->print(", desired_heading, ");
+    	// hal.console->print(desired_heading);
+    	// hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
+    	// hal.console->printf(", target_long, %ld, target_lat, %ld, ", target_coordinates[0], target_coordinates[1]);
+    	// hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
+    	//hal.console->print(",  desired heading, ");
+    	//hal.console->print(desired_heading);
+    	//hal.console->print(", seperation, ");
+    	//hal.console->print(seperation_dist);
+    	//hal.console->print(", accuracy, ");
+    	//hal.console->print(gps->horizontal_accuracy/1000.0);
+    }
+
+    /* ~~~~~ USE FOR SEPERATION DISTANCE ~~~~~~~~
+    float gps_distance = get_distance(&loc, &loc2);
+	hal.console->printf("\narducopter bearing: %f and distance: %f\n", bearing_heading, gps_distance);
+	*/
 }
 
 //Coordinate Arrays: [latitude, longitude]
@@ -748,12 +765,16 @@ void getTargetCoordinates( int32_t target_coordinates[] ){
 
 	gps->update();
 	if (gps->new_data) {
-			//target_coordinates[1] = gps->latitude;
-			//target_coordinates[0] = gps->longitude;
-			target_coordinates[1] = 423945860;			// desired coordinates
-			target_coordinates[0] = -725291860;			// desired coordinates
-			// target_coordinates[1] = 423942870;
+			//target_coordinates[1] = gps->latitude;		
+			//target_coordinates[0] = gps->longitude;		
+			//target_coordinates[1] = 423945860;			// desired coordinates
+			//target_coordinates[0] = -725291860;			// desired coordinates
+			//target_coordinates[1] = 423942870;
 			//target_coordinates[0] = -725294590;
+
+			//Quad coordinates
+			target_coordinates[1] = 423935390;
+			target_coordinates[0] = -725294520;
 	} else {
 		hal.console->print("~~~~~~~~~~~~~~~~  Error : NO NEW GPS DATA!  ~~~~~~~~~~~~~~~~");
 	}
@@ -1106,13 +1127,66 @@ void sendDataToPhone() {
 		uartMessaging.sendBattery(battery_mon.voltage());
 		uartMessaging.sendDroneLat(gps->latitude);
 		uartMessaging.sendDroneLon(gps->longitude);
-		//uartMessaging.sendDroneLat(HOVER_THR);
-		//uartMessaging.sendDroneLon(rcthr);
 		// uartMessaging.sendGPSAccuracy(gps->horizontal_accuracy);    //GPS accuracy of the drone as a float in meters
 		uartMessaging.sendGPSStatus((long)gps->status());
 		//uartMessaging.sendClimbRate(climb_rate);
 		uartMessaging.sendClimbRate(rcthr);
+		// uartMessaging.sendGPSStatus(rcpit);
+		// uartMessaging.sendClimbRate(rcroll);
 	}
 }
+
+//Coordinate Arrays: [longitude, lattitude]
+bool getPhoneCoordinates(int32_t target_coordinates[]){
+  
+        if(uartMessaging.isUserLonLatest() && uartMessaging.isUserLatLatest()){
+              uartMessaging.getUserLon(&target_coordinates[0]);
+              uartMessaging.getUserLat(&target_coordinates[1]);
+              return true;
+        }
+        
+        hal.console->print("~~~~~~~~~~~~~~~~  WAITING ON NEW TARGET DATA!  ~~~~~~~~~~~~~~");
+        return false;
+}
+
+
+float getBearing(){
+	int32_t drone_coordinates[] = {0, 0};
+	float bearing;
+
+	/*COMPASS OPERATION: 
+		True North is 0 (degrees)
+		Eastern headings are negative numbers
+		Western headings are positive numbers
+		South is 180 or -180
+	*/
+
+	//This should all be in an if statement that checks the status of GPS_state variable
+	if (gps->status() >= 2) {
+		getDroneCoordinates(drone_coordinates);
+	} else {
+		// Force the drone to north if there is a GPS loss
+		bearing = current_heading;
+		return desired_heading;
+	}
+	
+	Vector2f drone = Vector2f(drone_coordinates[1], drone_coordinates[0]);
+	Vector2f target = Vector2f(target_coordinates[1], target_coordinates[0]);
+
+	struct Location loc = {0};
+    loc.lat = drone.x * 1.0e7;
+    loc.lng = drone.y * 1.0e7;
+
+    struct Location loc2 = {0};
+    loc2.lat = target.x * 1.0e7;	
+    loc2.lng = target.y * 1.0e7;
+
+	bearing = 0.01 * get_bearing_cd(&loc, &loc2);
+	hal.console->printf("\n Drone bearing: %f\n", bearing);
+
+	return wrap_180(bearing);
+}
+
+
 
 AP_HAL_MAIN();

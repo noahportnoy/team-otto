@@ -15,13 +15,32 @@ UP                | autonomous takeoff, then altitude hold
 
 ## Changelog
 
+------------------------------------------
+
+
+April 6, 2015
+
+- Built in heading tracking function. Untested
+- CAUTION: flight code is untested...
+
+------------------------------------------
+
+
+April 3, 2015
+
+- GPS tracking doesn't work because drone pitches back & rolls left too much
+- Outdoors, SW_Cal difference of about 100 didn't make much of a difference on stability (cal to 1460 then 1550)
+
+- If drone isnt stable when rcpit & rcroll == 0, that implies an imperfection in the feedback control (or sensors)
+
+------------------------------------------
+
+
 April 1, 2015 
 
 - Made the mapping for battery voltage and alt hold static to the input of Static_HOVER_THR
 - Added constraint to adjustHoverThrottle method 
 - Tuning improvements to ESC Calibration; more in recalibration.txt
-
-
 
 ------------------------------------------
 
