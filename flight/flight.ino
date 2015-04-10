@@ -99,14 +99,16 @@
 #define RC_ROL_MAX   1906
 
 //Set hover throttle definitions
-#define Static_HOVER_THR		1340
+#define Static_HOVER_THR		1620
 unsigned int HOVER_THR = Static_HOVER_THR;
 
-#define ADJ_THR_THRESHOLD 		Static_HOVER_THR-60
-#define MAX_TAKEOFF_THR 		Static_HOVER_THR+10
-#define MIN_TAKEOFF_THR 		Static_HOVER_THR-10
-#define MIN_THR_CONSTRAINT		Static_HOVER_THR-140
-#define MAX_THR_CONSTRAINT		Static_HOVER_THR+60
+#define ADJ_THR_THRESHOLD 		Static_HOVER_THR-120
+#define ADJ_THR_MIN				Static_HOVER_THR-15
+#define ADJ_THR_MAX				Static_HOVER_THR+50
+#define MAX_TAKEOFF_THR 		Static_HOVER_THR+15
+#define MIN_TAKEOFF_THR 		Static_HOVER_THR-15
+#define MIN_THR_CONSTRAINT		Static_HOVER_THR-320
+#define MAX_THR_CONSTRAINT		Static_HOVER_THR+130
 
 // Motor numbers definitions
 #define MOTOR_FL   2    // Front left
@@ -147,7 +149,7 @@ PID pids[11];
 #define CUSTOM 1
 
 // Debug ON/OFF
-#define PRINT_DEBUG 1
+#define PRINT_DEBUG 0
 
 // Define the HW LED setup & Compass orientation
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
@@ -556,7 +558,7 @@ void getAltitudeData(float &alt) {
 		//alt = movingAvg(last_alt, alt, .5);
 
 		//Verify that the altitude values are within scope
-		if(abs(alt-last_alt) > 100){
+		if(abs(alt-last_alt) > 10){
 			alt=last_alt;
 		}
 
@@ -683,7 +685,7 @@ void controlRcInputs(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float 
 	// TODO add switch functionality for autonomous land
 
 	if 	(switchState == AUTO_PERFORMANCE) {
-		if (autopilotState == TAKEOFF) {		autonomousTakeoff(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt);}
+		if (autopilotState == TAKEOFF) {		autonomousTakeoff(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt, channels);}
 		else if (autopilotState == ALT_HOLD) {	semiautonomousAltitudeHold(rcthr, rcpit, rcroll, rcyaw, alt_output, channels);}
 		else if (autopilotState == LAND) {		autonomousLand(rcthr, rcpit, rcroll, rcyaw, alt);}
 	}
@@ -761,8 +763,6 @@ void writeToMotors(long &rcthr, long &pitch_output, long &roll_output, long &yaw
 }
 
 void droneOff() {
-	hal.console->println("Drone off mode");
-
 	autopilotState = OFF;
 
 	hal.rcout->write(MOTOR_FL, 1000);
@@ -779,8 +779,6 @@ void droneOff() {
 void manualControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 				   uint16_t channels[]) {
 
-	hal.console->println("Manual control mode");
-
 	if(ESC_CALIBRATION) 		{rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, ESC_CAL_MIN, ESC_CAL_MAX);}
 	else 						{rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MIN_MAPPED, RC_THR_MAX_MAPPED);}
 
@@ -791,9 +789,7 @@ void manualControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 }
 
 void autonomousTakeoff(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
-					   float desired_alt, float alt) {
-
-	hal.console->println("Autonomous takeoff mode");
+					   float desired_alt, float alt, uint16_t channels[]) {
 
 	if (alt < (desired_alt/2)) {
 		rcthr = MAX_TAKEOFF_THR;
@@ -807,15 +803,15 @@ void autonomousTakeoff(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 		autopilotState = ALT_HOLD;
 	}
 
-	rcpit = 0;
-	rcroll = 0;
+	// rcpit = 0;
+	// rcroll = 0;
+	rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
+	rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
 	headingHold(rcyaw);
 }
 
 void semiautonomousAltitudeHold(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 								long alt_output, uint16_t channels[]) {
-
-	hal.console->println("Altitude hold mode");
 
 	throttleControl(rcthr, alt_output);
 	rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
@@ -826,8 +822,6 @@ void semiautonomousAltitudeHold(long &rcthr, long &rcpit, long &rcroll, long &rc
 void autonomousFollow(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 					  long alt_output) {
 
-	hal.console->println("Autonomous follow mode");
-
 	throttleControl(rcthr, alt_output);
 	gpsTracking(rcpit, rcroll);
 	headingHold(rcyaw);
@@ -836,8 +830,6 @@ void autonomousFollow(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 //This function is not implemented in loop
 void autonomousLand(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 					float alt) {
-
-	hal.console->println("Autonomous land mode");
 
 	if (alt > 1)														// Otto greater than 1 meter, 30us under hover throttle
 		rcthr = HOVER_THR - 30;
@@ -974,7 +966,7 @@ void adjustThrottle() {
 		hover_thr_timer = hal.scheduler->micros();
 
 		float voltage = battery_mon.voltage();
-		float new_hover_thr = map(voltage, 10, 11.8, Static_HOVER_THR+24, Static_HOVER_THR-10);		// map HOVER_THR based on voltage of drone in flight
+		float new_hover_thr = map(voltage, 10, 11.8, ADJ_THR_MAX, ADJ_THR_MIN);		// map HOVER_THR based on voltage of drone in flight
 		HOVER_THR = constrain(new_hover_thr, MIN_THR_CONSTRAINT, MAX_THR_CONSTRAINT);			// constrain hover throttle for saftey
 	}
 }
@@ -995,12 +987,10 @@ void sendDataToPhone(float alt, long rcthr) {
 		uartMessaging.sendBattery(battery_mon.voltage());
 		uartMessaging.sendDroneLat(gps->latitude);
 		uartMessaging.sendDroneLon(gps->longitude);
-		uartMessaging.sendGPSAccuracy(gps->horizontal_accuracy);    //GPS accuracy of the drone as a float in meters
 		uartMessaging.sendGPSStatus((long)gps->status());
-		//uartMessaging.sendClimbRate(climb_rate);
+		// uartMessaging.sendClimbRate(climb_rate);
+		uartMessaging.sendGPSAccuracy(gps->horizontal_accuracy);    //GPS accuracy of the drone as a float in meters
 		uartMessaging.sendClimbRate(rcthr);
-		// uartMessaging.sendGPSStatus(rcpit);
-		// uartMessaging.sendClimbRate(rcroll);
 	}
 }
 
