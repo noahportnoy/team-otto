@@ -33,61 +33,6 @@
 
 /*------------------------------------------------ SYSTEM DEFINITIONS ------------------------------------------------------*/
 
-/* 	------------------ Calibration Documentation ------------------
-*
-*
-*	You have several options to modify Otto's throttle response.
-*
-* 	ESC CALIBRATION
-*		To calibrate the ESCs, set ESC_CALIBRATION to 1 and specify ESC_CAL_MIN and ESC_CAL_MAX as you desire.
-*
-*
-*	CALIBRATION COMPENSATION
-*		1. Use type NONE when you are trying out a different ESC calibration and do not need compensation in software.
-*
-*		2. Use type PID_GAIN when you wish to compensate by scaling the PID output.
-*		   Note: it is recommended that you use a calibration of 1107-1907 (ESC or SW) to maintain consistency.
-*				REQUIRED: 	PID_GAIN_VAL
-*							RC_THR_MIN_MAPPED
-*							RC_THR_MAX_MAPPED
-*
-*		3. Use type SW_CAL when you would like to emulate an ESC calibration in software.
-*				REQUIRED: 	SW_CAL_MIN
-*							SW_CAL_MAX
-*							RC_THR_MIN_MAPPED
-*							RC_THR_MAX_MAPPED
-*
-*		4. Use type MIXED when you would like to use SW_CAL and PID_GAIN at the same time.
-*		   Note: it is recommended that you use a SW_CAL of 1107-1907 to maintain consistency.
-*				REQUIRED: 	SW_CAL_MIN
-*							SW_CAL_MAX
-*							PID_GAIN_VAL
-*							RC_THR_MIN_MAPPED
-*							RC_THR_MAX_MAPPED
-*/
-
-// ------------------------- Calibration Settings --------------------------
-// Definitions for calibration compensation types. Do not change.
-#define NONE		0
-#define PID_GAIN 	1
-#define SW_CAL 		2
-#define MIXED 		3
-
-// These MUST be kept up to date
-#define ESC_CALIBRATION	0
-#define ESC_CAL_MIN		1107
-#define ESC_CAL_MAX		1460
-#define CAL_COMP_TYPE	MIXED
-
-// Change these to change the throttle response
-#define PID_GAIN_VAL			2.859
-#define SW_CAL_MIN				1107
-#define SW_CAL_MAX				1907
-#define RC_THR_MIN_MAPPED		1107
-#define RC_THR_MAX_MAPPED		1907
-// ---------------------- End of Calibration Settings ----------------------
-
-
 // Radio min/max values for each stick for my radio (worked out at beginning of article)
 #define RC_THR_MIN   1107
 #define RC_THR_MAX   1907
@@ -97,18 +42,6 @@
 #define RC_PIT_MAX   1908
 #define RC_ROL_MIN   1104
 #define RC_ROL_MAX   1906
-
-//Set hover throttle definitions
-#define Static_HOVER_THR		1620
-unsigned int HOVER_THR = Static_HOVER_THR;
-
-#define ADJ_THR_THRESHOLD 		Static_HOVER_THR-120
-#define ADJ_THR_MIN				Static_HOVER_THR-15
-#define ADJ_THR_MAX				Static_HOVER_THR+50
-#define MAX_TAKEOFF_THR 		Static_HOVER_THR+15
-#define MIN_TAKEOFF_THR 		Static_HOVER_THR-15
-#define MIN_THR_CONSTRAINT		Static_HOVER_THR-320
-#define MAX_THR_CONSTRAINT		Static_HOVER_THR+130
 
 // Motor numbers definitions
 #define MOTOR_FL   2    // Front left
@@ -120,59 +53,58 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 
 #define wrap_180(x) (x < -180 ? x+360 : (x > 180 ? x - 360: x))
 
-// PID array (11 pids, two for each axis, 2 for altitude, 3 for AUTONOMOUS commands)
-PID pids[11];
-#define PID_PITCH_RATE 0
-#define PID_ROLL_RATE 1
-#define PID_PITCH_STAB 2
-#define PID_ROLL_STAB 3
-#define PID_YAW_RATE 4
-#define PID_YAW_STAB 5
-#define ALT_STAB 6
-#define YAW_CMD 8
-#define PITCH_CMD 9
-#define ROLL_CMD 10
+// PID array (10 pids, two for each axis, 1 for altitude, 3 for AUTONOMOUS commands)
+PID pids[10];
+#define PID_PITCH_RATE 	0
+#define PID_ROLL_RATE 	1
+#define PID_PITCH_STAB 	2
+#define PID_ROLL_STAB 	3
+#define PID_YAW_RATE 	4
+#define PID_YAW_STAB 	5
+#define ALT_STAB 		6
+#define YAW_CMD 		7
+#define PITCH_CMD 		8
+#define ROLL_CMD 		9
 
 // switchState
-#define MANUAL 0
-#define AUTO_ALT_HOLD 1
-#define AUTO_PERFORMANCE 2
+#define MANUAL 				0
+#define AUTO_ALT_HOLD 		1
+#define AUTO_PERFORMANCE 	2
 
 // autopilotState
-#define OFF 3
-#define TAKEOFF 4
-#define ALT_HOLD 5
-#define LAND 6
+#define OFF 		3
+#define TAKEOFF 	4
+#define ALT_HOLD 	5
+#define LAND 		6
 
 // PID configurations
-#define DEFAULT 0
-#define CUSTOM 1
+#define DEFAULT	0
+#define CUSTOM 	1
 
-// Debug ON/OFF
-#define PRINT_DEBUG 0
+// Definitions for calibration compensation types
+#define NONE		0
+#define PID_GAIN 	1
+#define SW_CAL 		2
+#define MIXED 		3
+
+// Target GPS location
+#define PHONE 0
+#define FIXED 1
 
 // Define the HW LED setup & Compass orientation
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
  # define A_LED_PIN        27
  # define C_LED_PIN        25
- # define LED_ON           0  //Low
- # define LED_OFF          1  //High
- # define MAG_ORIENTATION  AP_COMPASS_APM2_SHIELD
+ # define LED_ON           0  	//Low
+ # define LED_OFF          1  	//High
 #else
  # define A_LED_PIN        37
  # define C_LED_PIN        35
  # define LED_ON           1    //High
  # define LED_OFF          0    //Low
- # define MAG_ORIENTATION  AP_COMPASS_COMPONENTS_DOWN_PINS_FORWARD
 #endif
 
-#define TARGET_PHONE 0
-#define TARGET_FIXED 1
-
-const float INT_LAT_TO_METER = 0.01110809;
-const float INT_LONG_TO_METER = 0.00823380;
-
-/*------------------------------------------------ DECLARE GLOBAL VARIABLES ------------------------------------------------------*/
+/*--------------------------------------- DECLARE GLOBAL VARIABLES ----------------------------------------*/
 // ArduPilot Hardware Abstraction Layer
 const AP_HAL::HAL& hal = AP_HAL_AVR_APM2;
 
@@ -212,6 +144,78 @@ float climb_rate = 0;
 int switchState = 0;
 int autopilotState = 0;
 
+const float INT_LAT_TO_METER = 0.01110809;
+const float INT_LONG_TO_METER = 0.00823380;
+
+
+/* 	------------------ Calibration Documentation ------------------
+*
+*
+*	You have several options to modify Otto's throttle response.
+*
+* 	ESC CALIBRATION
+*		To calibrate the ESCs, set ESC_CALIBRATION to 1 and specify ESC_CAL_MIN and ESC_CAL_MAX as you desire.
+*
+*
+*	CALIBRATION COMPENSATION
+*		1. Use type NONE when you are trying out a different ESC calibration and do not need compensation in software.
+*
+*		2. Use type PID_GAIN when you wish to compensate by scaling the PID output.
+*		   Note: it is recommended that you use a calibration of 1107-1907 (ESC or SW) to maintain consistency.
+*				REQUIRED: 	PID_GAIN_VAL
+*							RC_THR_MIN_MAPPED
+*							RC_THR_MAX_MAPPED
+*
+*		3. Use type SW_CAL when you would like to emulate an ESC calibration in software.
+*				REQUIRED: 	SW_CAL_MIN
+*							SW_CAL_MAX
+*							RC_THR_MIN_MAPPED
+*							RC_THR_MAX_MAPPED
+*
+*		4. Use type MIXED when you would like to use SW_CAL and PID_GAIN at the same time.
+*		   Note: it is recommended that you use a SW_CAL of 1107-1907 to maintain consistency.
+*				REQUIRED: 	SW_CAL_MIN
+*							SW_CAL_MAX
+*							PID_GAIN_VAL
+*							RC_THR_MIN_MAPPED
+*							RC_THR_MAX_MAPPED
+*/
+
+/*----------------------------------------------- SETTINGS ------------------------------------------------*/
+// Calibration settings - These MUST be kept up to date
+#define ESC_CALIBRATION	0
+#define ESC_CAL_MIN		1107
+#define ESC_CAL_MAX		1460
+#define CAL_COMP_TYPE	MIXED
+
+// Calibration settings - change these to change the throttle response
+#define PID_GAIN_VAL			2.859
+#define SW_CAL_MIN				1107
+#define SW_CAL_MAX				1907
+#define RC_THR_MIN_MAPPED		1107
+#define RC_THR_MAX_MAPPED		1907
+
+//Set hover throttle definitions
+#define Static_HOVER_THR		1620
+#define ADJ_THR_THRESHOLD 		Static_HOVER_THR-120
+#define ADJ_THR_MIN				Static_HOVER_THR-15
+#define ADJ_THR_MAX				Static_HOVER_THR+50
+#define MAX_TAKEOFF_THR 		Static_HOVER_THR+15
+#define MIN_TAKEOFF_THR 		Static_HOVER_THR-15
+#define MIN_THR_CONSTRAINT		Static_HOVER_THR-320
+#define MAX_THR_CONSTRAINT		Static_HOVER_THR+130
+unsigned int HOVER_THR = Static_HOVER_THR;
+
+// Debug ON/OFF
+#define PRINT_DEBUG 0
+
+// Control whether to perform GPS lock on startup
+// TODO expand to control gpsTracking vs other functionality indoors/outdoors
+#define OUTDOORS 0
+
+// Choose GPS target location: PHONE or FIXED
+#define GPS_TARGET FIXED
+
 
 /*---------------------------------------------------- SETUP ----------------------------------------------*/
 void setup() {
@@ -227,13 +231,13 @@ void setup() {
 	setupBatteryMonitor();
 	//Initizlize the Altitude Hold Refernece System
 	ahrs.init();
-	// getGPSLock();
+	if(OUTDOORS) {getGPSLock();}
 	hal.console->println("Otto Ready.");
 }
 
 /*---------------------------------------------- LOOP -----------------------------------------------------*/
 void loop() {
-	static long rcthr, rcpit, rcroll, rcyaw, safety;						 // Variables to store radio in
+	static long rcthr, rcpit, rcroll, rcyaw, safety;					// Variables to store radio in
 	static float yaw_target = 0;
 	static float desired_alt, alt;
 	static float accelPitch, accelRoll, accelYaw;
@@ -402,7 +406,7 @@ void gpsTracking(long &rcpit, long &rcroll) {
 		return;
 	}
 
-	getTargetCoordinates(target_coordinates, TARGET_FIXED);
+	getTargetCoordinates(target_coordinates, GPS_TARGET);
 	getDroneCoordinates(drone_coordinates);
 
 	//Get Lat and Long error
@@ -471,8 +475,8 @@ void getDroneCoordinates(int32_t drone_coordinates[]) {
 
 //Coordinate Arrays: [latitude, longitude]
 void getTargetCoordinates(int32_t target_coordinates[], int gpsTarget) {
-	if(gpsTarget == TARGET_PHONE) 		{getPhoneCoordinates(target_coordinates);}
-	else if(gpsTarget == TARGET_FIXED) 	{getFixedCoordinates(target_coordinates);}
+	if(gpsTarget == PHONE) 			{getPhoneCoordinates(target_coordinates);}
+	else if(gpsTarget == FIXED) 	{getFixedCoordinates(target_coordinates);}
 }
 
 void getPhoneCoordinates(int32_t target_coordinates[]) {
@@ -683,6 +687,7 @@ void controlRcInputs(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float 
 
 	// TODO when ready, use autonomousFollow(rcthr, rcpit, rcroll, rcyaw, alt_output)
 	// TODO add switch functionality for autonomous land
+	// TODO improve autonomousTakeoff and give it rcpit, rcroll = 0
 
 	if 	(switchState == AUTO_PERFORMANCE) {
 		if (autopilotState == TAKEOFF) {		autonomousTakeoff(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt, channels);}
@@ -771,7 +776,7 @@ void droneOff() {
 	hal.rcout->write(MOTOR_BR, 1000);
 
 	// reset PID integrals
-	for(int i=0; i<11; i++) {
+	for(int i=0; i<10; i++) {
 		pids[i].reset_I();
 	}
 }
@@ -797,7 +802,7 @@ void autonomousTakeoff(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 		rcthr = map(alt, desired_alt/2, desired_alt, MAX_TAKEOFF_THR, MIN_TAKEOFF_THR);
 	} else {
 		// Otto is above desired_alt. Reset PID integrals for altitude hold.
-		for(int i=0; i<11; i++) {
+		for(int i=0; i<10; i++) {
 			pids[i].reset_I();
 		}
 		autopilotState = ALT_HOLD;
@@ -1006,7 +1011,7 @@ float getBearing() {
 	}
 
 	getDroneCoordinates(drone_coordinates);
-	getTargetCoordinates(target_coordinates, TARGET_FIXED);
+	getTargetCoordinates(target_coordinates, GPS_TARGET);
 
 	/*COMPASS OPERATION:
 		True North is 0 (degrees)
