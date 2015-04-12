@@ -70,10 +70,12 @@ PID pids[10];
 #define AUTO_PERFORMANCE 	2
 
 // autopilotState
-#define OFF 		3
-#define TAKEOFF 	4
-#define ALT_HOLD 	5
-#define LAND 		6
+#define OFF 			3
+#define MANUAL_OVERRIDE	4
+#define TAKEOFF 		5
+#define ALT_HOLD 		6
+#define LAND 			7
+#define THROTTLE_ASSIST 8
 
 // PID configurations
 #define DEFAULT	0
@@ -141,6 +143,7 @@ float desired_heading = 0;
 float climb_rate = 0;
 int switchState = 0;
 int autopilotState = 0;
+long rcthrAtSwitch = 0;
 
 const float INT_LAT_TO_METER = 0.01110809;
 const float INT_LONG_TO_METER = 0.00823380;
@@ -194,14 +197,12 @@ const float INT_LONG_TO_METER = 0.00823380;
 #define RC_THR_MAX_MAPPED		1907
 
 //Set hover throttle definitions
-#define Static_HOVER_THR		1620
-#define ADJ_THR_THRESHOLD 		Static_HOVER_THR-120
-#define ADJ_THR_MIN				Static_HOVER_THR-15
-#define ADJ_THR_MAX				Static_HOVER_THR+50
-#define MAX_TAKEOFF_THR 		Static_HOVER_THR+15
-#define MIN_TAKEOFF_THR 		Static_HOVER_THR-15
-#define MIN_THR_CONSTRAINT		Static_HOVER_THR-320
-#define MAX_THR_CONSTRAINT		Static_HOVER_THR+130
+#define Static_HOVER_THR			1620
+#define ADJ_THR_THRESHOLD 			Static_HOVER_THR-120
+#define ADJ_THR_MIN					Static_HOVER_THR-15
+#define ADJ_THR_MAX					Static_HOVER_THR+50
+#define ADJ_THR_MIN_CONSTRAINT		Static_HOVER_THR-30
+#define ADJ_THR_MAX_CONSTRAINT		Static_HOVER_THR+50
 unsigned int HOVER_THR = Static_HOVER_THR;
 
 // Debug ON/OFF
@@ -245,13 +246,16 @@ void loop() {
 	static float AVG_OFF_BUTTON_VALUE;
 
 	updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt, AVG_OFF_BUTTON_VALUE);
+	updateState(channels, rcthr);
 	sendDataToPhone(alt, rcthr);
 	desired_alt = 1.0; //Hard code in desired_alt
 
 	while((AVG_OFF_BUTTON_VALUE < 1.0) || (safety < 1500)) {			// Kill motors when [off switch] or [safety] is on
 		updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt, AVG_OFF_BUTTON_VALUE);
+		updateState(channels, rcthr);
 		sendDataToPhone(alt, rcthr);
 		droneOff();
+		autopilotState = OFF;
 		yaw_target = accelYaw;											// reset yaw target so we maintain this on takeoff
 	}
 
@@ -260,8 +264,8 @@ void loop() {
 	writeToMotors(rcthr, pitch_output, roll_output, yaw_output, yaw_target, accelYaw);
 
 	if (PRINT_DEBUG) {
-		// hal.console->print("rcthr, ");
-		// hal.console->print(rcthr);
+		hal.console->print("rcthr, ");
+		hal.console->print(rcthr);
 		// hal.console->print(", hoverthr, ");
 		// hal.console->print(HOVER_THR);
 		// hal.console->print(", rcpitch, ");
@@ -284,14 +288,38 @@ void loop() {
 		// hal.console->print(", battery, ");
 		// hal.console->print(battery_mon.voltage());
 
-		// hal.console->print(", switch_position, ");
-		// hal.console->print(channels[5]);
+		hal.console->print(", switchState: ");
+
+		if (switchState == MANUAL) {
+			hal.console->print("MANUAL");
+		} else if (switchState == AUTO_ALT_HOLD) {
+			hal.console->print("AUTO_ALT_HOLD");
+		} else if (switchState == AUTO_PERFORMANCE) {
+			hal.console->print("AUTO_PERFORMANCE");
+		}
+
+		hal.console->print(", autopilotState: ");
+
+		if (autopilotState == OFF) {
+			hal.console->print("OFF");
+		} else if(autopilotState == MANUAL_OVERRIDE) {
+			hal.console->print("MANUAL_OVERRIDE");
+		} else if (autopilotState == TAKEOFF) {
+			hal.console->print("TAKEOFF");
+		} else if (autopilotState == ALT_HOLD) {
+			hal.console->print("ALT_HOLD");
+		} else if (autopilotState == LAND) {
+			hal.console->print("LAND");
+		} else if (autopilotState == THROTTLE_ASSIST) {
+			hal.console->print("THROTTLE_ASSIST");
+		}
+
 		// hal.console->print(", heading, ");
 		// hal.console->print(current_heading);
 		// hal.console->print(", t, ");
 		// hal.console->print(hal.scheduler->millis());
 
-		// hal.console->println("");
+		hal.console->println("");
 	}
 }
 

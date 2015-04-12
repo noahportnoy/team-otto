@@ -4,10 +4,9 @@ void runFlightControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float
 
 	// TODO when ready, use autonomousFollowMode(rcthr, rcpit, rcroll, rcyaw, alt_output)
 	// TODO add switch functionality for autonomous land
-	// TODO improve autonomousTakeoffMode and give it rcpit, rcroll = 0
 
 	if 	(switchState == AUTO_PERFORMANCE) {
-		if (autopilotState == TAKEOFF) {		autonomousTakeoffMode(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt, channels);}
+		if (autopilotState == TAKEOFF) {		autonomousTakeoffMode(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt, alt_output, channels);}
 		else if (autopilotState == ALT_HOLD) {	semiautonomousAltitudeHoldMode(rcthr, rcpit, rcroll, rcyaw, alt_output, channels);}
 		else if (autopilotState == LAND) {		autonomousLandMode(rcthr, rcpit, rcroll, rcyaw, alt);}
 	}
@@ -20,7 +19,13 @@ void manualFlightMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 				   uint16_t channels[]) {
 
 	if(ESC_CALIBRATION) 		{rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, ESC_CAL_MIN, ESC_CAL_MAX);}
-	else 						{rcthr = map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MIN_MAPPED, RC_THR_MAX_MAPPED);}
+	else 						{rcthr = getRcThrottle(channels);}
+
+	if(autopilotState == THROTTLE_ASSIST) {
+		rcthr = map(rcthr, RC_THR_MIN_MAPPED, rcthrAtSwitch, RC_THR_MIN_MAPPED, Static_HOVER_THR);
+	}
+
+	rcthr = constrain(rcthr, RC_THR_MIN_MAPPED, RC_THR_MAX_MAPPED);
 
 	// GET RC pitch, roll, and yaw
 	rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
@@ -29,17 +34,21 @@ void manualFlightMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 }
 
 void autonomousTakeoffMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
-					   float desired_alt, float alt, uint16_t channels[]) {
+					   float desired_alt, float alt, long alt_output, uint16_t channels[]) {
+
+	// TODO improve autonomousTakeoffMode and give it rcpit, rcroll = 0
+
+	long MAX_TAKEOFF_THR = HOVER_THR + 15;
+	long MIN_TAKEOFF_THR = HOVER_THR - 15;
 
 	if (alt < (desired_alt/2)) {
 		rcthr = MAX_TAKEOFF_THR;
 	} else if (alt < desired_alt)	{
 		rcthr = map(alt, desired_alt/2, desired_alt, MAX_TAKEOFF_THR, MIN_TAKEOFF_THR);
 	} else {
-		// Otto is above desired_alt. Reset PID integrals for altitude hold.
-		for(int i=0; i<10; i++) {
-			pids[i].reset_I();
-		}
+		// Otto is above desired_alt. Reset PID integral for altitude hold.
+		// pids[ALT_STAB].reset_I();
+
 		autopilotState = ALT_HOLD;
 	}
 
@@ -47,24 +56,24 @@ void autonomousTakeoffMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 	// rcroll = 0;
 	rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
 	rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
-	controlHeading(rcyaw);
+	controlHeadingHold(rcyaw);
 }
 
 void semiautonomousAltitudeHoldMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 								long alt_output, uint16_t channels[]) {
 
-	controlThrottle(rcthr, alt_output);
+	controlAltitudeHold(rcthr, alt_output);
 	rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
 	rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
-	controlHeading(rcyaw);
+	controlHeadingHold(rcyaw);
 }
 
 void autonomousFollowMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 					  long alt_output) {
 
-	controlThrottle(rcthr, alt_output);
+	controlAltitudeHold(rcthr, alt_output);
 	controlGpsTracking(rcpit, rcroll);
-	controlHeading(rcyaw);
+	controlHeadingHold(rcyaw);
 }
 
 //This function is not implemented in loop
@@ -80,7 +89,7 @@ void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 
 	rcpit = 0;
 	rcroll = 0;
-	controlHeading(rcyaw);
+	controlHeadingHold(rcyaw);
 }
 
 
@@ -157,7 +166,7 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	*/
 }
 
-void controlHeading(long &rcyaw) {
+void controlHeadingHold(long &rcyaw) {
 //Compass accumulate should be called frequently to accumulate readings from the compass
 	compass.accumulate();
 
@@ -174,11 +183,11 @@ void controlHeading(long &rcyaw) {
 	rcyaw = rcyaw * -1;
 }
 
-void controlThrottle(long &rcthr,
+void controlAltitudeHold(long &rcthr,
 					 long alt_output) {
 
 	rcthr = HOVER_THR + alt_output;
-	rcthr = constrain(rcthr, MIN_THR_CONSTRAINT, MAX_THR_CONSTRAINT);
+	rcthr = constrain(rcthr, RC_THR_MIN_MAPPED, RC_THR_MAX_MAPPED);
 }
 
 void adjustThrottleForBatteryLevel() {
@@ -194,6 +203,10 @@ void adjustThrottleForBatteryLevel() {
 
 		float voltage = battery_mon.voltage();
 		float new_hover_thr = map(voltage, 10, 11.8, ADJ_THR_MAX, ADJ_THR_MIN);		// map HOVER_THR based on voltage of drone in flight
-		HOVER_THR = constrain(new_hover_thr, MIN_THR_CONSTRAINT, MAX_THR_CONSTRAINT);			// constrain hover throttle for saftey
+		HOVER_THR = constrain(new_hover_thr, ADJ_THR_MIN_CONSTRAINT, ADJ_THR_MAX_CONSTRAINT);			// constrain hover throttle for saftey
 	}
+}
+
+long getRcThrottle(uint16_t channels[]) {
+	return map(channels[2], RC_THR_MIN, RC_THR_MAX, RC_THR_MIN_MAPPED, RC_THR_MAX_MAPPED);
 }

@@ -12,7 +12,6 @@ void updateReadings(uint16_t channels[], long &safety,
 	hal.rcin->read(channels, 8);
 	safety = channels[4];
 	AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
-	updateState(channels);
 
 	getAltitudeData(alt);
 	getAccel(accelPitch, accelRoll, accelYaw);

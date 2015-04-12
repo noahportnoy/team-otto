@@ -41,8 +41,6 @@ void writeToMotors(long &rcthr, long &pitch_output, long &roll_output, long &yaw
 }
 
 void droneOff() {
-	autopilotState = OFF;
-
 	hal.rcout->write(MOTOR_FL, 1000);
 	hal.rcout->write(MOTOR_BL, 1000);
 	hal.rcout->write(MOTOR_FR, 1000);
