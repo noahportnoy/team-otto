@@ -8,7 +8,7 @@ void runFlightControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float
 	if 	(switchState == AUTO_PERFORMANCE) {
 		if (autopilotState == TAKEOFF) {		autonomousTakeoffMode(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt, alt_output, channels);}
 		else if (autopilotState == ALT_HOLD) {	semiautonomousAltitudeHoldMode(rcthr, rcpit, rcroll, rcyaw, alt_output, channels);}
-		else if (autopilotState == LAND) {		autonomousLandMode(rcthr, rcpit, rcroll, rcyaw, climb_rate, accelZ);}
+		else if (autopilotState == LAND) {		autonomousLandMode(rcthr, rcpit, rcroll, rcyaw, climb_rate, accelZ, channels);}
 	}
 
 	else if (switchState == MANUAL) {			manualFlightMode(rcthr, rcpit, rcroll, rcyaw, channels);}
@@ -59,7 +59,7 @@ void autonomousTakeoffMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 	controlHeadingHold(rcyaw);
 }
 
-void autonomousLandMode( long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float climb_rate, float accelZ ){
+void autonomousLandMode( long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float climb_rate, float accelZ, uint16_t channels[] ){
 	
 	rcthr = HOVER_THR - 5 * throttle_modifier;
 	
@@ -75,10 +75,11 @@ void autonomousLandMode( long &rcthr, long &rcpit, long &rcroll, long &rcyaw, fl
 		// hal.console->print( ", average : " );
 		// hal.console->println( land_average );
 		
-		if( land_counter > 25 && ( land_average > (-9.81) && land_average < (-9.80)) ){
-			hal.console->println( "---------------REDUCE MOTOR SPEED---------------" );
-			rcthr = HOVER_THR - 5 * throttle_modifier;
+		if( land_counter > 25 && ( land_average >= (-9.81) && land_average <= (-9.80)) ){
+			//hal.console->println( "---------------REDUCE MOTOR SPEED---------------" );
+			//rcthr = HOVER_THR - 5 * throttle_modifier;
 			throttle_modifier++;
+			
 			land_total = 0;
 			land_counter = 0;
 			land_average = 0;
@@ -94,8 +95,8 @@ void autonomousLandMode( long &rcthr, long &rcpit, long &rcroll, long &rcyaw, fl
 	}
 	
 	if( throttle_modifier > 10 ){
-		hal.console->println( "---------------MOTORS KILLED---------------" );
-		rcthr = 0;
+		//hal.console->println( "---------------MOTORS KILLED---------------" );
+		droneOff();
 	}
 		
 	// hal.console->print( "LAND ---> Climb rate : " );
@@ -107,8 +108,10 @@ void autonomousLandMode( long &rcthr, long &rcpit, long &rcroll, long &rcyaw, fl
 
 	//hal.scheduler->delay(100);
 	
-	rcpit = 0;
-	rcroll = 0;
+	// rcpit = 0;
+	// rcroll = 0;
+	rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
+	rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
 	controlHeadingHold(rcyaw);
 	
 }

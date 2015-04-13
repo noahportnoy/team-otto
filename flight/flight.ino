@@ -142,7 +142,7 @@ uint32_t land_timer;
 float land_average = 0;
 float land_total = 0;
 unsigned int land_counter = 0;
-unsigned int throttle_modifier = 2; 
+unsigned int throttle_modifier = 1; 
 uint32_t land_interval = 5000000;
 
 float current_heading = 0;
