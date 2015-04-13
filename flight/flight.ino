@@ -138,12 +138,13 @@ uint32_t send_to_phone_timer;
 uint32_t heading_timer;
 uint32_t hover_thr_timer;
 uint32_t land_timer;
+uint32_t ground_timer;
 
 float land_average = 0;
 float land_total = 0;
 unsigned int land_counter = 0;
-unsigned int throttle_modifier = 1; 
-uint32_t land_interval = 5000000;
+unsigned int throttle_modifier = 2; 
+uint32_t land_interval = 2000000;
 
 float current_heading = 0;
 float desired_heading = 0;
@@ -256,20 +257,20 @@ void loop() {
 	updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt,
 		climb_rate, accelZ, AVG_OFF_BUTTON_VALUE);
 	updateState(channels, rcthr);
-	sendDataToPhone(alt, rcthr);
+	sendDataToPhone(alt, rcthr, accelZ);
 	desired_alt = 1.0; //Hard code in desired_alt
 
 	while((AVG_OFF_BUTTON_VALUE < 1.0) || (safety < 1500)) {			// Kill motors when [off switch] or [safety] is on
 		updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt,
 			climb_rate, accelZ, AVG_OFF_BUTTON_VALUE);
 		updateState(channels, rcthr);
-		sendDataToPhone(alt, rcthr);
+		sendDataToPhone(alt, rcthr, accelZ);
 		droneOff();
 		autopilotState = OFF;
 		yaw_target = accelYaw;											// reset yaw target so we maintain this on takeoff
 	}
 
-	runFlightControl(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt_output, alt, climb_rate, accelZ,channels);
+	runFlightControl(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt_output, alt, climb_rate, accelZ, channels);
 	runPidFeedback(pitch_output, roll_output, yaw_output, alt_output, yaw_target, rcpit, rcroll, rcyaw, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt, desired_alt);
 	writeToMotors(rcthr, pitch_output, roll_output, yaw_output, yaw_target, accelYaw);
 

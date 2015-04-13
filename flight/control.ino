@@ -63,6 +63,13 @@ void autonomousLandMode( long &rcthr, long &rcpit, long &rcroll, long &rcyaw, fl
 	
 	rcthr = HOVER_THR - 5 * throttle_modifier;
 	
+	if( hal.scheduler->micros() - ground_timer > 500000 ){
+		if( accelZ > -9.00 ){
+			throttle_modifier = throttle_modifier + 2;
+			ground_timer = hal.scheduler->micros();
+		}
+	}
+	
 	if( hal.scheduler->micros() - land_timer > land_interval ){
 		land_total += accelZ;
 		land_counter++;
@@ -75,16 +82,15 @@ void autonomousLandMode( long &rcthr, long &rcpit, long &rcroll, long &rcyaw, fl
 		// hal.console->print( ", average : " );
 		// hal.console->println( land_average );
 		
-		if( land_counter > 25 && ( land_average >= (-9.81) && land_average <= (-9.80)) ){
+		if( land_counter > 25 && ( land_average >= (-9.82) && land_average <= (-9.79)) ){
 			//hal.console->println( "---------------REDUCE MOTOR SPEED---------------" );
-			//rcthr = HOVER_THR - 5 * throttle_modifier;
-			throttle_modifier++;
+			throttle_modifier = throttle_modifier + 2;
 			
 			land_total = 0;
 			land_counter = 0;
 			land_average = 0;
 			land_timer = hal.scheduler->micros();
-			land_interval = 2500000;
+			land_interval = 1000000;
 			
 		}
 		if( land_counter > 50 ){
@@ -94,9 +100,9 @@ void autonomousLandMode( long &rcthr, long &rcpit, long &rcroll, long &rcyaw, fl
 		}
 	}
 	
-	if( throttle_modifier > 10 ){
+	if( throttle_modifier > 30 ){
 		//hal.console->println( "---------------MOTORS KILLED---------------" );
-		droneOff();
+		rcthr = 1000;
 	}
 		
 	// hal.console->print( "LAND ---> Climb rate : " );

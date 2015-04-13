@@ -45,6 +45,7 @@ void updateState(uint16_t channels[], long rcthr) {
 			pids[ALT_STAB].reset_I();
 			autopilotState = LAND;
 			land_timer = hal.scheduler->micros();
+			ground_timer = land_timer;
 			current_heading = getHeading();
 			desired_heading = current_heading;
 		}
