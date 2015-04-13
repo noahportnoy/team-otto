@@ -288,34 +288,36 @@ void loop() {
 		// hal.console->print(", battery, ");
 		// hal.console->print(battery_mon.voltage());
 
-		hal.console->print(", switchState: ");
+		// hal.console->print(", switchState: ");
 
-		if (switchState == MANUAL) {
-			hal.console->print("MANUAL");
-		} else if (switchState == AUTO_ALT_HOLD) {
-			hal.console->print("AUTO_ALT_HOLD");
-		} else if (switchState == AUTO_PERFORMANCE) {
-			hal.console->print("AUTO_PERFORMANCE");
-		}
+		// if (switchState == MANUAL) {
+		// 	hal.console->print("MANUAL");
+		// } else if (switchState == AUTO_ALT_HOLD) {
+		// 	hal.console->print("AUTO_ALT_HOLD");
+		// } else if (switchState == AUTO_PERFORMANCE) {
+		// 	hal.console->print("AUTO_PERFORMANCE");
+		// }
 
-		hal.console->print(", autopilotState: ");
+		// hal.console->print(", autopilotState: ");
 
-		if (autopilotState == OFF) {
-			hal.console->print("OFF");
-		} else if(autopilotState == MANUAL_OVERRIDE) {
-			hal.console->print("MANUAL_OVERRIDE");
-		} else if (autopilotState == TAKEOFF) {
-			hal.console->print("TAKEOFF");
-		} else if (autopilotState == ALT_HOLD) {
-			hal.console->print("ALT_HOLD");
-		} else if (autopilotState == LAND) {
-			hal.console->print("LAND");
-		} else if (autopilotState == THROTTLE_ASSIST) {
-			hal.console->print("THROTTLE_ASSIST");
-		}
+		// if (autopilotState == OFF) {
+		// 	hal.console->print("OFF");
+		// } else if(autopilotState == MANUAL_OVERRIDE) {
+		// 	hal.console->print("MANUAL_OVERRIDE");
+		// } else if (autopilotState == TAKEOFF) {
+		// 	hal.console->print("TAKEOFF");
+		// } else if (autopilotState == ALT_HOLD) {
+		// 	hal.console->print("ALT_HOLD");
+		// } else if (autopilotState == LAND) {
+		// 	hal.console->print("LAND");
+		// } else if (autopilotState == THROTTLE_ASSIST) {
+		// 	hal.console->print("THROTTLE_ASSIST");
+		// }
 
-		// hal.console->print(", heading, ");
-		// hal.console->print(current_heading);
+		hal.console->print(", desired_heading: ");
+		hal.console->print(desired_heading);
+		hal.console->print(", current_heading: ");
+		hal.console->print(current_heading);
 		// hal.console->print(", t, ");
 		// hal.console->print(hal.scheduler->millis());
 
