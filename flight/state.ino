@@ -36,13 +36,14 @@ void updateState(uint16_t channels[], long rcthr) {
 	} else if (channels[5] < 1200) {
 
 		if (autopilotState == OFF) {														// If safety was just turned off
-			autopilotState = TAKEOFF;
+			autopilotState = LAND;
 			current_heading = getHeading();
 			desired_heading = current_heading;
 
 		} else if (switchState == MANUAL || switchState == AUTO_ALT_HOLD) {					// If switching to AUTO_PERFORMANCE
 			pids[ALT_STAB].reset_I();
-			autopilotState = TAKEOFF;
+			autopilotState = LAND;
+			land_timer = hal.scheduler->micros();
 			current_heading = getHeading();
 			desired_heading = current_heading;
 		}

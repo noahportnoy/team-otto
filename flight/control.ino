@@ -1,6 +1,6 @@
 
 void runFlightControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float &desired_alt,
-					long alt_output, float alt, uint16_t channels[]) {
+					long alt_output, float alt, float climb_rate, float accelZ, uint16_t channels[]) {
 
 	// TODO when ready, use autonomousFollowMode(rcthr, rcpit, rcroll, rcyaw, alt_output)
 	// TODO add switch functionality for autonomous land
@@ -8,7 +8,7 @@ void runFlightControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float
 	if 	(switchState == AUTO_PERFORMANCE) {
 		if (autopilotState == TAKEOFF) {		autonomousTakeoffMode(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt, alt_output, channels);}
 		else if (autopilotState == ALT_HOLD) {	semiautonomousAltitudeHoldMode(rcthr, rcpit, rcroll, rcyaw, alt_output, channels);}
-		else if (autopilotState == LAND) {		autonomousLandMode(rcthr, rcpit, rcroll, rcyaw, alt);}
+		else if (autopilotState == LAND) {		autonomousLandMode(rcthr, rcpit, rcroll, rcyaw, climb_rate, accelZ);}
 	}
 
 	else if (switchState == MANUAL) {			manualFlightMode(rcthr, rcpit, rcroll, rcyaw, channels);}
@@ -59,6 +59,60 @@ void autonomousTakeoffMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 	controlHeadingHold(rcyaw);
 }
 
+void autonomousLandMode( long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float climb_rate, float accelZ ){
+	
+	rcthr = HOVER_THR - 5 * throttle_modifier;
+	
+	if( hal.scheduler->micros() - land_timer > land_interval ){
+		land_total += accelZ;
+		land_counter++;
+		land_average = (land_total / land_counter);
+		
+		// hal.console->print( "\t\t\t\t\t\t\t\t\t Total : ");
+		// hal.console->print( land_total );
+		// hal.console->print( ", counter : " );
+		// hal.console->print( land_counter );
+		// hal.console->print( ", average : " );
+		// hal.console->println( land_average );
+		
+		if( land_counter > 25 && ( land_average > (-9.81) && land_average < (-9.80)) ){
+			hal.console->println( "---------------REDUCE MOTOR SPEED---------------" );
+			rcthr = HOVER_THR - 5 * throttle_modifier;
+			throttle_modifier++;
+			land_total = 0;
+			land_counter = 0;
+			land_average = 0;
+			land_timer = hal.scheduler->micros();
+			land_interval = 2500000;
+			
+		}
+		if( land_counter > 50 ){
+			land_total = 0;
+			land_counter = 0;
+			land_average = 0;
+		}
+	}
+	
+	if( throttle_modifier > 10 ){
+		hal.console->println( "---------------MOTORS KILLED---------------" );
+		rcthr = 0;
+	}
+		
+	// hal.console->print( "LAND ---> Climb rate : " );
+	// hal.console->print( climb_rate );
+	// hal.console->print( ", Z Accel : " );
+	// hal.console->print( accelZ );
+	// hal.console->print( ", RCTHR : " );
+	// hal.console->println( rcthr );
+
+	//hal.scheduler->delay(100);
+	
+	rcpit = 0;
+	rcroll = 0;
+	controlHeadingHold(rcyaw);
+	
+}
+	
 void semiautonomousAltitudeHoldMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 								long alt_output, uint16_t channels[]) {
 
@@ -73,22 +127,6 @@ void autonomousFollowMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 
 	controlAltitudeHold(rcthr, alt_output);
 	controlGpsTracking(rcpit, rcroll);
-	controlHeadingHold(rcyaw);
-}
-
-//This function is not implemented in loop
-void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
-					float alt) {
-
-	if (alt > 1)														// Otto greater than 1 meter, 30us under hover throttle
-		rcthr = HOVER_THR - 30;
-	else if ( (alt <= 1) || (alt > 0.5) )								// Otto between a half and 1 meter, 20us under hover throttle
-		rcthr = HOVER_THR - 20;
-	else																// Otto under a half meter, 10us under hover throttle
-		rcthr = HOVER_THR - 10;
-
-	rcpit = 0;
-	rcroll = 0;
 	controlHeadingHold(rcyaw);
 }
 
