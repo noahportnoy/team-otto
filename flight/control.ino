@@ -61,50 +61,63 @@ void autonomousTakeoffMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 
 void autonomousLandMode( long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float climb_rate, float accelZ, uint16_t channels[] ){
 	
-	rcthr = HOVER_THR - 5 * throttle_modifier;
-	
-	if( hal.scheduler->micros() - ground_timer > 500000 ){
-		if( accelZ > -9.00 ){
-			throttle_modifier = throttle_modifier + 2;
-			ground_timer = hal.scheduler->micros();
-		}
-	}
-	
-	if( hal.scheduler->micros() - land_timer > land_interval ){
-		land_total += accelZ;
-		land_counter++;
-		land_average = (land_total / land_counter);
-		
-		// hal.console->print( "\t\t\t\t\t\t\t\t\t Total : ");
-		// hal.console->print( land_total );
-		// hal.console->print( ", counter : " );
-		// hal.console->print( land_counter );
-		// hal.console->print( ", average : " );
-		// hal.console->println( land_average );
-		
-		if( land_counter > 25 && ( land_average >= (-9.82) && land_average <= (-9.79)) ){
-			//hal.console->println( "---------------REDUCE MOTOR SPEED---------------" );
-			throttle_modifier = throttle_modifier + 2;
-			
-			land_total = 0;
-			land_counter = 0;
-			land_average = 0;
-			land_timer = hal.scheduler->micros();
-			land_interval = 1000000;
-			
-		}
-		if( land_counter > 50 ){
-			land_total = 0;
-			land_counter = 0;
-			land_average = 0;
-		}
-	}
-	
-	if( throttle_modifier > 30 ){
+	if( throttle_modifier > 200 ){
 		//hal.console->println( "---------------MOTORS KILLED---------------" );
 		rcthr = 1000;
-	}
+	} else {
+		rcthr = HOVER_THR - throttle_modifier;
 		
+		if( hal.scheduler->micros() - ground_timer > 500000 ){
+			if( accelZ > -9.00 ){
+				throttle_modifier = throttle_modifier + 10;
+				ground_timer = hal.scheduler->micros();
+			}
+		}
+		
+		if( hal.scheduler->micros() - fall_timer > 200000 ){
+			if( accelZ < -10.0 ){
+				throttle_modifier = throttle_modifier - 3;
+				fall_timer = hal.scheduler->micros();
+			}
+		}
+		
+		
+		
+		if( hal.scheduler->micros() - land_timer > land_interval ){
+			land_total += accelZ;
+			land_counter++;
+			land_average = (land_total / land_counter);
+			
+			// hal.console->print( "\t\t\t\t\t\t\t\t\t Total : ");
+			// hal.console->print( land_total );
+			// hal.console->print( ", counter : " );
+			// hal.console->print( land_counter );
+			// hal.console->print( ", average : " );
+			// hal.console->println( land_average );
+			
+			if( land_counter > 25 && ( land_average >= (-9.82) && land_average <= (-9.79)) ){
+				//hal.console->println( "---------------REDUCE MOTOR SPEED---------------" );
+				throttle_modifier = throttle_modifier + 10;
+				
+				land_total = 0;
+				land_counter = 0;
+				land_average = 0;
+				land_timer = hal.scheduler->micros();
+				land_interval = 1000000;
+				
+			}
+			if( land_counter > 50 ){
+				land_total = 0;
+				land_counter = 0;
+				land_average = 0;
+			}
+		}
+		
+		rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
+		rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
+		controlHeadingHold(rcyaw);
+	}
+	
 	// hal.console->print( "LAND ---> Climb rate : " );
 	// hal.console->print( climb_rate );
 	// hal.console->print( ", Z Accel : " );
@@ -112,13 +125,10 @@ void autonomousLandMode( long &rcthr, long &rcpit, long &rcroll, long &rcyaw, fl
 	// hal.console->print( ", RCTHR : " );
 	// hal.console->println( rcthr );
 
-	//hal.scheduler->delay(100);
+	// hal.scheduler->delay(100);
 	
 	// rcpit = 0;
 	// rcroll = 0;
-	rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
-	rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
-	controlHeadingHold(rcyaw);
 	
 }
 	

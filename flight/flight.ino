@@ -139,11 +139,12 @@ uint32_t heading_timer;
 uint32_t hover_thr_timer;
 uint32_t land_timer;
 uint32_t ground_timer;
+uint32_t fall_timer;
 
 float land_average = 0;
 float land_total = 0;
 unsigned int land_counter = 0;
-unsigned int throttle_modifier = 2; 
+unsigned int throttle_modifier = 10; 
 uint32_t land_interval = 2000000;
 
 float current_heading = 0;
