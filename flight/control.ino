@@ -1,4 +1,7 @@
 
+/*--------------------------------------- FLIGHT MODES ----------------------------------------*/
+
+
 void runFlightControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float &desired_alt,
 					long alt_output, float alt, uint16_t channels[]) {
 
@@ -93,12 +96,18 @@ void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 }
 
 
+
+
+
+
+/*--------------------------------------- CONTROLS FUNCTIONS ----------------------------------------*/
+
 void controlGpsTracking(long &rcpit, long &rcroll) {
 	float current_heading_rad;
 	//Vector format is x,y,z
 	Vector3f lat_long_error, autonomous_pitch_roll;
 	Matrix3f yaw_rotation_m;
-	int32_t drone_coordinates[] = {0, 0};
+	//int32_t drone_coordinates[] = {0, 0};
 	int32_t target_coordinates[] = {0, 0};
 
 	if (gps->status() < 2) {
@@ -109,7 +118,6 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	}
 
 	getTargetCoordinates(target_coordinates, GPS_TARGET);
-	getDroneCoordinates(drone_coordinates);
 
 	//Get Lat and Long error
 	lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*INT_LONG_TO_METER);
@@ -175,7 +183,7 @@ void controlHeadingHold(long &rcyaw) {
 		current_heading = getHeading();
 	}
 
-	//desired_heading = getBearing();
+	desired_heading = getBearing();
 
 	//Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
 	float heading_error = wrap_180(desired_heading - current_heading);

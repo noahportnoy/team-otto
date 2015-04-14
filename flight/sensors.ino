@@ -16,6 +16,7 @@ void updateReadings(uint16_t channels[], long &safety,
 	getAltitudeData(alt);
 	getAccel(accelPitch, accelRoll, accelYaw);
 	getGyro(gyroPitch, gyroRoll, gyroYaw);
+	getDroneCoordinates(drone_coordinates);
 
 	if(PRINT_DEBUG) {
 		// hal.console->printf("\nVoltage: %.2f \tCurrent: %.2f \tTotCurr:%.2f  ",

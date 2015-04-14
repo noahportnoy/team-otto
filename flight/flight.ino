@@ -141,12 +141,26 @@ uint32_t hover_thr_timer;
 float current_heading = 0;
 float desired_heading = 0;
 float climb_rate = 0;
+float distance_to_target = 0;
 int switchState = 0;
 int autopilotState = 0;
 long rcthrAtSwitch = 0;
 
+
+
 const float INT_LAT_TO_METER = 0.01110809;
 const float INT_LONG_TO_METER = 0.00823380;
+
+struct Location drone = {0};
+struct Location drone_filtered = {0};
+struct Location user = {0};
+int32_t drone_coordinates[] = {0, 0};
+int32_t user_coordinates[] = {0, 0};
+
+//initial values for the kalman filter 
+float x_est_last_1, x_est_last_2 = 0;
+float P_last_1, P_last_2 = 0; 
+
 
 
 /* 	------------------ Calibration Documentation ------------------
@@ -210,7 +224,7 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 
 // Control whether to perform GPS lock on startup
 // TODO expand to control controlGpsTracking vs other functionality indoors/outdoors
-#define OUTDOORS 0
+#define OUTDOORS 1
 
 // Choose GPS target location: PHONE or FIXED
 #define GPS_TARGET FIXED
@@ -247,6 +261,8 @@ void loop() {
 
 	updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt, AVG_OFF_BUTTON_VALUE);
 	updateState(channels, rcthr);
+
+	//distance_to_target = getDistance();
 	sendDataToPhone(alt, rcthr);
 	desired_alt = 1.0; //Hard code in desired_alt
 
@@ -268,35 +284,10 @@ void loop() {
 		hal.console->print(rcthr);
 		// hal.console->print(", hoverthr, ");
 		// hal.console->print(HOVER_THR);
-		// hal.console->print(", rcpitch, ");
-		// hal.console->print(rcpit);
-		// hal.console->print(", rcroll, ");
-		// hal.console->print(rcroll);
-		// hal.console->print(",  accelPitch, ");
-		// hal.console->print(accelPitch);
-		// hal.console->print(",  accelRoll, ");
-		// hal.console->print(accelRoll);
-		// hal.console->print(",  accelYaw, ");
-		// hal.console->print(accelYaw);
-		// hal.console->print(", pitch_out: ");
-		// hal.console->print(pitch_output);
-		// hal.console->print(", roll_out: ");
-		// hal.console->print(roll_output);
-		// hal.console->print(", yaw_out: ");
-		// hal.console->print(yaw_output);
-
-		// hal.console->print(", battery, ");
-		// hal.console->print(battery_mon.voltage());
-
-		// hal.console->print(", switchState: ");
-
-		// if (switchState == MANUAL) {
-		// 	hal.console->print("MANUAL");
-		// } else if (switchState == AUTO_ALT_HOLD) {
-		// 	hal.console->print("AUTO_ALT_HOLD");
-		// } else if (switchState == AUTO_PERFORMANCE) {
-		// 	hal.console->print("AUTO_PERFORMANCE");
-		// }
+		hal.console->print(", distance, ");
+		hal.console->print(distance_to_target);
+		hal.console->print(", rcyaw, ");
+		hal.console->print(rcyaw);
 
 		// hal.console->print(", autopilotState: ");
 
