@@ -22,16 +22,25 @@ void setupBarometer() {
 }
 
 void setupMPU() {
+	float trim_roll, trim_pitch;
+	// Initialize the Altitude Hold Reference System
+	ahrs.init();
+
 	// Turn on MPU6050 - quad must be kept still as gyros will calibrate
 	ins.init(AP_InertialSensor::COLD_START,
 			 AP_InertialSensor::RATE_100HZ,
 			 flash_leds);
-	ins.init_accel(flash_leds);
+	// ins.init_accel(flash_leds);
 
+	if(ins.calibrate_accel(flash_leds, &interact, trim_roll, trim_pitch)) {
+        // reset ahrs's trim to suggested values from calibration routine
+        ahrs.set_trim(Vector3f(trim_roll, trim_pitch, 0));
+    }
+    report_ins();
 	// initialise sensor fusion on MPU6050 chip (aka DigitalMotionProcessing/DMP)
-	hal.scheduler->suspend_timer_procs();  // stop bus collisions
-	ins.dmp_init();
-	hal.scheduler->resume_timer_procs();
+	// hal.scheduler->suspend_timer_procs();  // stop bus collisions
+	// ins.dmp_init();
+	// hal.scheduler->resume_timer_procs();
 }
 
 void setupOffButton() {
