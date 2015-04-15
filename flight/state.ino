@@ -35,10 +35,14 @@ void updateState(uint16_t channels[], long rcthr) {
 
 	} else if (channels[5] < 1200) {
 
-		if (autopilotState == OFF && uartMessaging.isTakeOff()) {				// If user requests takeoff from phone and drone was last in autopilot OFF state
+		if (switchState == MANUAL || switchState == AUTO_FOLLOW_OR_ALT_HOLD) {	// If switching into AUTO_PERFORMANCE
+			// maintain last autopilot state
+			uartMessaging.resetTakeOff();										// reset the isTakeoff boolean. isTakeOff will become true again only if phone requests takeoff again
+
+		} else if (autopilotState == OFF && uartMessaging.isTakeOff()) {		// If user requests takeoff from phone and drone was last in autopilot OFF state
 			pids[ALT_STAB].reset_I();											// reset i; reset PID integrals while in manual mode
 			autopilotState = TAKEOFF;
-			uartMessaging.resetTakeOff();										// reset takeoff boolean -> isTakeOff will become true again only if phone requests takeoff again
+			uartMessaging.resetTakeOff();										// reset the isTakeoff boolean. isTakeOff will become true again only if phone requests takeoff again
 			current_heading = getHeading();
 			desired_heading = current_heading;
 		}

@@ -207,7 +207,7 @@ const float INT_LONG_TO_METER = 0.00823380;
 unsigned int HOVER_THR = Static_HOVER_THR;
 
 // Debug ON/OFF
-#define PRINT_DEBUG 1
+#define PRINT_DEBUG 0
 
 // Control whether to perform GPS lock on startup
 // TODO expand to control controlGpsTracking vs other functionality indoors/outdoors
@@ -255,8 +255,8 @@ void loop() {
 		updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt, AVG_OFF_BUTTON_VALUE);
 		updateState(channels, rcthr);
 		sendDataToPhone(alt, rcthr);
-		droneOff();
 		autopilotState = OFF;
+		droneOff();
 		yaw_target = accelYaw;											// reset yaw target so we maintain this on takeoff
 	}
 
@@ -291,31 +291,31 @@ void loop() {
 		hal.console->print(", averaged battery voltage: ");
 		hal.console->print(batteryVoltage);
 
-		// hal.console->print(", switchState: ");
+		hal.console->print(", switchState: ");
 
-		// if (switchState == MANUAL) {
-		// 	hal.console->print("MANUAL");
-		// } else if (switchState == AUTO_FOLLOW_OR_ALT_HOLD) {
-		// 	hal.console->print("AUTO_FOLLOW_OR_ALT_HOLD");
-		// } else if (switchState == AUTO_PERFORMANCE) {
-		// 	hal.console->print("AUTO_PERFORMANCE");
-		// }
+		if (switchState == MANUAL) {
+			hal.console->print("MANUAL");
+		} else if (switchState == AUTO_FOLLOW_OR_ALT_HOLD) {
+			hal.console->print("AUTO_FOLLOW_OR_ALT_HOLD");
+		} else if (switchState == AUTO_PERFORMANCE) {
+			hal.console->print("AUTO_PERFORMANCE");
+		}
 
-		// hal.console->print(", autopilotState: ");
+		hal.console->print(", autopilotState: ");
 
-		// if (autopilotState == OFF) {
-		// 	hal.console->print("OFF");
-		// } else if(autopilotState == MANUAL_OVERRIDE) {
-		// 	hal.console->print("MANUAL_OVERRIDE");
-		// } else if (autopilotState == TAKEOFF) {
-		// 	hal.console->print("TAKEOFF");
-		// } else if (autopilotState == ALT_HOLD) {
-		// 	hal.console->print("ALT_HOLD");
-		// } else if (autopilotState == LAND) {
-		// 	hal.console->print("LAND");
-		// } else if (autopilotState == THROTTLE_ASSIST) {
-		// 	hal.console->print("THROTTLE_ASSIST");
-		// }
+		if (autopilotState == OFF) {
+			hal.console->print("OFF");
+		} else if(autopilotState == MANUAL_OVERRIDE) {
+			hal.console->print("MANUAL_OVERRIDE");
+		} else if (autopilotState == TAKEOFF) {
+			hal.console->print("TAKEOFF");
+		} else if (autopilotState == ALT_HOLD) {
+			hal.console->print("ALT_HOLD");
+		} else if (autopilotState == LAND) {
+			hal.console->print("LAND");
+		} else if (autopilotState == THROTTLE_ASSIST) {
+			hal.console->print("THROTTLE_ASSIST");
+		}
 
 		// hal.console->print(", desired_heading: ");
 		// hal.console->print(desired_heading);

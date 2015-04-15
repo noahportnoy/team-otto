@@ -12,6 +12,11 @@ void writeToMotors(long &rcthr, long &pitch_output, long &roll_output, long &yaw
 		droneOff();
 		yaw_target = accelYaw;
 
+	} else if (autopilotState == OFF) {
+		rcthr = 1000;
+		droneOff();
+		yaw_target = accelYaw;											// reset yaw target so we maintain this on takeoff
+
 	} else {
 		// Throttle raised, turn on motors.
 
