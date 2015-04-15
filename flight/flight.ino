@@ -227,6 +227,7 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 
 /*---------------------------------------------------- SETUP ----------------------------------------------*/
 void setup() {
+	//hal.console->println( "Starting.." );
 	setupMotors();
 	setPidConstants(DEFAULT);
 	setupMPU();
@@ -237,8 +238,8 @@ void setup() {
 	setupBarometer();
 	setupGPS();
 	setupBatteryMonitor();
-	//Initizlize the Altitude Hold Refernece System
-	ahrs.init();
+	//Initialize the Altitude Hold Reference System
+	//ahrs.init();
 	if(OUTDOORS) {getGPSLock();}
 	hal.console->println("Otto Ready.");
 }
@@ -271,8 +272,53 @@ void loop() {
 		yaw_target = accelYaw;											// reset yaw target so we maintain this on takeoff
 	}
 
+	Vector3f accel;
+    Vector3f gyro;
+    float length;
+	uint8_t counter = 0;
+
+    // flush any user input
+    while( hal.console->available() ) {
+        hal.console->read();
+    }
+
+    // clear out any existing samples from ins
+    ins.update();
+
+    // loop as long as user does not press a key
+
+        // wait until we have a sample
+        while (ins.num_samples_available() == 0) /* noop */ ;
+
+        // read samples from ins
+        ins.update();
+        accel = ins.get_accel();
+        gyro = ins.get_gyro();
+
+        length = accel.length();
+
+		if (counter++ % 50 == 0) {
+			// display results
+			hal.console->printf_P(PSTR("Accel X:%4.2f \t Y:%4.2f \t Z:%4.2f \t len:%4.2f \t Gyro X:%4.2f \t Y:%4.2f \t Z:%4.2f\n"), 
+								  accel.x, accel.y, accel.z, length, gyro.x, gyro.y, gyro.z);
+		}
+	
+	
+	hal.console->print( "RC Pitch : ");
+	hal.console->print( rcpit );
+	hal.console->print( " , RC roll : " );
+	hal.console->println( rcroll );
+	
 	runFlightControl(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt_output, alt, climb_rate, accelZ, channels);
 	runPidFeedback(pitch_output, roll_output, yaw_output, alt_output, yaw_target, rcpit, rcroll, rcyaw, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt, desired_alt);
+	
+	hal.console->print( "Pitch : ");
+	hal.console->print( pitch_output );
+	hal.console->print( " , roll : " );
+	hal.console->println( roll_output );
+	
+	hal.scheduler->delay(200);
+	
 	writeToMotors(rcthr, pitch_output, roll_output, yaw_output, yaw_target, accelYaw);
 
 	if (PRINT_DEBUG) {

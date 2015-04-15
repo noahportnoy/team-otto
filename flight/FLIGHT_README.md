@@ -11,9 +11,25 @@ MIDDLE            | altitude hold and heading hold
 UP                | autonomous takeoff, then altitude hold
 
 
+----------------------------------------------------------
+
+Scalings and offsets for Accelerometer
+
+Accel Offsets  |  X:0.04854903 	|  Y: 0.14138588  |  Z: 1.95303880
+Accel Scale    |  X:0.99788916 	|  Y: 0.99240148  |  Z: 0.98475480
+Gyro Offsets   |  X:0.00221047 	|  Y:-0.02057625  |  Z:-0.02332592
+
 
 
 ## Changelog
+
+------------------------------------------
+
+
+April 13, 2015
+
+- Added functionality to land
+- Tested. Works.
 
 ------------------------------------------
 
