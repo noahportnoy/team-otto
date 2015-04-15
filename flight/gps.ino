@@ -2,9 +2,10 @@
 //Coordinate Arrays: [latitude, longitude]
 void updateDroneCoordinates() {
 	gps->update();
-	if (gps->new_data) {
+	if ((gps->new_data) && (gps->status() >= 2)) {
 		drone_coordinates[1] = gps->latitude;
 		drone_coordinates[0] = gps->longitude;
+		gps->new_data = false;
 	}
 }
 

@@ -2,7 +2,6 @@
 void runFlightControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float &desired_alt,
 					long alt_output, float alt, uint16_t channels[]) {
 
-	// TODO when ready, use autonomousFollowMode(rcthr, rcpit, rcroll, rcyaw, alt_output)
 	// TODO add switch functionality for autonomous land
 
 	if 	(switchState == AUTO_PERFORMANCE) {
@@ -102,12 +101,13 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	Vector3f lat_long_error, autonomous_pitch_roll;
 	Matrix3f yaw_rotation_m;
 
-	if (gps->status() < 2) {
-		///PID Feedback system for pitch and roll input 0 is bad GPS state
-		rcpit = 0;
-		rcroll = 0;
-		return;
-	}
+	// TODO verify that this works commented out. Drone should now converge on last good GPS coordinates.
+	// if (gps->status() < 2) {
+	// 	///PID Feedback system for pitch and roll input 0 is bad GPS state
+	// 	rcpit = 0;
+	// 	rcroll = 0;
+	// 	return;
+	// }
 
 	//Get Lat and Long error
 	lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*INT_LONG_TO_METER);

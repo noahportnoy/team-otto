@@ -215,7 +215,6 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 #define PRINT_DEBUG 0
 
 // Control whether to perform GPS lock on startup
-// TODO expand to control controlGpsTracking vs other functionality indoors/outdoors
 #define OUTDOORS 0
 
 // Choose GPS target location: PHONE or FIXED
