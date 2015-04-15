@@ -212,11 +212,11 @@ const float INT_LONG_TO_METER = 0.00823380;
 unsigned int HOVER_THR = Static_HOVER_THR;
 
 // Debug ON/OFF
-#define PRINT_DEBUG 1
+#define PRINT_DEBUG 0
 
 // Control whether to perform GPS lock on startup
 // TODO expand to control controlGpsTracking vs other functionality indoors/outdoors
-#define OUTDOORS 1
+#define OUTDOORS 0
 
 // Choose GPS target location: PHONE or FIXED
 #define GPS_TARGET FIXED
