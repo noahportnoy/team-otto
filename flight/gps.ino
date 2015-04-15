@@ -1,6 +1,6 @@
 
 //Coordinate Arrays: [latitude, longitude]
-void getDroneCoordinates(int32_t drone_coordinates[]) {
+void updateDroneCoordinates() {
 	gps->update();
 	if (gps->new_data) {
 		drone_coordinates[1] = gps->latitude;
@@ -9,19 +9,19 @@ void getDroneCoordinates(int32_t drone_coordinates[]) {
 }
 
 //Coordinate Arrays: [latitude, longitude]
-void getTargetCoordinates(int32_t target_coordinates[], int gpsTarget) {
-	if(gpsTarget == PHONE) 			{getPhoneCoordinates(target_coordinates);}
-	else if(gpsTarget == FIXED) 	{getFixedCoordinates(target_coordinates);}
+void updateTargetCoordinates(int gpsTarget) {
+	if(gpsTarget == PHONE) 			{updatePhoneCoordinates();}
+	else if(gpsTarget == FIXED) 	{updateFixedCoordinates();}
 }
 
-void getPhoneCoordinates(int32_t target_coordinates[]) {
+void updatePhoneCoordinates() {
 	if(uartMessaging.isUserLonLatest() && uartMessaging.isUserLatLatest()) {
 		uartMessaging.getUserLat(&target_coordinates[1]);
 		uartMessaging.getUserLon(&target_coordinates[0]);
 	}
 }
 
-void getFixedCoordinates(int32_t target_coordinates[]) {
+void updateFixedCoordinates() {
 	// In the middle of the farther grassy area, in the engineering quad
 	target_coordinates[1] = 423935750;
 	target_coordinates[0] = -725293220;
@@ -76,17 +76,12 @@ void getGPSLock() {
 
 float getBearing() {
 	float bearing;
-	int32_t drone_coordinates[] = {0, 0};
-	int32_t target_coordinates[] = {0, 0};
 
 	if (gps->status() < 2) {
 		// Force the drone to north if there is a GPS loss
 		bearing = current_heading;
 		return desired_heading;
 	}
-
-	getDroneCoordinates(drone_coordinates);
-	getTargetCoordinates(target_coordinates, GPS_TARGET);
 
 	/*COMPASS OPERATION:
 		True North is 0 (degrees)

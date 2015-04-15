@@ -101,8 +101,6 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	//Vector format is x,y,z
 	Vector3f lat_long_error, autonomous_pitch_roll;
 	Matrix3f yaw_rotation_m;
-	int32_t drone_coordinates[] = {0, 0};
-	int32_t target_coordinates[] = {0, 0};
 
 	if (gps->status() < 2) {
 		///PID Feedback system for pitch and roll input 0 is bad GPS state
@@ -110,9 +108,6 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 		rcroll = 0;
 		return;
 	}
-
-	getTargetCoordinates(target_coordinates, GPS_TARGET);
-	getDroneCoordinates(drone_coordinates);
 
 	//Get Lat and Long error
 	lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*INT_LONG_TO_METER);

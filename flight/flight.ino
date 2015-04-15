@@ -146,6 +146,11 @@ int autopilotState = 0;
 long rcthrAtSwitch = 0;
 float batteryVoltage = 10.9;
 
+// Initialize drone and target coordinates to location in the engineering quad,
+// in the middle of the farther grassy area (will be overwritten on update)
+int32_t drone_coordinates[] = {423935750, -725293220};
+int32_t target_coordinates[] = {423935750, -725293220};
+
 const float INT_LAT_TO_METER = 0.01110809;
 const float INT_LONG_TO_METER = 0.00823380;
 
@@ -207,11 +212,11 @@ const float INT_LONG_TO_METER = 0.00823380;
 unsigned int HOVER_THR = Static_HOVER_THR;
 
 // Debug ON/OFF
-#define PRINT_DEBUG 0
+#define PRINT_DEBUG 1
 
 // Control whether to perform GPS lock on startup
 // TODO expand to control controlGpsTracking vs other functionality indoors/outdoors
-#define OUTDOORS 0
+#define OUTDOORS 1
 
 // Choose GPS target location: PHONE or FIXED
 #define GPS_TARGET FIXED

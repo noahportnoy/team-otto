@@ -12,6 +12,9 @@ void writeToMotors(long &rcthr, long &pitch_output, long &roll_output, long &yaw
 		droneOff();
 		yaw_target = accelYaw;
 
+	} else if (PRINT_DEBUG != 0) {
+		droneOff();
+
 	} else {
 		// Throttle raised, turn on motors.
 

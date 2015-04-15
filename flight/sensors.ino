@@ -21,6 +21,9 @@ void updateReadings(uint16_t channels[], long &safety,
 	getAccel(accelPitch, accelRoll, accelYaw);
 	getGyro(gyroPitch, gyroRoll, gyroYaw);
 
+	updateDroneCoordinates();
+	updateTargetCoordinates(GPS_TARGET);
+
 	if(PRINT_DEBUG) {
 		// hal.console->printf("\nVoltage: %.2f \tCurrent: %.2f \tTotCurr:%.2f  ",
 		// battery_mon.voltage(), //voltage
