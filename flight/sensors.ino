@@ -20,7 +20,6 @@ void updateReadings(uint16_t channels[], long &safety,
 	getAltitudeData(alt);
 	getAccel(accelPitch, accelRoll, accelYaw);
 	getGyro(gyroPitch, gyroRoll, gyroYaw);
-	getDroneCoordinates(drone_coordinates);
 
 	updateDroneCoordinates();
 	updateTargetCoordinates(GPS_TARGET);

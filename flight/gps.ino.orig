@@ -83,21 +83,30 @@ float getBearing() {
 		return bearing;
 	}
 
+<<<<<<< HEAD
 	/*  COMPASS OPERATION:
 	True North is 0 (degrees)
 	Eastern headings are negative numbers
 	Western headings are positive numbers
 	South is 180 or -180  */
 
-	updateTargetCoordinates(PHONE);
+	getTargetCoordinates(user_coordinates, PHONE);
 	
 	struct Location drone = {0};
 	drone.lat = drone_coordinates[1];
 	drone.lng = drone_coordinates[0];
+=======
+	/*COMPASS OPERATION:
+		True North is 0 (degrees)
+		Eastern headings are negative numbers
+		Western headings are positive numbers
+		South is 180 or -180
+	*/
+>>>>>>> 9912a544fbf4cde4becc7a531a1dcc09d88aee40
 
 	struct Location user = {0};
-	user.lat = target_coordinates[1];
-	user.lng = target_coordinates[0];
+	user.lat = user_coordinates[1];
+	user.lng = user_coordinates[0];
 
 	kalmanFilter(drone.lat, drone.lng);
 
@@ -115,11 +124,11 @@ float getBearing() {
 
 float getDistanceToUser(){
 
-	updateTargetCoordinates(PHONE);
+	getTargetCoordinates(user_coordinates, PHONE);
 
 	struct Location user = {0};
-	user.lat = target_coordinates[1];
-	user.lng = target_coordinates[0];
+	user.lat = user_coordinates[1];
+	user.lng = user_coordinates[0];
 
 	float gps_distance = get_distance(&drone_filtered, &user);
 	hal.console->printf(", distance(m), %f, ", gps_distance);

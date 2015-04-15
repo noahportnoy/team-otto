@@ -110,14 +110,24 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	//Vector format is x,y,z
 	Vector3f lat_long_error, autonomous_pitch_roll;
 	Matrix3f yaw_rotation_m;
+<<<<<<< HEAD
+	//int32_t drone_coordinates[] = {0, 0};
+	int32_t target_coordinates[] = {0, 0};
+=======
+>>>>>>> 9912a544fbf4cde4becc7a531a1dcc09d88aee40
 
-	if (gps->status() < 2) { 
+	if (gps->status() < 2) {
 		///PID Feedback system for pitch and roll input 0 is bad GPS state
 		rcpit = 0;
 		rcroll = 0;
 		return;
 	}
 
+<<<<<<< HEAD
+	getTargetCoordinates(target_coordinates, GPS_TARGET);
+
+=======
+>>>>>>> 9912a544fbf4cde4becc7a531a1dcc09d88aee40
 	//Get Lat and Long error
 	lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*INT_LONG_TO_METER);
 	lat_long_error.y = (float)((target_coordinates[1] - drone_coordinates[1])*INT_LAT_TO_METER);
@@ -192,7 +202,7 @@ void controlHeadingHold(long &rcyaw) {
 		current_heading = getHeading();
 	}
 
-	//desired_heading = getBearing();
+	desired_heading = getBearing();
 
 	//Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
 	float heading_error = wrap_180(desired_heading - current_heading);
@@ -217,9 +227,7 @@ void adjustThrottleForBatteryLevel() {
 
 	if((hal.scheduler->micros() - hover_thr_timer) > delay) {
 		hover_thr_timer = hal.scheduler->micros();
-		
 		float new_hover_thr = map(batteryVoltage, 10, 11.8, ADJ_THR_MAX, ADJ_THR_MIN);		// map HOVER_THR based on voltage of drone in flight
-
 		HOVER_THR = constrain(new_hover_thr, ADJ_THR_MIN_CONSTRAINT, ADJ_THR_MAX_CONSTRAINT);			// constrain hover throttle for saftey
 	}
 }
