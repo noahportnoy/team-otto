@@ -9,11 +9,19 @@ void writeToMotors(long &rcthr, long &pitch_output, long &roll_output, long &yaw
 		hal.rcout->write(MOTOR_BR, rcthr);
 
 	} else if (rcthr < RC_THR_MIN + 50) {
+		rcthr = 1000;
 		droneOff();
 		yaw_target = accelYaw;
 
 	} else if (PRINT_DEBUG != 0) {
+		rcthr = 1000;
 		droneOff();
+		yaw_target = accelYaw;
+
+	} else if (autopilotState == OFF) {
+		rcthr = 1000;
+		droneOff();
+		yaw_target = accelYaw;											// reset yaw target so we maintain this on takeoff
 
 	} else {
 		// Throttle raised, turn on motors.
