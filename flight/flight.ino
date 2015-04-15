@@ -66,7 +66,7 @@ PID pids[10];
 
 // switchState
 #define MANUAL 				0
-#define AUTO_ALT_HOLD 		1
+#define AUTO_FOLLOW_OR_ALT_HOLD 		1
 #define AUTO_PERFORMANCE 	2
 
 // autopilotState
@@ -145,6 +145,12 @@ float distance_to_target = 0;
 int switchState = 0;
 int autopilotState = 0;
 long rcthrAtSwitch = 0;
+float batteryVoltage = 10.9;
+
+// Initialize drone and target coordinates to location in the engineering quad,
+// in the middle of the farther grassy area (will be overwritten on update)
+int32_t drone_coordinates[] = {423935750, -725293220};
+int32_t target_coordinates[] = {423935750, -725293220};
 
 
 
@@ -269,8 +275,8 @@ void loop() {
 		updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt, AVG_OFF_BUTTON_VALUE);
 		updateState(channels, rcthr);
 		sendDataToPhone(alt, rcthr);
-		droneOff();
 		autopilotState = OFF;
+		droneOff();
 		yaw_target = accelYaw;											// reset yaw target so we maintain this on takeoff
 	}
 
@@ -281,33 +287,57 @@ void loop() {
 	if (PRINT_DEBUG) {
 		// hal.console->print("rcthr, ");
 		// hal.console->print(rcthr);
-		// hal.console->print(", hoverthr, ");
-		// hal.console->print(HOVER_THR);
+		hal.console->print(", hoverthr, ");
+		hal.console->print(HOVER_THR);
 		hal.console->print(", distance, ");
 		hal.console->print(distance_to_target);
 		hal.console->print(",  rcyaw, ");
 		hal.console->print(rcyaw);
+		// hal.console->print(",  accelPitch, ");
+		// hal.console->print(accelPitch);
+		// hal.console->print(",  accelRoll, ");
+		// hal.console->print(accelRoll);
+		// hal.console->print(",  accelYaw, ");
+		// hal.console->print(accelYaw);
+		// hal.console->print(", pitch_out: ");
+		// hal.console->print(pitch_output);
+		// hal.console->print(", roll_out: ");
+		// hal.console->print(roll_output);
+		// hal.console->print(", yaw_out: ");
+		// hal.console->print(yaw_output);
 
-		// hal.console->print(", autopilotState: ");
-
-		// if (autopilotState == OFF) {
-		// 	hal.console->print("OFF");
-		// } else if(autopilotState == MANUAL_OVERRIDE) {
-		// 	hal.console->print("MANUAL_OVERRIDE");
-		// } else if (autopilotState == TAKEOFF) {
-		// 	hal.console->print("TAKEOFF");
-		// } else if (autopilotState == ALT_HOLD) {
-		// 	hal.console->print("ALT_HOLD");
-		// } else if (autopilotState == LAND) {
-		// 	hal.console->print("LAND");
-		// } else if (autopilotState == THROTTLE_ASSIST) {
-		// 	hal.console->print("THROTTLE_ASSIST");
+		// hal.console->print(", battery, ");
+		// hal.console->print(battery_mon.voltage());
+		hal.console->print(", averaged battery voltage: ");
+		hal.console->print(batteryVoltage);
+		// if (switchState == MANUAL) {
+		// 	hal.console->print("MANUAL");
+		// } else if (switchState == AUTO_ALT_HOLD) {
+		// 	hal.console->print("AUTO_ALT_HOLD");
+		// } else if (switchState == AUTO_PERFORMANCE) {
+		// 	hal.console->print("AUTO_PERFORMANCE");
 		// }
 
+		hal.console->print(", autopilotState: ");
+
+		if (autopilotState == OFF) {
+			hal.console->print("OFF");
+		} else if(autopilotState == MANUAL_OVERRIDE) {
+			hal.console->print("MANUAL_OVERRIDE");
+		} else if (autopilotState == TAKEOFF) {
+			hal.console->print("TAKEOFF");
+		} else if (autopilotState == ALT_HOLD) {
+			hal.console->print("ALT_HOLD");
+		} else if (autopilotState == LAND) {
+			hal.console->print("LAND");
+		} else if (autopilotState == THROTTLE_ASSIST) {
+			hal.console->print("THROTTLE_ASSIST");
+		}
+
 		hal.console->print(", desired_heading, ");
-		hal.console->print(desired_heading);
+		// hal.console->print(desired_heading);
 		hal.console->print(", current_heading, ");
-		hal.console->print(current_heading);
+		// hal.console->print(current_heading);
 		// hal.console->print(", t, ");
 		// hal.console->print(hal.scheduler->millis());
 

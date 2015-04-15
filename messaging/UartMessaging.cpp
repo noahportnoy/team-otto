@@ -101,6 +101,16 @@ bool UartMessaging::isLand()
 	return _isLand;
 }
 
+void UartMessaging::resetTakeOff()
+{
+	_isTakeOff = false;
+}
+
+void UartMessaging::resetLand()
+{
+	_isLand = false;
+}
+
 bool UartMessaging::isSeperationDistanceLatest()
 {
 	return _isSeperationDistanceLatest;

@@ -9,13 +9,16 @@ void runFlightControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float
 	// TODO add switch functionality for autonomous land
 
 	if 	(switchState == AUTO_PERFORMANCE) {
-		if (autopilotState == TAKEOFF) {		autonomousTakeoffMode(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt, alt_output, channels);}
-		else if (autopilotState == ALT_HOLD) {	semiautonomousAltitudeHoldMode(rcthr, rcpit, rcroll, rcyaw, alt_output, channels);}
-		else if (autopilotState == LAND) {		autonomousLandMode(rcthr, rcpit, rcroll, rcyaw, alt);}
+		if (autopilotState == TAKEOFF) 			{autonomousTakeoffMode(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt, alt_output, channels);}
+		else if (autopilotState == ALT_HOLD) 	{semiautonomousAltitudeHoldMode(rcthr, rcpit, rcroll, rcyaw, alt_output, channels);}
+		else if (autopilotState == LAND) 		{autonomousLandMode(rcthr, rcpit, rcroll, rcyaw, alt);}
 	}
 
-	else if (switchState == MANUAL) {			manualFlightMode(rcthr, rcpit, rcroll, rcyaw, channels);}
-	else if (switchState == AUTO_ALT_HOLD) {	semiautonomousAltitudeHoldMode(rcthr, rcpit, rcroll, rcyaw, alt_output, channels);}
+	else if (switchState == MANUAL) 			{manualFlightMode(rcthr, rcpit, rcroll, rcyaw, channels);}
+	else if (switchState == AUTO_FOLLOW_OR_ALT_HOLD) {
+		if (OUTDOORS)							{autonomousFollowMode(rcthr, rcpit, rcroll, rcyaw, alt_output);}
+		else 									{semiautonomousAltitudeHoldMode(rcthr, rcpit, rcroll, rcyaw, alt_output, channels);}
+	}
 }
 
 void manualFlightMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
@@ -107,10 +110,10 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	//Vector format is x,y,z
 	Vector3f lat_long_error, autonomous_pitch_roll;
 	Matrix3f yaw_rotation_m;
-	//int32_t drone_coordinates[] = {0, 0};
+	int32_t drone_coordinates[] = {0, 0};
 	int32_t target_coordinates[] = {0, 0};
 
-	if (gps->status() < 2) {
+	if (gps->status() < 2) { 
 		///PID Feedback system for pitch and roll input 0 is bad GPS state
 		rcpit = 0;
 		rcroll = 0;
@@ -118,6 +121,7 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	}
 
 	getTargetCoordinates(target_coordinates, GPS_TARGET);
+	getDroneCoordinates(drone_coordinates);
 
 	//Get Lat and Long error
 	lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*INT_LONG_TO_METER);
@@ -193,7 +197,7 @@ void controlHeadingHold(long &rcyaw) {
 		current_heading = getHeading();
 	}
 
-	desired_heading = getBearing();
+	//desired_heading = getBearing();
 
 	//Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
 	float heading_error = wrap_180(desired_heading - current_heading);

@@ -8,7 +8,11 @@ void updateReadings(uint16_t channels[], long &safety,
 	while(ins.num_samples_available() == 0);
 
 	uartMessaging.receive();
+
 	battery_mon.read();													// Get battery stats: update voltage and current readings
+	float instantaneousVoltage = battery_mon.voltage();
+	batteryVoltage = movingAvg(batteryVoltage, instantaneousVoltage, 0.7);
+
 	hal.rcin->read(channels, 8);
 	safety = channels[4];
 	AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
@@ -17,6 +21,9 @@ void updateReadings(uint16_t channels[], long &safety,
 	getAccel(accelPitch, accelRoll, accelYaw);
 	getGyro(gyroPitch, gyroRoll, gyroYaw);
 	getDroneCoordinates(drone_coordinates);
+
+	updateDroneCoordinates();
+	updateTargetCoordinates(GPS_TARGET);
 
 	if(PRINT_DEBUG) {
 		// hal.console->printf("\nVoltage: %.2f \tCurrent: %.2f \tTotCurr:%.2f  ",

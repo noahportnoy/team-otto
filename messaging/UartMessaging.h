@@ -5,7 +5,7 @@
 #include <UARTDriver.h>
 
 //state machine for receiving
-#define START	0 
+#define START	0
 #define ID		1
 #define PAYLOAD	2
 #define END		3
@@ -23,7 +23,7 @@ private:
 
 	char _payloadReceived[32]; //Actual payload receive
 	short _payloadNumBytes; //number of bytes received on thepayload stage
-	
+
 	//User Lon and Lat
 	bool _isUserLatLatest, _isUserLongLatest;
 	int32_t _userLat, _userLon;
@@ -65,6 +65,8 @@ public:
 
 	bool isTakeOff();
 	bool isLand();
+	void resetTakeOff();
+	void resetLand();
 
 	bool isSeperationDistanceLatest();
 	void getSeperationDistance(int* distance);
