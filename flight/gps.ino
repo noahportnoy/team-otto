@@ -5,25 +5,19 @@ void getDroneCoordinates(int32_t drone_coordinates[]) {
 	if (gps->new_data) {
 		drone_coordinates[1] = gps->latitude;
 		drone_coordinates[0] = gps->longitude;
-		drone.lat = gps->latitude;
-		drone.lng = gps->longitude;
 	}
 }
 
 //Coordinate Arrays: [latitude, longitude]
 void getTargetCoordinates(int32_t target_coordinates[], int gpsTarget) {
-	if(gpsTarget == PHONE) 			{getPhoneCoordinates();}
+	if(gpsTarget == PHONE) 			{getPhoneCoordinates(target_coordinates);}
 	else if(gpsTarget == FIXED) 	{getFixedCoordinates(target_coordinates);}
 }
 
-void getPhoneCoordinates() {
+void getPhoneCoordinates(int32_t target_coordinates[]) {
 	if(uartMessaging.isUserLonLatest() && uartMessaging.isUserLatLatest()) {
-		// uartMessaging.getUserLon(&user_coordinates[0]);
-		// uartMessaging.getUserLat(&user_coordinates[1]);
-		// user.lat = user_coordinates[1];
-  		// user.lng = user_coordinates[0];
-  		uartMessaging.getUserLon(&user.lng);
-		uartMessaging.getUserLat(&user.lat);
+		uartMessaging.getUserLon(&target_coordinates[0]);
+		uartMessaging.getUserLat(&target_coordinates[1]);
   	}
 }
 
@@ -76,47 +70,53 @@ void getGPSLock() {
 
 float getBearing() {
 	float bearing;
-	//int32_t user_coordinates[] = {0, 0};
 
 	if (gps->status() < 2) {
 		// Force the drone to north if there is a GPS loss
 		bearing = current_heading;
-		return desired_heading;
+		return bearing;
 	}
 
-	/*COMPASS OPERATION:
+	/*  COMPASS OPERATION:
 	True North is 0 (degrees)
 	Eastern headings are negative numbers
 	Western headings are positive numbers
-	South is 180 or -180
-	*/
+	South is 180 or -180  */
 
-	//getDroneCoordinates(drone_coordinates);							//Being called in the update method.
-	getPhoneCoordinates();
+	getTargetCoordinates(user_coordinates, PHONE);
+	
+	struct Location drone = {0};
+	drone.lat = drone_coordinates[1];
+	drone.lng = drone_coordinates[0];
+
+	struct Location user = {0};
+	user.lat = user_coordinates[1];
+	user.lng = user_coordinates[0];
 
 	kalmanFilter(drone.lat, drone.lng);
-	
+
 	//Function returns bearing in centi-degrees
 	bearing = -0.01 * get_bearing_cd(&drone_filtered, &user);
 
 	if(PRINT_DEBUG) {
 		hal.console->printf(", k_lat, %ld, k_lng, %ld, ",drone_filtered.lat, drone_filtered.lng);
 		hal.console->printf(", target_lat, %ld, target_lng, %ld, ", user.lat, user.lng);
-		hal.console->printf(" Drone bearing: %f", bearing);
+		// hal.console->printf(" Drone bearing: %f", bearing);
 	}
 
 	return wrap_180(bearing);
 }
 
-float getDistance(){
-	//int32_t target_coordinates[] = {0, 0};
+float getDistanceToUser(){
 
-	getPhoneCoordinates();
-	//user.lat = target_coordinates[1];
-	//user.lng = target_coordinates[0];
+	getTargetCoordinates(user_coordinates, PHONE);
+
+	struct Location user = {0};
+	user.lat = user_coordinates[1];
+	user.lng = user_coordinates[0];
 
 	float gps_distance = get_distance(&drone_filtered, &user);
-	//hal.console->printf(", arducopter bearing, %f, and distance(m), %f, ", bearing, gps_distance);
+	hal.console->printf(", distance(m), %f, ", gps_distance);
 	return gps_distance;
 }
 

@@ -174,6 +174,16 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	*/
 }
 
+//Maintains a horizontal (x,y) distance from user
+void maintainDistance(long &rcpit, float &desired_distance){
+	float actual_distance, distance_error;
+	actual_distance = getDistanceToUser();
+
+	distance_error =  desired_distance - actual_distance;
+	rcpit = constrain(pids[PITCH_CMD].get_pid(distance_error, 1), -5, 5);
+	rcpit = -rcpit;
+}
+
 void controlHeadingHold(long &rcyaw) {
 //Compass accumulate should be called frequently to accumulate readings from the compass
 	compass.accumulate();

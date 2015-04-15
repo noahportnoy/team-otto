@@ -151,9 +151,8 @@ long rcthrAtSwitch = 0;
 const float INT_LAT_TO_METER = 0.01110809;
 const float INT_LONG_TO_METER = 0.00823380;
 
-struct Location drone = {0};
+
 struct Location drone_filtered = {0};
-struct Location user = {0};
 int32_t drone_coordinates[] = {0, 0};
 int32_t user_coordinates[] = {0, 0};
 
@@ -262,7 +261,7 @@ void loop() {
 	updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt, AVG_OFF_BUTTON_VALUE);
 	updateState(channels, rcthr);
 
-	//distance_to_target = getDistance();
+	distance_to_target = getDistanceToUser();
 	sendDataToPhone(alt, rcthr);
 	desired_alt = 1.0; //Hard code in desired_alt
 
@@ -280,13 +279,13 @@ void loop() {
 	writeToMotors(rcthr, pitch_output, roll_output, yaw_output, yaw_target, accelYaw);
 
 	if (PRINT_DEBUG) {
-		hal.console->print("rcthr, ");
-		hal.console->print(rcthr);
+		// hal.console->print("rcthr, ");
+		// hal.console->print(rcthr);
 		// hal.console->print(", hoverthr, ");
 		// hal.console->print(HOVER_THR);
 		hal.console->print(", distance, ");
 		hal.console->print(distance_to_target);
-		hal.console->print(", rcyaw, ");
+		hal.console->print(",  rcyaw, ");
 		hal.console->print(rcyaw);
 
 		// hal.console->print(", autopilotState: ");
@@ -305,9 +304,9 @@ void loop() {
 		// 	hal.console->print("THROTTLE_ASSIST");
 		// }
 
-		hal.console->print(", desired_heading: ");
+		hal.console->print(", desired_heading, ");
 		hal.console->print(desired_heading);
-		hal.console->print(", current_heading: ");
+		hal.console->print(", current_heading, ");
 		hal.console->print(current_heading);
 		// hal.console->print(", t, ");
 		// hal.console->print(hal.scheduler->millis());
