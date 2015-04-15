@@ -22,15 +22,21 @@ void getPhoneCoordinates(int32_t target_coordinates[]) {
 }
 
 void getFixedCoordinates(int32_t target_coordinates[]) {
-	//Quad coordinates
-	target_coordinates[1] = 423935390;
-	target_coordinates[0] = -725294520;
+	// In the middle of the farther grassy area, in the engineering quad
+	target_coordinates[1] = 423935750;
+	target_coordinates[0] = -725293220;
 
-	//target_coordinates[1] = 423945860;
-	//target_coordinates[0] = -725291860;
+	// Quad coordinates
+	// target_coordinates[1] = 423935390;
+	// target_coordinates[0] = -725294520;
 
-	//target_coordinates[1] = 423942870;
-	//target_coordinates[0] = -725294590;
+	// Northern road from outside M5
+	// target_coordinates[1] = 423945860;
+	// target_coordinates[0] = -725291860;
+
+	// Western road from outside M5
+	// target_coordinates[1] = 423942870;
+	// target_coordinates[0] = -725294590;
 }
 
 void getGPSLock() {

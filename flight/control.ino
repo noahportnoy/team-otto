@@ -12,7 +12,10 @@ void runFlightControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float
 	}
 
 	else if (switchState == MANUAL) {			manualFlightMode(rcthr, rcpit, rcroll, rcyaw, channels);}
-	else if (switchState == AUTO_ALT_HOLD) {	semiautonomousAltitudeHoldMode(rcthr, rcpit, rcroll, rcyaw, alt_output, channels);}
+	else if (switchState == AUTO_FOLLOW_OR_ALT_HOLD) {
+		if (OUTDOORS)							{autonomousFollowMode(rcthr, rcpit, rcroll, rcyaw, alt_output);}
+		else 									{semiautonomousAltitudeHoldMode(rcthr, rcpit, rcroll, rcyaw, alt_output, channels);}
+	}
 }
 
 void manualFlightMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
@@ -200,9 +203,7 @@ void adjustThrottleForBatteryLevel() {
 
 	if((hal.scheduler->micros() - hover_thr_timer) > delay) {
 		hover_thr_timer = hal.scheduler->micros();
-
-		float voltage = battery_mon.voltage();
-		float new_hover_thr = map(voltage, 10, 11.8, ADJ_THR_MAX, ADJ_THR_MIN);		// map HOVER_THR based on voltage of drone in flight
+		float new_hover_thr = map(batteryVoltage, 10, 11.8, ADJ_THR_MAX, ADJ_THR_MIN);		// map HOVER_THR based on voltage of drone in flight
 		HOVER_THR = constrain(new_hover_thr, ADJ_THR_MIN_CONSTRAINT, ADJ_THR_MAX_CONSTRAINT);			// constrain hover throttle for saftey
 	}
 }
