@@ -41,8 +41,6 @@ void manualFlightMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 void autonomousTakeoffMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 					   float desired_alt, float alt, long alt_output, uint16_t channels[]) {
 
-	// TODO improve autonomousTakeoffMode and give it rcpit, rcroll = 0
-
 	long MAX_TAKEOFF_THR = HOVER_THR + 15;
 	long MIN_TAKEOFF_THR = HOVER_THR - 15;
 
@@ -59,8 +57,9 @@ void autonomousTakeoffMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 
 	// rcpit = 0;
 	// rcroll = 0;
-	rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
-	rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
+	// rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
+	// rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
+	controlGpsHold(rcpit, rcroll);
 	controlHeadingHold(rcyaw);
 }
 
@@ -109,8 +108,9 @@ void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 			}
 		}
 
-		rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
-		rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
+		// rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
+		// rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
+		controlGpsHold(rcpit, rcroll);
 		controlHeadingHold(rcyaw);
 	}
 }
@@ -129,7 +129,8 @@ void autonomousFollowMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 
 	controlAltitudeHold(rcthr, alt_output);
 	controlGpsTracking(rcpit, rcroll);
-	controlHeadingHold(rcyaw);
+	if(GPS_TRACKING_HEADING == TARGET) 		{controlHeadingTracking(rcyaw);}
+	else if(GPS_TRACKING_HEADING == HOLD) 	{controlHeadingHold(rcyaw);}
 }
 
 
@@ -207,6 +208,49 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	*/
 }
 
+void controlGpsHold(long &rcpit, long &rcroll) {
+	float current_heading_rad;
+	//Vector format is x,y,z
+	Vector3f lat_long_error, autonomous_pitch_roll;
+	Matrix3f yaw_rotation_m;
+
+	if (gps->status() < 2) {
+		///PID Feedback system for pitch and roll input 0 is bad GPS state
+		rcpit = 0;
+		rcroll = 0;
+		return;
+	}
+
+	//Get Lat and Long error
+	lat_long_error.x = (float)((drone_coordinates_to_hold[0] - drone_coordinates[0])*INT_LONG_TO_METER);
+	lat_long_error.y = (float)((drone_coordinates_to_hold[1] - drone_coordinates[1])*INT_LAT_TO_METER);
+	lat_long_error.z = 0;
+
+	/*
+	Generic Matrix Setup
+	----           ----
+	|  a.x  a.y  a.z  |
+	|  b.x  b.y  b.z  |
+	|  c.x  c.y  c.z  |
+	----           ----
+	*/
+
+	//Get the radian representation of current_heading
+	current_heading_rad = current_heading*PI/180;
+
+	yaw_rotation_m.a = Vector3f(cos(current_heading_rad), sin(current_heading_rad), 0);
+	yaw_rotation_m.b = Vector3f(-sin(current_heading_rad), cos(current_heading_rad), 0);
+	yaw_rotation_m.c = Vector3f(0, 0, 1);
+
+	//Multiply the lat_long_error matrix by the yaw rotation matrix to get pitch / roll proportions
+	autonomous_pitch_roll = yaw_rotation_m*lat_long_error;
+
+	//PID Feedback system for pitch and roll.
+	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -5, 5);
+	rcpit = -rcpit;		// flip rcpit for proper mapping (neg pitch is forward)
+	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5);
+}
+
 //Maintains a horizontal (x,y) distance from user
 void maintainDistance(long &rcpit, float &desired_distance){
 	float actual_distance, distance_error;
@@ -220,6 +264,37 @@ void maintainDistance(long &rcpit, float &desired_distance){
 void controlHeadingHold(long &rcyaw) {
 //Compass accumulate should be called frequently to accumulate readings from the compass
 	compass.accumulate();
+
+	if((hal.scheduler->micros() - heading_timer) > 100000L){		// Run loop @ 10Hz ~ 100ms
+		heading_timer = hal.scheduler->micros();
+		current_heading = getHeading();
+
+		if(state_change) {
+			desired_heading = current_heading;
+			state_change = false;
+		}
+	}
+
+	//Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
+	float heading_error = wrap_180(desired_heading - current_heading);
+	rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -10, 10);
+	rcyaw = rcyaw * -1;
+}
+
+void controlHeadingTracking(long &rcyaw) {
+//Compass accumulate should be called frequently to accumulate readings from the compass
+	compass.accumulate();
+
+	desired_heading = getBearing();
+
+	if(state_change) {
+		state_change = false;
+	}
+
+	if((hal.scheduler->micros() - heading_timer) > 100000L){		// Run loop @ 10Hz ~ 100ms
+		heading_timer = hal.scheduler->micros();
+		current_heading = getHeading();
+	}
 
 	//Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
 	float heading_error = wrap_180(desired_heading - current_heading);

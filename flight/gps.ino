@@ -9,6 +9,11 @@ void updateDroneCoordinates() {
 	}
 }
 
+void updateDroneCoordinatesToHold() {
+	drone_coordinates_to_hold[1] = drone_coordinates[1];
+	drone_coordinates_to_hold[0] = drone_coordinates[0];
+}
+
 //Coordinate Arrays: [latitude, longitude]
 void updateTargetCoordinates(int gpsTarget) {
 	if(gpsTarget == PHONE) 			{updatePhoneCoordinates();}

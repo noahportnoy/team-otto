@@ -16,13 +16,12 @@ void updateReadings(uint16_t channels[], long &safety,
 	hal.rcin->read(channels, 8);
 	safety = channels[4];
 	AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
-	updateCurrentHeading();
 	getAltitudeData(alt, climb_rate);
 	getAccel(accelPitch, accelRoll, accelYaw, accelZ);
 	getGyro(gyroPitch, gyroRoll, gyroYaw);
 
 	updateDroneCoordinates();
-	updateTargetCoordinates(GPS_TARGET);
+	updateTargetCoordinates(GPS_TRACKING_TARGET);
 
 	if(PRINT_DEBUG) {
 		// hal.console->printf("\nVoltage: %.2f \tCurrent: %.2f \tTotCurr:%.2f  ",
@@ -30,25 +29,6 @@ void updateReadings(uint16_t channels[], long &safety,
 		// battery_mon.current_amps(), //Inst current
 		// battery_mon.current_total_mah()); //Accumulated current
 	}
-}
-
-
-void updateCurrentHeading() {
-
-	// if( (switchState == AUTO_TEST) && (autopilotState == ALT_HOLD) && (OUTDOORS) ) {
-	// 	desired_heading = getBearing();
-	// }
-
-	if((hal.scheduler->micros() - heading_timer) > 100000L){		// Run loop @ 10Hz ~ 100ms
-		heading_timer = hal.scheduler->micros();
-		current_heading = getHeading();
-
-		if(state_change) {
-			desired_heading = current_heading;
-			state_change = false;
-		}
-	}
-
 }
 
 void getAccel(float &accelPitch, float &accelRoll, float &accelYaw, float &accelZ) {

@@ -88,8 +88,12 @@ PID pids[10];
 #define MIXED 		3
 
 // Target GPS location
-#define PHONE 0
-#define FIXED 1
+#define PHONE 		0
+#define FIXED 		1
+
+// Heading control definitions
+#define TARGET	3
+#define HOLD	4
 
 // Define the HW LED setup & Compass orientation
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
@@ -160,6 +164,7 @@ bool state_change = 0;
 // Initialize drone and target coordinates to location in the engineering quad,
 // in the middle of the farther grassy area (will be overwritten on update)
 int32_t drone_coordinates[] = {423935750, -725293220};
+int32_t drone_coordinates_to_hold[] = {423935750, -725293220};
 int32_t target_coordinates[] = {423935750, -725293220};
 
 struct Location drone_filtered = {0};
@@ -235,8 +240,11 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 // Control whether to perform GPS lock on startup
 #define OUTDOORS 1
 
-// Choose GPS target location: PHONE or FIXED
-#define GPS_TARGET PHONE
+// Choose whether GPS tracking should follow the PHONE or a FIXED position
+#define GPS_TRACKING_TARGET FIXED
+
+// Choose whether GPS tracking should have heading TRACKING or HOLD
+#define GPS_TRACKING_HEADING HOLD
 
 
 /*---------------------------------------------------- SETUP ----------------------------------------------*/
