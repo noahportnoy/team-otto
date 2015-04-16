@@ -252,7 +252,7 @@ void setup() {
 	setupGPS();
 	setupBatteryMonitor();
 	// Initialize the Altitude Hold Reference System
-	//ahrs.init();
+	ahrs.init();
 	if(OUTDOORS) {getGPSLock();}
 	hal.console->println("Otto Ready.");
 }
