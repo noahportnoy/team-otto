@@ -2,7 +2,7 @@
 void updateReadings(uint16_t channels[], long &safety,
 					float &accelPitch, float &accelRoll, float &accelYaw,
 					float &gyroPitch, float &gyroRoll, float &gyroYaw,
-					float &alt, float &AVG_OFF_BUTTON_VALUE) {
+					float &alt, float &climb_rate, float &accelZ, float &AVG_OFF_BUTTON_VALUE) {
 
 	// Wait until new orientation data (normally 5ms max)
 	while(ins.num_samples_available() == 0);
@@ -17,8 +17,8 @@ void updateReadings(uint16_t channels[], long &safety,
 	safety = channels[4];
 	AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
 	updateCurrentHeading();
-	getAltitudeData(alt);
-	getAccel(accelPitch, accelRoll, accelYaw);
+	getAltitudeData(alt, climb_rate);
+	getAccel(accelPitch, accelRoll, accelYaw, accelZ);
 	getGyro(gyroPitch, gyroRoll, gyroYaw);
 
 	updateDroneCoordinates();
@@ -46,7 +46,7 @@ void updateCurrentHeading() {
 
 }
 
-void getAccel(float &accelPitch, float &accelRoll, float &accelYaw) {
+void getAccel(float &accelPitch, float &accelRoll, float &accelYaw, float &accelZ) {
 	float trim_roll = -0.081;
 	float trim_pitch = 0.145;
 
@@ -63,6 +63,8 @@ void getAccel(float &accelPitch, float &accelRoll, float &accelYaw) {
 	accelRoll = ToDeg(accelRoll);
 	accelYaw = ToDeg(accelYaw);
 
+	Vector3f accel = ins.get_accel();
+	accelZ = accel.z;
 }
 
 void getGyro(float &gyroPitch, float &gyroRoll, float &gyroYaw) {
@@ -116,7 +118,7 @@ float getClimbRate() {
 	return (baro.get_climb_rate());
 }
 
-void getAltitudeData(float &alt) {
+void getAltitudeData(float &alt, float &climb_rate) {
 	if( (hal.scheduler->micros() - altitude_timer) > 100000UL ) {				// Update altitude data on altitude_timer
 		float last_alt = alt;
 		alt = getAltitude();

@@ -42,6 +42,9 @@ void updateState(uint16_t channels[], long rcthr) {
 			autopilotState = TAKEOFF;
 			uartMessaging.resetTakeOff();										// reset the isTakeoff boolean. isTakeOff will become true again only if phone requests takeoff again
 			state_change = true;
+			land_timer = hal.scheduler->micros();
+			ground_timer = land_timer;
+			fall_timer = land_timer;
 		}
 
 		switchState = AUTO_PERFORMANCE;

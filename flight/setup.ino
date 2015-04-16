@@ -23,6 +23,7 @@ void setupBarometer() {
 
 void setupMPU() {
 	// Turn on MPU6050 - quad must be kept still as gyros will calibrate
+
 	ins.init(AP_InertialSensor::COLD_START,
 			 AP_InertialSensor::RATE_100HZ,
 			 flash_leds);
