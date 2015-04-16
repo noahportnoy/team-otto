@@ -55,6 +55,8 @@ public:
 	void sendClimbRate(float climbRate);
 	void sendDroneLat(int32_t lat);
 	void sendDroneLon(int32_t lon);
+	void sendBearing(float bearing);
+	void sendSeperationDistance(float seperationDistance);
 
 
 	bool isUserLatLatest();
