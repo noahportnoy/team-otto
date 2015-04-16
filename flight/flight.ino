@@ -137,6 +137,15 @@ uint32_t altitude_timer;
 uint32_t send_to_phone_timer;
 uint32_t heading_timer;
 uint32_t hover_thr_timer;
+uint32_t land_timer;
+uint32_t ground_timer;
+uint32_t fall_timer;
+
+float land_average = 0;
+float land_total = 0;
+unsigned int land_counter = 0;
+unsigned int throttle_modifier = 10;
+uint32_t land_interval = 2000000;
 
 float current_heading = 0;
 float desired_heading = 0;
@@ -146,6 +155,7 @@ int switchState = 0;
 int autopilotState = 0;
 long rcthrAtSwitch = 0;
 float batteryVoltage = 10.9;
+bool state_change = 0;
 
 // Initialize drone and target coordinates to location in the engineering quad,
 // in the middle of the farther grassy area (will be overwritten on update)
@@ -223,7 +233,6 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 #define PRINT_DEBUG 0
 
 // Control whether to perform GPS lock on startup
-// TODO expand to control controlGpsTracking vs other functionality indoors/outdoors
 #define OUTDOORS 0
 
 // Choose GPS target location: PHONE or FIXED
@@ -242,8 +251,8 @@ void setup() {
 	setupBarometer();
 	setupGPS();
 	setupBatteryMonitor();
-	//Initizlize the Altitude Hold Refernece System
-	ahrs.init();
+	// Initialize the Altitude Hold Reference System
+	//ahrs.init();
 	if(OUTDOORS) {getGPSLock();}
 	hal.console->println("Otto Ready.");
 }
@@ -255,27 +264,29 @@ void loop() {
 	static float desired_alt, alt;
 	static float accelPitch, accelRoll, accelYaw;
 	static float gyroPitch, gyroRoll, gyroYaw;
+	static float accelZ;
 	static long pitch_output, roll_output, yaw_output, alt_output;
 	static uint16_t channels[8];  // array for raw channel values
 	static float AVG_OFF_BUTTON_VALUE;
 
-	updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt, AVG_OFF_BUTTON_VALUE);
+	updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt,
+		climb_rate, accelZ, AVG_OFF_BUTTON_VALUE);
 	updateState(channels, rcthr);
-
+	sendDataToPhone(alt, rcthr, accelZ);
 	distance_to_target = getDistanceToUser();
-	sendDataToPhone(alt, rcthr);
 	desired_alt = 1.0; //Hard code in desired_alt
 
 	while((AVG_OFF_BUTTON_VALUE < 1.0) || (safety < 1500)) {			// Kill motors when [off switch] or [safety] is on
-		updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt, AVG_OFF_BUTTON_VALUE);
+		updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt,
+			climb_rate, accelZ, AVG_OFF_BUTTON_VALUE);
 		updateState(channels, rcthr);
-		sendDataToPhone(alt, rcthr);
+		sendDataToPhone(alt, rcthr, accelZ);
 		autopilotState = OFF;
 		droneOff();
 		yaw_target = accelYaw;											// reset yaw target so we maintain this on takeoff
 	}
 
-	runFlightControl(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt_output, alt, channels);
+	runFlightControl(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt_output, alt, climb_rate, accelZ, channels);
 	runPidFeedback(pitch_output, roll_output, yaw_output, alt_output, yaw_target, rcpit, rcroll, rcyaw, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt, desired_alt);
 	writeToMotors(rcthr, pitch_output, roll_output, yaw_output, yaw_target, accelYaw);
 
@@ -303,36 +314,39 @@ void loop() {
 		// hal.console->print(", yaw_out: ");
 		// hal.console->print(yaw_output);
 
+		// hal.console->printf_P(PSTR("Accel pitch:%4.2f \t roll:%4.2f \t yaw:%4.2f \t Gyro pitch:%4.2f \t roll:%4.2f \t yaw:%4.2f\n"),
+		// 						  accelPitch, accelRoll, accelYaw,  gyroPitch, gyroRoll, gyroYaw);
+
 		// hal.console->print(", battery, ");
 		// hal.console->print(battery_mon.voltage());
-		hal.console->print(", averaged battery voltage: ");
-		hal.console->print(batteryVoltage);
+		// hal.console->print(", averaged battery voltage: ");
+		// hal.console->print(batteryVoltage);
 
-		hal.console->print(", switchState: ");
+		// hal.console->print(", switchState: ");
 
-		if (switchState == MANUAL) {
-			hal.console->print("MANUAL");
-		} else if (switchState == AUTO_FOLLOW_OR_ALT_HOLD) {
-			hal.console->print("AUTO_FOLLOW_OR_ALT_HOLD");
-		} else if (switchState == AUTO_PERFORMANCE) {
-			hal.console->print("AUTO_PERFORMANCE");
-		}
+		// if (switchState == MANUAL) {
+		// 	hal.console->print("MANUAL");
+		// } else if (switchState == AUTO_FOLLOW_OR_ALT_HOLD) {
+		// 	hal.console->print("AUTO_FOLLOW_OR_ALT_HOLD");
+		// } else if (switchState == AUTO_PERFORMANCE) {
+		// 	hal.console->print("AUTO_PERFORMANCE");
+		// }
 
-		hal.console->print(", autopilotState: ");
+		// hal.console->print(", autopilotState: ");
 
-		if (autopilotState == OFF) {
-			hal.console->print("OFF");
-		} else if(autopilotState == MANUAL_OVERRIDE) {
-			hal.console->print("MANUAL_OVERRIDE");
-		} else if (autopilotState == TAKEOFF) {
-			hal.console->print("TAKEOFF");
-		} else if (autopilotState == ALT_HOLD) {
-			hal.console->print("ALT_HOLD");
-		} else if (autopilotState == LAND) {
-			hal.console->print("LAND");
-		} else if (autopilotState == THROTTLE_ASSIST) {
-			hal.console->print("THROTTLE_ASSIST");
-		}
+		// if (autopilotState == OFF) {
+		// 	hal.console->print("OFF");
+		// } else if(autopilotState == MANUAL_OVERRIDE) {
+		// 	hal.console->print("MANUAL_OVERRIDE");
+		// } else if (autopilotState == TAKEOFF) {
+		// 	hal.console->print("TAKEOFF");
+		// } else if (autopilotState == ALT_HOLD) {
+		// 	hal.console->print("ALT_HOLD");
+		// } else if (autopilotState == LAND) {
+		// 	hal.console->print("LAND");
+		// } else if (autopilotState == THROTTLE_ASSIST) {
+		// 	hal.console->print("THROTTLE_ASSIST");
+		// }
 
 		// hal.console->print(", desired_heading: ");
 		// hal.console->print(desired_heading);

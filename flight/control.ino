@@ -3,15 +3,14 @@
 
 
 void runFlightControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float &desired_alt,
-					long alt_output, float alt, uint16_t channels[]) {
+					long alt_output, float alt, float climb_rate, float accelZ, uint16_t channels[]) {
 
-	// TODO when ready, use autonomousFollowMode(rcthr, rcpit, rcroll, rcyaw, alt_output)
 	// TODO add switch functionality for autonomous land
 
 	if 	(switchState == AUTO_PERFORMANCE) {
 		if (autopilotState == TAKEOFF) 			{autonomousTakeoffMode(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt, alt_output, channels);}
 		else if (autopilotState == ALT_HOLD) 	{semiautonomousAltitudeHoldMode(rcthr, rcpit, rcroll, rcyaw, alt_output, channels);}
-		else if (autopilotState == LAND) 		{autonomousLandMode(rcthr, rcpit, rcroll, rcyaw, alt);}
+		else if (autopilotState == LAND) 	{autonomousLandMode(rcthr, rcpit, rcroll, rcyaw, climb_rate, accelZ, channels);}
 	}
 
 	else if (switchState == MANUAL) 			{manualFlightMode(rcthr, rcpit, rcroll, rcyaw, channels);}
@@ -65,6 +64,57 @@ void autonomousTakeoffMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 	controlHeadingHold(rcyaw);
 }
 
+void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
+						float climb_rate, float accelZ, uint16_t channels[]) {
+
+	if( throttle_modifier > 200 ){
+		rcthr = 1000;
+
+	} else {
+		rcthr = HOVER_THR - throttle_modifier;
+
+		if (hal.scheduler->micros() - ground_timer > 500000) {
+			if (accelZ > -9.00) {
+				throttle_modifier = throttle_modifier + 10;
+				ground_timer = hal.scheduler->micros();
+			}
+		}
+
+		if (hal.scheduler->micros() - fall_timer > 200000) {
+			if (accelZ < -10.0) {
+				throttle_modifier = throttle_modifier - 3;
+				fall_timer = hal.scheduler->micros();
+			}
+		}
+
+		if (hal.scheduler->micros() - land_timer > land_interval) {
+			land_total += accelZ;
+			land_counter++;
+			land_average = (land_total / land_counter);
+
+			if( land_counter > 25 && (land_average >= (-9.82) && land_average <= (-9.79)) ) {
+				throttle_modifier = throttle_modifier + 10;
+
+				land_total = 0;
+				land_counter = 0;
+				land_average = 0;
+				land_timer = hal.scheduler->micros();
+				land_interval = 1000000;
+			}
+
+			if (land_counter > 50) {
+				land_total = 0;
+				land_counter = 0;
+				land_average = 0;
+			}
+		}
+
+		rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
+		rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
+		controlHeadingHold(rcyaw);
+	}
+}
+
 void semiautonomousAltitudeHoldMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 								long alt_output, uint16_t channels[]) {
 
@@ -82,22 +132,6 @@ void autonomousFollowMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 	controlHeadingHold(rcyaw);
 }
 
-//This function is not implemented in loop
-void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
-					float alt) {
-
-	if (alt > 1)														// Otto greater than 1 meter, 30us under hover throttle
-		rcthr = HOVER_THR - 30;
-	else if ( (alt <= 1) || (alt > 0.5) )								// Otto between a half and 1 meter, 20us under hover throttle
-		rcthr = HOVER_THR - 20;
-	else																// Otto under a half meter, 10us under hover throttle
-		rcthr = HOVER_THR - 10;
-
-	rcpit = 0;
-	rcroll = 0;
-	controlHeadingHold(rcyaw);
-}
-
 
 
 
@@ -111,12 +145,13 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	Vector3f lat_long_error, autonomous_pitch_roll;
 	Matrix3f yaw_rotation_m;
 
-	if (gps->status() < 2) { 
-		///PID Feedback system for pitch and roll input 0 is bad GPS state
-		rcpit = 0;
-		rcroll = 0;
-		return;
-	}
+	// TODO verify that this works commented out. Drone should now converge on last good GPS coordinates.
+	// if (gps->status() < 2) {
+	// 	///PID Feedback system for pitch and roll input 0 is bad GPS state
+	// 	rcpit = 0;
+	// 	rcroll = 0;
+	// 	return;
+	// }
 
 	//Get Lat and Long error
 	lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*INT_LONG_TO_METER);
@@ -186,11 +221,6 @@ void maintainDistance(long &rcpit, float &desired_distance){
 void controlHeadingHold(long &rcyaw) {
 //Compass accumulate should be called frequently to accumulate readings from the compass
 	compass.accumulate();
-
-	if((hal.scheduler->micros() - heading_timer) > 100000L){		// Run loop @ 10Hz ~ 100ms
-		heading_timer = hal.scheduler->micros();
-		current_heading = getHeading();
-	}
 
 	//desired_heading = getBearing();
 

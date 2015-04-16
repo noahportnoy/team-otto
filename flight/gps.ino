@@ -2,9 +2,10 @@
 //Coordinate Arrays: [latitude, longitude]
 void updateDroneCoordinates() {
 	gps->update();
-	if (gps->new_data) {
+	if ((gps->new_data) && (gps->status() >= 2)) {
 		drone_coordinates[1] = gps->latitude;
 		drone_coordinates[0] = gps->longitude;
+		gps->new_data = false;
 	}
 }
 
@@ -103,8 +104,8 @@ float getBearing() {
 	bearing = -0.01 * get_bearing_cd(&drone_filtered, &user);
 
 	if(PRINT_DEBUG) {
-		hal.console->printf(", k_lat, %ld, k_lng, %ld, ",drone_filtered.lat, drone_filtered.lng);
-		hal.console->printf(", target_lat, %ld, target_lng, %ld, ", user.lat, user.lng);
+		// hal.console->printf(", k_lat, %ld, k_lng, %ld, ",drone_filtered.lat, drone_filtered.lng);
+		// hal.console->printf(", target_lat, %ld, target_lng, %ld, ", user.lat, user.lng);
 		// hal.console->printf(" Drone bearing: %f", bearing);
 	}
 
@@ -117,7 +118,7 @@ float getDistanceToUser(){
 	user.lng = target_coordinates[0];
 
 	float gps_distance = get_distance(&drone_filtered, &user);
-	hal.console->printf(", distance(m), %f, ", gps_distance);
+	// hal.console->printf(", distance(m), %f, ", gps_distance);
 	return gps_distance;
 }
 
