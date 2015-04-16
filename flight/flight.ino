@@ -141,6 +141,7 @@ uint32_t hover_thr_timer;
 float current_heading = 0;
 float desired_heading = 0;
 float climb_rate = 0;
+float distance_to_target = 0;
 int switchState = 0;
 int autopilotState = 0;
 long rcthrAtSwitch = 0;
@@ -151,8 +152,15 @@ float batteryVoltage = 10.9;
 int32_t drone_coordinates[] = {423935750, -725293220};
 int32_t target_coordinates[] = {423935750, -725293220};
 
+struct Location drone_filtered = {0};
+
+//initial values for the kalman filter
+float x_est_last_1, x_est_last_2 = 0;
+float P_last_1, P_last_2 = 0;
+
 const float INT_LAT_TO_METER = 0.01110809;
 const float INT_LONG_TO_METER = 0.00823380;
+
 
 
 /* 	------------------ Calibration Documentation ------------------
@@ -252,6 +260,8 @@ void loop() {
 
 	updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt, AVG_OFF_BUTTON_VALUE);
 	updateState(channels, rcthr);
+
+	distance_to_target = getDistanceToUser();
 	sendDataToPhone(alt, rcthr);
 	desired_alt = 1.0; //Hard code in desired_alt
 
@@ -277,6 +287,8 @@ void loop() {
 		// hal.console->print(rcpit);
 		// hal.console->print(", rcroll, ");
 		// hal.console->print(rcroll);
+		hal.console->print(",  rcyaw, ");
+		hal.console->print(rcyaw);
 		// hal.console->print(",  accelPitch, ");
 		// hal.console->print(accelPitch);
 		// hal.console->print(",  accelRoll, ");
@@ -328,6 +340,8 @@ void loop() {
 		// hal.console->print(desired_heading);
 		// hal.console->print(", current_heading: ");
 		// hal.console->print(current_heading);
+		// hal.console->print(", distance, ");
+		// hal.console->print(distance_to_target);
 		// hal.console->print(", t, ");
 		// hal.console->print(hal.scheduler->millis());
 

@@ -18,6 +18,17 @@ UP                | autonomous takeoff, then altitude hold
 ------------------------------------------
 
 
+April 14, 2015
+
+- Bearing function is operational
+- Made drone coordinates a global struction (drone.lat & drone.lng)
+
+TODO:
+- Dig into why it oscilates at some heading angles.
+
+------------------------------------------
+
+
 April 6, 2015
 
 - Built in heading tracking function. Untested

@@ -1,4 +1,7 @@
 
+/*--------------------------------------- FLIGHT MODES ----------------------------------------*/
+
+
 void runFlightControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float &desired_alt,
 					long alt_output, float alt, uint16_t channels[]) {
 
@@ -95,6 +98,12 @@ void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 }
 
 
+
+
+
+
+/*--------------------------------------- CONTROLS FUNCTIONS ----------------------------------------*/
+
 void controlGpsTracking(long &rcpit, long &rcroll) {
 	float current_heading_rad;
 	//Vector format is x,y,z
@@ -164,6 +173,16 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	*/
 }
 
+//Maintains a horizontal (x,y) distance from user
+void maintainDistance(long &rcpit, float &desired_distance){
+	float actual_distance, distance_error;
+	actual_distance = getDistanceToUser();
+
+	distance_error =  desired_distance - actual_distance;
+	rcpit = constrain(pids[PITCH_CMD].get_pid(distance_error, 1), -5, 5);
+	rcpit = -rcpit;
+}
+
 void controlHeadingHold(long &rcyaw) {
 //Compass accumulate should be called frequently to accumulate readings from the compass
 	compass.accumulate();
@@ -198,7 +217,9 @@ void adjustThrottleForBatteryLevel() {
 
 	if((hal.scheduler->micros() - hover_thr_timer) > delay) {
 		hover_thr_timer = hal.scheduler->micros();
+		
 		float new_hover_thr = map(batteryVoltage, 10, 11.8, ADJ_THR_MAX, ADJ_THR_MIN);		// map HOVER_THR based on voltage of drone in flight
+
 		HOVER_THR = constrain(new_hover_thr, ADJ_THR_MIN_CONSTRAINT, ADJ_THR_MAX_CONSTRAINT);			// constrain hover throttle for saftey
 	}
 }
