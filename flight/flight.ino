@@ -148,7 +148,7 @@ uint32_t fall_timer;
 float land_average = 0;
 float land_total = 0;
 unsigned int land_counter = 0;
-unsigned int throttle_modifier = 10;
+int throttle_modifier = 10;
 uint32_t land_interval = 2000000;
 
 float current_heading = 0;
@@ -159,7 +159,9 @@ int switchState = 0;
 int autopilotState = 0;
 long rcthrAtSwitch = 0;
 float batteryVoltage = 10.9;
+
 bool state_change = 0;
+bool ground_flag = 0;
 
 // Initialize drone and target coordinates to location in the engineering quad,
 // in the middle of the farther grassy area (will be overwritten on update)
