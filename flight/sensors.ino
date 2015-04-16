@@ -33,12 +33,22 @@ void updateReadings(uint16_t channels[], long &safety,
 }
 
 void getAccel(float &accelPitch, float &accelRoll, float &accelYaw) {
+	float trim_roll = -0.081;
+	float trim_pitch = 0.145;
+
 	ins.update();
+
 	ins.quaternion.to_euler(&accelRoll, &accelPitch, &accelYaw);		// Ask MPU6050 for orientation
+
+	Matrix3f temp;
+	temp.from_euler(accelRoll, accelPitch, accelYaw);
+	temp.rotate(Vector3f(trim_roll, trim_pitch, 0));
+	temp.to_euler(&accelRoll, &accelPitch, &accelYaw);
 
 	accelPitch = ToDeg(accelPitch);
 	accelRoll = ToDeg(accelRoll);
 	accelYaw = ToDeg(accelYaw);
+
 }
 
 void getGyro(float &gyroPitch, float &gyroRoll, float &gyroYaw) {

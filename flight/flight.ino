@@ -233,8 +233,8 @@ void setup() {
 	setupBarometer();
 	setupGPS();
 	setupBatteryMonitor();
-	//Initizlize the Altitude Hold Refernece System
-	// ahrs.init();
+	// Initialize the Altitude Hold Reference System
+	ahrs.init();
 	if(OUTDOORS) {getGPSLock();}
 	hal.console->println("Otto Ready.");
 }
@@ -273,10 +273,10 @@ void loop() {
 		// hal.console->print(rcthr);
 		// hal.console->print(", hoverthr, ");
 		// hal.console->print(HOVER_THR);
-		hal.console->print(", rcpitch, ");
-		hal.console->print(rcpit);
-		hal.console->print(", rcroll, ");
-		hal.console->print(rcroll);
+		// hal.console->print(", rcpitch, ");
+		// hal.console->print(rcpit);
+		// hal.console->print(", rcroll, ");
+		// hal.console->print(rcroll);
 		// hal.console->print(",  accelPitch, ");
 		// hal.console->print(accelPitch);
 		// hal.console->print(",  accelRoll, ");
@@ -321,8 +321,8 @@ void loop() {
 		// 	hal.console->print("THROTTLE_ASSIST");
 		// }
 
-		// hal.console->printf_P(PSTR("Accel X:%4.2f \t Y:%4.2f \t Z:%4.2f \t len:%4.2f \t Gyro X:%4.2f \t Y:%4.2f \t Z:%4.2f\n"),
-		// 						  accel.x, accel.y, accel.z, length, gyro.x, gyro.y, gyro.z);
+		hal.console->printf_P(PSTR("Accel pitch:%4.2f \t roll:%4.2f \t yaw:%4.2f \t Gyro pitch:%4.2f \t roll:%4.2f \t yaw:%4.2f\n"),
+								  accelPitch, accelRoll, accelYaw,  gyroPitch, gyroRoll, gyroYaw);
 
 		// hal.console->print(", desired_heading: ");
 		// hal.console->print(desired_heading);
@@ -331,7 +331,7 @@ void loop() {
 		// hal.console->print(", t, ");
 		// hal.console->print(hal.scheduler->millis());
 
-		hal.console->println("");
+		// hal.console->println("");
 	}
 }
 
