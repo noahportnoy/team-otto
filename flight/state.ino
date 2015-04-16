@@ -20,16 +20,22 @@ void updateState(uint16_t channels[], long rcthr) {
 	} else if ((1300 < channels[5]) && (channels[5] < 1700)) {
 
 		if (autopilotState == OFF) {														// If safety was just turned off
-			autopilotState = ALT_HOLD;
+			autopilotState = LAND;
+			land_timer = hal.scheduler->micros();
+			ground_timer = land_timer;
+			fall_timer = land_timer;
 			state_change = true;
 
-		} else if (switchState == MANUAL || switchState == AUTO_PERFORMANCE) {				// If switching to AUTO_FOLLOW_OR_ALT_HOLD
+		} else if (switchState == MANUAL  ){// || switchState == AUTO_PERFORMANCE) {				// If switching to AUTO_FOLLOW_OR_ALT_HOLD
 			pids[ALT_STAB].reset_I();
-			autopilotState = ALT_HOLD;
+			autopilotState = LAND;
+			land_timer = hal.scheduler->micros();
+			ground_timer = land_timer;
+			fall_timer = land_timer;
 			state_change = true;
 		}
 
-		switchState = AUTO_FOLLOW_OR_ALT_HOLD;
+		switchState = AUTO_PERFORMANCE;
 
 	} else if (channels[5] < 1200) {
 
@@ -42,9 +48,9 @@ void updateState(uint16_t channels[], long rcthr) {
 			autopilotState = TAKEOFF;
 			uartMessaging.resetTakeOff();										// reset the isTakeoff boolean. isTakeOff will become true again only if phone requests takeoff again
 			state_change = true;
-			land_timer = hal.scheduler->micros();
-			ground_timer = land_timer;
-			fall_timer = land_timer;
+			// land_timer = hal.scheduler->micros();
+			// ground_timer = land_timer;
+			// fall_timer = land_timer;
 		}
 
 		switchState = AUTO_PERFORMANCE;

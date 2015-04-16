@@ -67,33 +67,45 @@ void autonomousTakeoffMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 						float climb_rate, float accelZ, uint16_t channels[]) {
 
-	if( throttle_modifier > 200 ){
+	if( throttle_modifier > 150 ){
 		rcthr = 1000;
 
 	} else {
 		rcthr = HOVER_THR - throttle_modifier;
+		
+		// hal.console->print( "--------------------------------------------- Ground timer : ");
+		// hal.console->print( hal.scheduler->micros() - ground_timer );
+		// hal.console->print( " , fall timer : " );
+		// hal.console->println( fall_timer );
 
-		if (hal.scheduler->micros() - ground_timer > 500000) {
-			if (accelZ > -9.00) {
+		if( climb_rate < -0.15 ){
+			rcthr = HOVER_THR;
+			ground_timer = hal.scheduler->micros();
+		} else if (hal.scheduler->micros() - ground_timer > 500000) {
+			//hal.console->println( "------------------------------------------ Ground ADJ ");
+			if (accelZ > -8.50) {
 				throttle_modifier = throttle_modifier + 10;
 				ground_timer = hal.scheduler->micros();
+				ground_flag == true;
 			}
 		}
 
-		if (hal.scheduler->micros() - fall_timer > 200000) {
-			if (accelZ < -10.0) {
-				throttle_modifier = throttle_modifier - 3;
-				fall_timer = hal.scheduler->micros();
-			}
-		}
+		// if (hal.scheduler->micros() - fall_timer > 500000) {
+			// //hal.console->println( "------------------------------------------ Fall ADJ ");
+			// if (climb_rate < -0.15) {
+				// rcthr = HOVER_THR;
+			// }
+		// } 
+		
+		
 
 		if (hal.scheduler->micros() - land_timer > land_interval) {
 			land_total += accelZ;
 			land_counter++;
 			land_average = (land_total / land_counter);
 
-			if( land_counter > 25 && (land_average >= (-9.82) && land_average <= (-9.79)) ) {
-				throttle_modifier = throttle_modifier + 10;
+			if( land_counter > 25 && (land_average >= (-9.82) && land_average <= (-9.79)) && ground_flag ) {
+				throttle_modifier = throttle_modifier + 15;
 
 				land_total = 0;
 				land_counter = 0;
@@ -108,6 +120,16 @@ void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 				land_average = 0;
 			}
 		}
+		
+		// hal.console->print( "LAND ----- Climb Rate : " );
+		// hal.console->print( climb_rate );
+		// hal.console->print( " , accel z : " );
+		// hal.console->print( accelZ );
+		// hal.console->print( " , throttle modifier : " );
+		// hal.console->print( throttle_modifier );
+		// hal.console->print( " , thr : " );
+		// hal.console->println( rcthr );
+		// hal.scheduler->delay( 50 );
 
 		rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
 		rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);

@@ -34,16 +34,16 @@ void updateReadings(uint16_t channels[], long &safety,
 
 
 void updateCurrentHeading() {
-	desired_heading = getBearing();
+	//desired_heading = getBearing();
 
 	if((hal.scheduler->micros() - heading_timer) > 100000L){		// Run loop @ 10Hz ~ 100ms
 		heading_timer = hal.scheduler->micros();
 		current_heading = getHeading();
 
-		// if(state_change) {
-		// 	desired_heading = current_heading;
-		// 	state_change = false;
-		// }
+		if(state_change) {
+			desired_heading = current_heading;
+			state_change = false;
+		}
 	}
 
 }
