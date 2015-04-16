@@ -71,7 +71,7 @@ void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 
 	} else {
 		rcthr = HOVER_THR - throttle_modifier;
-		
+
 		// hal.console->print( "--------------------------------------------- Ground timer : ");
 		// hal.console->print( hal.scheduler->micros() - ground_timer );
 		// hal.console->print( " , fall timer : " );
@@ -95,9 +95,9 @@ void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 			// if (climb_rate < -0.15) {
 				// rcthr = HOVER_THR;
 			// }
-		// } 
-		
-		
+		// }
+
+
 
 		if (hal.scheduler->micros() - land_timer > land_interval) {
 			land_total += accelZ;
@@ -121,7 +121,7 @@ void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 			}
 		}
 	}
-	
+
 	// rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
 	// rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
 	controlGpsHold(rcpit, rcroll);
@@ -166,9 +166,12 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 		return;
 	}
 
+	int32_t offset_target_coordinates[] = {0, 0};
+	dynamicTargetUpdate(offset_target_coordinates);
+
 	//Get Lat and Long error
-	lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*INT_LONG_TO_METER);
-	lat_long_error.y = (float)((target_coordinates[1] - drone_coordinates[1])*INT_LAT_TO_METER);
+	lat_long_error.x = (float)((offset_target_coordinates[0] - drone_coordinates[0])*INT_LONG_TO_METER);
+	lat_long_error.y = (float)((offset_target_coordinates[1] - drone_coordinates[1])*INT_LAT_TO_METER);
 	lat_long_error.z = 0;
 
 	/*
@@ -264,6 +267,7 @@ void controlGpsHold(long &rcpit, long &rcroll) {
 	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5);
 }
 
+
 //Maintains a horizontal (x,y) distance from user
 void maintainDistance(long &rcpit, float &desired_distance){
 	float actual_distance, distance_error;
@@ -272,6 +276,77 @@ void maintainDistance(long &rcpit, float &desired_distance){
 	distance_error =  desired_distance - actual_distance;
 	rcpit = constrain(pids[PITCH_CMD].get_pid(distance_error, 1), -5, 5);
 	rcpit = -rcpit;
+}
+
+//Sends drone to a fixed distance from "target"
+void fixedTargetUpdate(){
+	int32_t offset = SEPERATION_DISTANCE * INT_LAT_TO_METER * 1.0e7;
+	int32_t offset_drone_coordinate = drone_coordinates[1] + offset;
+
+	//SET OFFSET_DRONE_COORDINATES HERE...
+	// offset_drone_coordinate[0] = drone_coordinates[0];
+	// offset_drone_coordinate[1] = offset_drone_coordinate[1];
+
+
+	if (PRINT_DEBUG){
+		hal.console->printf(", offset, %ld, drone_coord, %ld, offset_coor, %ld, ", offset, drone_coordinates[1], offset_drone_coordinate);
+	}
+}
+
+//Sends drone to a dynamic distance from "target"
+void dynamicTargetUpdate(int32_t* offset_target_coordinates){
+	float temp_angle, temp_bearing, bearing;
+	int32_t diff_lat, diff_long;
+
+	//Convert SEPERATION DISTANCE from meters to degrees
+	float desired_seperation_distance = SEPERATION_DISTANCE / INT_LAT_TO_METER;
+
+	//get the absolute value of the bearing
+	temp_bearing = fabs(desired_heading);
+
+	if(temp_bearing > 90){
+		temp_angle = desired_heading - 90;
+		temp_angle = ToRad(temp_angle);
+
+		diff_lat = sin(temp_angle) * desired_seperation_distance;
+		diff_long = cos(temp_angle) * desired_seperation_distance;
+	}
+	else if(temp_bearing < 90){
+		temp_angle = desired_heading;
+		temp_angle = ToRad(temp_angle);
+
+		diff_lat = cos(temp_angle) * desired_seperation_distance;
+		diff_long = sin(temp_angle) * desired_seperation_distance;
+	}
+
+	bearing = desired_heading;
+	if(bearing <= 0 && bearing > -90){
+		offset_target_coordinates[0] = target_coordinates[0] + diff_long;
+		offset_target_coordinates[1] = target_coordinates[1] - diff_lat;
+		// hal.console->println("one");
+
+	}else if(bearing <= -90 && bearing > -180){
+		offset_target_coordinates[0] = target_coordinates[0] + diff_long;
+		offset_target_coordinates[1] = target_coordinates[1] + diff_lat;
+		// hal.console->println("two");
+
+	}else if(bearing <= 180 && bearing > 90){
+		offset_target_coordinates[0] = target_coordinates[0] + diff_long;
+		offset_target_coordinates[1] = target_coordinates[1] + diff_lat;
+		// hal.console->println("three");
+
+	}else if(bearing > 0 && bearing <= 90){
+		offset_target_coordinates[0] = target_coordinates[0] + diff_long;
+		offset_target_coordinates[1] = target_coordinates[1] - diff_lat;
+		// hal.console->println("four");
+	}
+
+	// hal.console->printf("drone: %ld, %ld, target: %ld, %ld \n\n", drone_coordinates[1], drone_coordinates[0], target_coordinates[1], target_coordinates[0]);
+	// hal.console->printf("desired_sep: %f, angle: %f, diff_lat: %ld, diff_long: %ld, offset: %ld, %ld", desired_seperation_distance, temp_angle, diff_lat, diff_long, offset_target_coordinates[1], offset_target_coordinates[0]);
+
+	//Set the new target coordinates
+	// offset_target_coordinates[0] = target_coordinates[0] + diff_long;
+	// offset_target_coordinates[1] = target_coordinates[1] + diff_lat;
 }
 
 void controlHeadingHold(long &rcyaw) {

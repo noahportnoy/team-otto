@@ -13,5 +13,6 @@ void sendDataToPhone(float alt, long rcthr, float accelZ) {
 		uartMessaging.sendGPSStatus((long)gps->status());
 		uartMessaging.sendGPSAccuracy(gps->horizontal_accuracy);    //GPS accuracy of the drone as a float in meters
 		uartMessaging.sendClimbRate(current_heading);
+		uartMessaging.sendSeperationDistance(distance_to_target);
 	}
 }

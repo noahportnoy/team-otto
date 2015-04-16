@@ -243,11 +243,12 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 #define OUTDOORS 1
 
 // Choose whether GPS tracking should follow the PHONE or a FIXED position
-#define GPS_TRACKING_TARGET PHONE
+#define GPS_TRACKING_TARGET FIXED
 
 // Choose whether GPS tracking should have heading TARGET or HOLD
 #define GPS_TRACKING_HEADING TARGET
 
+const int SEPERATION_DISTANCE = 10;
 
 /*---------------------------------------------------- SETUP ----------------------------------------------*/
 void setup() {
