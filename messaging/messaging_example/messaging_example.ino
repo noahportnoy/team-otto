@@ -31,24 +31,28 @@ void setup()
     uartMessaging.init(hal.uartC, hal.console);
     
 }
-
+long temp = 521234567;
 
 void loop()
 {
   //receive from uart
   uartMessaging.receive();
   
-  
-  if((hal.scheduler->millis() - time) > 2000)
+  temp++;
+  if((hal.scheduler->millis() - time) > 1000)
   {
+    temp++;
     uartMessaging.sendAltitude(-25.21255f); //altitude of the drone as a float in meters
     uartMessaging.sendBattery(01.21255f);  //battery level of the drone as a float in volts
     uartMessaging.sendClimbRate(2.1);  //climb rate of drone as a float in meters/second
     uartMessaging.sendGPSStatus(2);  //GPS status of the drone an int(2 bytes)/long(4 bytes) or Fix_Status enum
-    uartMessaging.sendDroneLat(521234567);  //GPS latitude * 10 000 000 of the drone as a int32_t in degress
+    uartMessaging.sendDroneLat(temp);  //GPS latitude * 10 000 000 of the drone as a int32_t in degress
     uartMessaging.sendDroneLon(651234567);  //GPS longitude * 10 000 000 of the drone as a int32_t in degrees
     uartMessaging.sendGPSAccuracy(4.6);    //GPS accuracy of the drone as a float in meters
+    uartMessaging.sendBearing(165.2);
+    uartMessaging.sendSeperationhDistance(25.2);
     time = hal.scheduler->millis();
+    
   }
   
   if(uartMessaging.isUserLonLatest())

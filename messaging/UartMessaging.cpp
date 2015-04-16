@@ -15,6 +15,8 @@ const char* GPSStatus = "GPS";
 const char* GPSAccuracy = "GPA";
 const char* Safety = "SFT";
 const char* ClimbRate = "CRS";
+const char* BearingToUser = "BRG";
+const char* SeperationDistance = "SRD";
 
 
 void UartMessaging::init(AP_HAL::UARTDriver* _driver, AP_HAL::ConsoleDriver* _console)
@@ -65,6 +67,16 @@ void UartMessaging::sendDroneLon(int32_t lon)
 void UartMessaging::sendGPSAccuracy(float accuracy)
 {
 	send(GPSAccuracy, accuracy);
+}
+
+void UartMessaging::sendBearing(float bearing)
+{
+	send(BearingToUser, bearing);
+}
+
+void UartMessaging::sendSeperationDistance(float seperationDistance)
+{
+	send(SeperationDistance, seperationDistance);
 }
 
 //Receive User Lattitude
