@@ -170,11 +170,6 @@ void controlHeadingHold(long &rcyaw) {
 //Compass accumulate should be called frequently to accumulate readings from the compass
 	compass.accumulate();
 
-	// if((hal.scheduler->micros() - heading_timer) > 100000L){		// Run loop @ 10Hz ~ 100ms
-		// heading_timer = hal.scheduler->micros();
-		// current_heading = getHeading();
-	// }
-
 	//desired_heading = getBearing();
 
 	//Calculate the Heading error and use the PID feedback loop to translate that into a yaw input

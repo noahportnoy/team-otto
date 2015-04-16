@@ -12,9 +12,7 @@ void updateReadings(uint16_t channels[], long &safety,
 	hal.rcin->read(channels, 8);
 	safety = channels[4];
 	AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
-	
 	updateCurrentHeading();
-	
 	getAltitudeData(alt);
 	getAccel(accelPitch, accelRoll, accelYaw);
 	getGyro(gyroPitch, gyroRoll, gyroYaw);
@@ -28,27 +26,18 @@ void updateReadings(uint16_t channels[], long &safety,
 }
 
 
-void updateCurrentHeading()
-
+void updateCurrentHeading() {
 	if((hal.scheduler->micros() - heading_timer) > 100000L){		// Run loop @ 10Hz ~ 100ms
 		heading_timer = hal.scheduler->micros();
 		current_heading = getHeading();
-		//hal.scheduler->delay(100);
 
-		if( state_change ){
-			
+		if(state_change) {
 			desired_heading = current_heading;
 			state_change = false;
-			
-			// hal.console->print( "AUTO FM - Current Heading : ");
-			// hal.console->print( current_heading );
-			// hal.console->print( ", Desired Heading : ");
-			// hal.console->println( desired_heading );	
-			
 		}
 	}
-	
-}	
+
+}
 
 void getAccel(float &accelPitch, float &accelRoll, float &accelYaw) {
 	ins.update();
