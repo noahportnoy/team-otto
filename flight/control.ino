@@ -10,7 +10,7 @@ void runFlightControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float
 	if 	(switchState == AUTO_PERFORMANCE) {
 		if (autopilotState == TAKEOFF) 			{autonomousTakeoffMode(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt, alt_output, channels);}
 		else if (autopilotState == ALT_HOLD) 	{semiautonomousAltitudeHoldMode(rcthr, rcpit, rcroll, rcyaw, alt_output, channels);}
-		else if (autopilotState == LAND) 	{autonomousLandMode(rcthr, rcpit, rcroll, rcyaw, climb_rate, accelZ, channels);}
+		else if (autopilotState == LAND) 		{autonomousLandMode(rcthr, rcpit, rcroll, rcyaw, climb_rate, accelZ, channels);}
 	}
 
 	else if (switchState == MANUAL) 			{manualFlightMode(rcthr, rcpit, rcroll, rcyaw, channels);}
@@ -222,8 +222,6 @@ void controlHeadingHold(long &rcyaw) {
 //Compass accumulate should be called frequently to accumulate readings from the compass
 	compass.accumulate();
 
-	//desired_heading = getBearing();
-
 	//Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
 	float heading_error = wrap_180(desired_heading - current_heading);
 	rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -10, 10);
@@ -247,7 +245,7 @@ void adjustThrottleForBatteryLevel() {
 
 	if((hal.scheduler->micros() - hover_thr_timer) > delay) {
 		hover_thr_timer = hal.scheduler->micros();
-		
+
 		float new_hover_thr = map(batteryVoltage, 10, 11.8, ADJ_THR_MAX, ADJ_THR_MIN);		// map HOVER_THR based on voltage of drone in flight
 
 		HOVER_THR = constrain(new_hover_thr, ADJ_THR_MIN_CONSTRAINT, ADJ_THR_MAX_CONSTRAINT);			// constrain hover throttle for saftey
