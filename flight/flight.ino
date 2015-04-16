@@ -148,6 +148,8 @@ long rcthrAtSwitch = 0;
 const float INT_LAT_TO_METER = 0.01110809;
 const float INT_LONG_TO_METER = 0.00823380;
 
+bool state_change = 0;
+
 
 /* 	------------------ Calibration Documentation ------------------
 *

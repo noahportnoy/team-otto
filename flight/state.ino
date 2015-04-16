@@ -15,20 +15,25 @@ void updateState(uint16_t channels[], long rcthr) {
 			autopilotState = THROTTLE_ASSIST;
 		}
 
+		// hal.console->print( "MANUAL - Current Heading : ");
+		// hal.console->print( current_heading );
+		// hal.console->print( ", Desired Heading : ");
+		// hal.console->println( desired_heading );
+		
+		// hal.scheduler->delay(100);
+		
 		switchState = MANUAL;
 
 	} else if ((1300 < channels[5]) && (channels[5] < 1700)) {
 
 		if (autopilotState == OFF) {														// If safety was just turned off
 			autopilotState = ALT_HOLD;
-			current_heading = getHeading();
-			desired_heading = current_heading;
-
+			state_change = true;					
+		
 		} else if (switchState == MANUAL || switchState == AUTO_PERFORMANCE) {				// If switching to AUTO_ALT_HOLD
 			pids[ALT_STAB].reset_I();
 			autopilotState = ALT_HOLD;
-			current_heading = getHeading();
-			desired_heading = current_heading;
+			state_change = true;
 		}
 
 		switchState = AUTO_ALT_HOLD;
@@ -37,14 +42,12 @@ void updateState(uint16_t channels[], long rcthr) {
 
 		if (autopilotState == OFF) {														// If safety was just turned off
 			autopilotState = TAKEOFF;
-			current_heading = getHeading();
-			desired_heading = current_heading;
+			state_change = true;
 
 		} else if (switchState == MANUAL || switchState == AUTO_ALT_HOLD) {					// If switching to AUTO_PERFORMANCE
 			pids[ALT_STAB].reset_I();
 			autopilotState = TAKEOFF;
-			current_heading = getHeading();
-			desired_heading = current_heading;
+			state_change = true;
 		}
 
 		switchState = AUTO_PERFORMANCE;
