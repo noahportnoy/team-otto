@@ -36,14 +36,14 @@ void updateState(uint16_t channels[], long rcthr) {
 ) {
 
 		if (autopilotState == OFF) {														// If safety was just turned off
-			autopilotState = LAND;
+			autopilotState = TAKEOFF;
 			current_heading = getHeading();
 			desired_heading = current_heading;
 
 		} else if (switchState == MANUAL || switchState == AUTO_ALT_HOLD) {					// If switching to AUTO_PERFORMANCE
 			//hal.console->println( " ENTERING LAND " );
 			pids[ALT_STAB].reset_I();
-			autopilotState = LAND;
+			autopilotState = TAKEOFF;
 			land_timer = hal.scheduler->micros();
 			ground_timer = land_timer;
 			fall_timer = land_timer;
