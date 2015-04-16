@@ -14,7 +14,7 @@ void runFlightControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float
 	}
 
 	else if (switchState == MANUAL) 			{manualFlightMode(rcthr, rcpit, rcroll, rcyaw, channels);}
-	else if (switchState == AUTO_FOLLOW_OR_ALT_HOLD) {
+	else if (switchState == AUTO_TEST) {
 		if (OUTDOORS)							{autonomousFollowMode(rcthr, rcpit, rcroll, rcyaw, alt_output);}
 		else 									{semiautonomousAltitudeHoldMode(rcthr, rcpit, rcroll, rcyaw, alt_output, channels);}
 	}
@@ -145,13 +145,12 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	Vector3f lat_long_error, autonomous_pitch_roll;
 	Matrix3f yaw_rotation_m;
 
-	// TODO verify that this works commented out. Drone should now converge on last good GPS coordinates.
-	// if (gps->status() < 2) {
-	// 	///PID Feedback system for pitch and roll input 0 is bad GPS state
-	// 	rcpit = 0;
-	// 	rcroll = 0;
-	// 	return;
-	// }
+	if (gps->status() < 2) {
+		///PID Feedback system for pitch and roll input 0 is bad GPS state
+		rcpit = 0;
+		rcroll = 0;
+		return;
+	}
 
 	//Get Lat and Long error
 	lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*INT_LONG_TO_METER);

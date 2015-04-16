@@ -66,7 +66,7 @@ PID pids[10];
 
 // switchState
 #define MANUAL 				0
-#define AUTO_FOLLOW_OR_ALT_HOLD 		1
+#define AUTO_TEST	 		1
 #define AUTO_PERFORMANCE 	2
 
 // autopilotState
@@ -326,8 +326,8 @@ void loop() {
 
 		if (switchState == MANUAL) {
 			hal.console->print("MANUAL");
-		} else if (switchState == AUTO_FOLLOW_OR_ALT_HOLD) {
-			hal.console->print("AUTO_FOLLOW_OR_ALT_HOLD");
+		} else if (switchState == AUTO_TEST) {
+			hal.console->print("AUTO_TEST");
 		} else if (switchState == AUTO_PERFORMANCE) {
 			hal.console->print("AUTO_PERFORMANCE");
 		}
@@ -348,10 +348,10 @@ void loop() {
 			hal.console->print("THROTTLE_ASSIST");
 		}
 
-		// hal.console->print(", desired_heading: ");
-		// hal.console->print(desired_heading);
-		// hal.console->print(", current_heading: ");
-		// hal.console->print(current_heading);
+		hal.console->print(", desired_heading: ");
+		hal.console->print(desired_heading);
+		hal.console->print(", current_heading: ");
+		hal.console->print(current_heading);
 		// hal.console->print(", distance, ");
 		// hal.console->print(distance_to_target);
 		// hal.console->print(", t, ");

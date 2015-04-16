@@ -45,7 +45,7 @@ void getGPSLock() {
 	hal.console->println("getting GPS lock");
 	gps->update();
 
-	while (gps->status() < 2) {
+	while (gps->status() < 3) {
 		gps->update();
 
 		flash_leds(true);
