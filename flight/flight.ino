@@ -152,15 +152,14 @@ float batteryVoltage = 10.9;
 int32_t drone_coordinates[] = {423935750, -725293220};
 int32_t target_coordinates[] = {423935750, -725293220};
 
+struct Location drone_filtered = {0};
+
+//initial values for the kalman filter
+float x_est_last_1, x_est_last_2 = 0;
+float P_last_1, P_last_2 = 0;
 
 const float INT_LAT_TO_METER = 0.01110809;
 const float INT_LONG_TO_METER = 0.00823380;
-
-struct Location drone_filtered = {0};
-
-//initial values for the kalman filter 
-float x_est_last_1, x_est_last_2 = 0;
-float P_last_1, P_last_2 = 0; 
 
 
 
@@ -225,7 +224,7 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 
 // Control whether to perform GPS lock on startup
 // TODO expand to control controlGpsTracking vs other functionality indoors/outdoors
-#define OUTDOORS 1
+#define OUTDOORS 0
 
 // Choose GPS target location: PHONE or FIXED
 #define GPS_TARGET FIXED
@@ -281,12 +280,14 @@ void loop() {
 	writeToMotors(rcthr, pitch_output, roll_output, yaw_output, yaw_target, accelYaw);
 
 	if (PRINT_DEBUG) {
-		// hal.console->print("rcthr, ");
-		// hal.console->print(rcthr);
+		hal.console->print("rcthr, ");
+		hal.console->print(rcthr);
 		hal.console->print(", hoverthr, ");
 		hal.console->print(HOVER_THR);
-		hal.console->print(", distance, ");
-		hal.console->print(distance_to_target);
+		hal.console->print(", rcpitch, ");
+		hal.console->print(rcpit);
+		hal.console->print(", rcroll, ");
+		hal.console->print(rcroll);
 		hal.console->print(",  rcyaw, ");
 		hal.console->print(rcyaw);
 		// hal.console->print(",  accelPitch, ");
@@ -306,13 +307,16 @@ void loop() {
 		// hal.console->print(battery_mon.voltage());
 		hal.console->print(", averaged battery voltage: ");
 		hal.console->print(batteryVoltage);
-		// if (switchState == MANUAL) {
-		// 	hal.console->print("MANUAL");
-		// } else if (switchState == AUTO_ALT_HOLD) {
-		// 	hal.console->print("AUTO_ALT_HOLD");
-		// } else if (switchState == AUTO_PERFORMANCE) {
-		// 	hal.console->print("AUTO_PERFORMANCE");
-		// }
+
+		hal.console->print(", switchState: ");
+
+		if (switchState == MANUAL) {
+			hal.console->print("MANUAL");
+		} else if (switchState == AUTO_FOLLOW_OR_ALT_HOLD) {
+			hal.console->print("AUTO_FOLLOW_OR_ALT_HOLD");
+		} else if (switchState == AUTO_PERFORMANCE) {
+			hal.console->print("AUTO_PERFORMANCE");
+		}
 
 		hal.console->print(", autopilotState: ");
 
@@ -330,10 +334,12 @@ void loop() {
 			hal.console->print("THROTTLE_ASSIST");
 		}
 
-		hal.console->print(", desired_heading, ");
+		// hal.console->print(", desired_heading: ");
 		// hal.console->print(desired_heading);
-		hal.console->print(", current_heading, ");
+		// hal.console->print(", current_heading: ");
 		// hal.console->print(current_heading);
+		// hal.console->print(", distance, ");
+		// hal.console->print(distance_to_target);
 		// hal.console->print(", t, ");
 		// hal.console->print(hal.scheduler->millis());
 

@@ -89,8 +89,6 @@ float getBearing() {
 	Western headings are positive numbers
 	South is 180 or -180  */
 
-	updateTargetCoordinates(PHONE);
-	
 	struct Location drone = {0};
 	drone.lat = drone_coordinates[1];
 	drone.lng = drone_coordinates[0];
@@ -114,9 +112,6 @@ float getBearing() {
 }
 
 float getDistanceToUser(){
-
-	updateTargetCoordinates(PHONE);
-
 	struct Location user = {0};
 	user.lat = target_coordinates[1];
 	user.lng = target_coordinates[0];
@@ -128,61 +123,61 @@ float getDistanceToUser(){
 
 //Inputs are the 'noisy' sensor inputs
 void kalmanFilter(float gps_lat, float gps_lng){
-	/** A simple kalman filter example by Adrian Boeing  www.adrianboeing.com  */  
- 
-    //the noise in the system 
+	/** A simple kalman filter example by Adrian Boeing  www.adrianboeing.com  */
+
+    //the noise in the system
     float Q = 0.022;			//Process Noise
     float R = 1.0; //0.617;  	//Sensor Noise
-     
+
     float K_1, K_2;
     float P_1, P_2;
     float P_temp_1, P_temp_2;
     float x_temp_est_1, x_temp_est_2;
-    float kalman_lat, kalman_lng; 
-    
+    float kalman_lat, kalman_lng;
+
 
     //FIRST INPUT
-    //do a prediction 
-    x_temp_est_1 = x_est_last_1; 
-    P_temp_1 = P_last_1 + Q; 
+    //do a prediction
+    x_temp_est_1 = x_est_last_1;
+    P_temp_1 = P_last_1 + Q;
 
-    //calculate the Kalman gain 
+    //calculate the Kalman gain
     K_1 = P_temp_1 * (1.0/(P_temp_1 + R));
-    
-    //correct 
-    kalman_lat = x_temp_est_1 + K_1 * (gps_lat - x_temp_est_1);  
-    P_1 = (1- K_1) * P_temp_1; 
-    //we have our new system 
 
-    //hal.console->printf(", Mesaured position, %f, ",gps_lat); 
-    //hal.console->printf(", Kalman position, %f, \n",kalman_lat); 
-     
-    //update our last's 
-    P_last_1 = P_1; 
-    x_est_last_1 = kalman_lat; 
-    
+    //correct
+    kalman_lat = x_temp_est_1 + K_1 * (gps_lat - x_temp_est_1);
+    P_1 = (1- K_1) * P_temp_1;
+    //we have our new system
+
+    //hal.console->printf(", Mesaured position, %f, ",gps_lat);
+    //hal.console->printf(", Kalman position, %f, \n",kalman_lat);
+
+    //update our last's
+    P_last_1 = P_1;
+    x_est_last_1 = kalman_lat;
+
 
 
     //SECOND INPUT
 
-    //do a prediction 
-    x_temp_est_2 = x_est_last_2; 
-    P_temp_2 = P_last_2 + Q; 
+    //do a prediction
+    x_temp_est_2 = x_est_last_2;
+    P_temp_2 = P_last_2 + Q;
 
-    //calculate the Kalman gain 
+    //calculate the Kalman gain
     K_2 = P_temp_2 * (1.0/(P_temp_2 + R));
-    
-    //correct 
-    kalman_lng = x_temp_est_2 + K_2 * (gps_lng - x_temp_est_2);  
-    P_2 = (1- K_2) * P_temp_2; 
-    //we have our new system 
 
-    //hal.console->printf(", Mesaured position, %f, ",gps_lng); 
-    //hal.console->printf(", Kalman position, %f, \n",kalman_lng); 
-     
-    //update our last's 
-    P_last_2 = P_2; 
-    x_est_last_2 = kalman_lng; 
+    //correct
+    kalman_lng = x_temp_est_2 + K_2 * (gps_lng - x_temp_est_2);
+    P_2 = (1- K_2) * P_temp_2;
+    //we have our new system
+
+    //hal.console->printf(", Mesaured position, %f, ",gps_lng);
+    //hal.console->printf(", Kalman position, %f, \n",kalman_lng);
+
+    //update our last's
+    P_last_2 = P_2;
+    x_est_last_2 = kalman_lng;
 
 
     drone_filtered.lat =  kalman_lat;
