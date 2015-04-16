@@ -21,14 +21,12 @@ void updateState(uint16_t channels[], long rcthr) {
 
 		if (autopilotState == OFF) {														// If safety was just turned off
 			autopilotState = ALT_HOLD;
-			current_heading = getHeading();
-			desired_heading = current_heading;
+			state_change = true;
 
 		} else if (switchState == MANUAL || switchState == AUTO_PERFORMANCE) {				// If switching to AUTO_FOLLOW_OR_ALT_HOLD
 			pids[ALT_STAB].reset_I();
 			autopilotState = ALT_HOLD;
-			current_heading = getHeading();
-			desired_heading = current_heading;
+			state_change = true;
 		}
 
 		switchState = AUTO_FOLLOW_OR_ALT_HOLD;
@@ -43,8 +41,7 @@ void updateState(uint16_t channels[], long rcthr) {
 			pids[ALT_STAB].reset_I();											// reset i; reset PID integrals while in manual mode
 			autopilotState = TAKEOFF;
 			uartMessaging.resetTakeOff();										// reset the isTakeoff boolean. isTakeOff will become true again only if phone requests takeoff again
-			current_heading = getHeading();
-			desired_heading = current_heading;
+			state_change = true;
 		}
 
 		switchState = AUTO_PERFORMANCE;

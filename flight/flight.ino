@@ -146,6 +146,7 @@ int switchState = 0;
 int autopilotState = 0;
 long rcthrAtSwitch = 0;
 float batteryVoltage = 10.9;
+bool state_change = 0;
 
 // Initialize drone and target coordinates to location in the engineering quad,
 // in the middle of the farther grassy area (will be overwritten on update)
