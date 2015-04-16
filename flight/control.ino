@@ -107,12 +107,12 @@ void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 				land_average = 0;
 			}
 		}
-
-		// rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
-		// rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
-		controlGpsHold(rcpit, rcroll);
-		controlHeadingHold(rcyaw);
 	}
+
+	// rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
+	// rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
+	controlGpsHold(rcpit, rcroll);
+	controlHeadingHold(rcyaw);
 }
 
 void semiautonomousAltitudeHoldMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,

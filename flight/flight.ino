@@ -241,10 +241,10 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 #define OUTDOORS 1
 
 // Choose whether GPS tracking should follow the PHONE or a FIXED position
-#define GPS_TRACKING_TARGET FIXED
+#define GPS_TRACKING_TARGET PHONE
 
-// Choose whether GPS tracking should have heading TRACKING or HOLD
-#define GPS_TRACKING_HEADING HOLD
+// Choose whether GPS tracking should have heading TARGET or HOLD
+#define GPS_TRACKING_HEADING TARGET
 
 
 /*---------------------------------------------------- SETUP ----------------------------------------------*/
@@ -260,7 +260,7 @@ void setup() {
 	setupGPS();
 	setupBatteryMonitor();
 	// Initialize the Altitude Hold Reference System
-	//ahrs.init();
+	// ahrs.init();
 	if(OUTDOORS) {getGPSLock();}
 	hal.console->println("Otto Ready.");
 }
