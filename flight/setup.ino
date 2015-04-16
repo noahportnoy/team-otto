@@ -23,52 +23,11 @@ void setupBarometer() {
 
 void setupMPU() {
 	// Turn on MPU6050 - quad must be kept still as gyros will calibrate
-	
+
 	ins.init(AP_InertialSensor::COLD_START,
 			 AP_InertialSensor::RATE_100HZ,
 			 flash_leds);
 	ins.init_accel(flash_leds);
-	ahrs.init();
-	float roll_trim, pitch_trim;
-	ins.calibrate_accel( NULL , NULL , roll_trim , pitch_trim );
-	ahrs.set_trim( Vector3f( roll_trim , pitch_trim , 0 ) );
-	
-	Vector3f test = ins.get_accel_offsets();
-	Vector3f test_s = ins.get_accel_scale();
-	Vector3f gyro_t = ins.get_gyro_offsets();
-	
-	hal.console->printf_P(
-		PSTR("\nAccel Offsets X:%10.8f \t Y:%10.8f \t Z:%10.8f\n"),
-				test.x,
-				test.y,
-				test.z);
-				
-	hal.console->printf_P(
-		PSTR("\nAccel Scale	 X:%10.8f \t Y:%10.8f \t Z:%10.8f\n"),
-				test_s.x,
-				test_s.y,
-				test_s.z);
-	
-	hal.console->printf_P(
-		PSTR("\nGyro Offsets X:%10.8f \t Y:%10.8f \t Z:%10.8f\n"),
-				gyro_t.x,
-				gyro_t.y,
-				gyro_t.z);
-	
-	// Vector3f accel_offset = Vector3f( 0.04854903 , 0.14138588 , 1.95303880 );
-    // Vector3f accel_scale = Vector3f( 0.99788916 , 0.99240148 , 0.98475480 );
-	
-	//ins.set_accel_offsets( accel_offset );
-	
-	//test = ins.get_accel_offsets();
-	
-	// hal.console->printf_P(
-		// PSTR("\nAccel Offsets X:%10.8f \t Y:%10.8f \t Z:%10.8f\n"),
-				// test.x,
-				// test.y,
-				// test.z);
-	
-	
 
 	// initialise sensor fusion on MPU6050 chip (aka DigitalMotionProcessing/DMP)
 	hal.scheduler->suspend_timer_procs();  // stop bus collisions

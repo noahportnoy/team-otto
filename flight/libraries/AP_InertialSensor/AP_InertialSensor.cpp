@@ -246,8 +246,8 @@ AP_InertialSensor::_init_accel(void (*flash_leds_cb)(bool on))
     hal.console->printf_P(PSTR("Init Accel"));
 
     // clear accelerometer offsets and scaling
-    _accel_offset = Vector3f( 0 , 0 , 0 );
-    _accel_scale = Vector3f( 1 , 1 , 1 );
+    _accel_offset = Vector3f(0,0,0);
+    _accel_scale = Vector3f(1,1,1);
 
     // initialise accel offsets to a large value the first time
     // this will force us to calibrate accels at least twice
@@ -328,8 +328,8 @@ bool AP_InertialSensor::calibrate_accel(void (*flash_leds_cb)(bool on),
     orig_scale = _accel_scale.get();
 
     // clear accelerometer offsets and scaling
-    _accel_offset = Vector3f( 0 , 0 , 0 );
-    _accel_scale = Vector3f( 1 , 1 , 1 );
+    _accel_offset = Vector3f(0,0,0);
+    _accel_scale = Vector3f(1,1,1);
 
     // capture data from 6 positions
     for (int8_t i=0; i<6; i++) {

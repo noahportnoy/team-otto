@@ -130,8 +130,6 @@ public:
     void set_board_orientation(enum Rotation orientation) {
         _board_orientation = orientation;
     }
-	
-	virtual bool            _calibrate_accel(Vector3f accel_sample[6], Vector3f& accel_offsets, Vector3f& accel_scale);
 
 protected:
 
@@ -149,7 +147,7 @@ protected:
     // original sketch available at http://rolfeschmidt.com/mathtools/skimetrics/adxl_gn_calibration.pde
 
     // _calibrate_accel - perform low level accel calibration
-    
+    virtual bool            _calibrate_accel(Vector3f accel_sample[6], Vector3f& accel_offsets, Vector3f& accel_scale);
     virtual void            _calibrate_update_matrices(float dS[6], float JS[6][6], float beta[6], float data[3]);
     virtual void            _calibrate_reset_matrices(float dS[6], float JS[6][6]);
     virtual void            _calibrate_find_delta(float dS[6], float JS[6][6], float delta[6]);

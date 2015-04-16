@@ -2,7 +2,7 @@
 void updateReadings(uint16_t channels[], long &safety,
 					float &accelPitch, float &accelRoll, float &accelYaw,
 					float &gyroPitch, float &gyroRoll, float &gyroYaw,
-					float &alt, float &climb_rate, float& accelZ, float &AVG_OFF_BUTTON_VALUE) {
+					float &alt, float &climb_rate, float &accelZ, float &AVG_OFF_BUTTON_VALUE) {
 
 	// Wait until new orientation data (normally 5ms max)
 	while(ins.num_samples_available() == 0);
@@ -32,9 +32,8 @@ void getAccel(float &accelPitch, float &accelRoll, float &accelYaw, float &accel
 	accelPitch = ToDeg(accelPitch);
 	accelRoll = ToDeg(accelRoll);
 	accelYaw = ToDeg(accelYaw);
-	
+
 	Vector3f accel = ins.get_accel();
-	
 	accelZ = accel.z;
 }
 
