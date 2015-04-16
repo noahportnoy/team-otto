@@ -279,14 +279,14 @@ void loop() {
 	writeToMotors(rcthr, pitch_output, roll_output, yaw_output, yaw_target, accelYaw);
 
 	if (PRINT_DEBUG) {
-		// hal.console->print("rcthr, ");
-		// hal.console->print(rcthr);
-		// hal.console->print(", hoverthr, ");
-		// hal.console->print(HOVER_THR);
-		// hal.console->print(", rcpitch, ");
-		// hal.console->print(rcpit);
-		// hal.console->print(", rcroll, ");
-		// hal.console->print(rcroll);
+		hal.console->print("rcthr, ");
+		hal.console->print(rcthr);
+		hal.console->print(", hoverthr, ");
+		hal.console->print(HOVER_THR);
+		hal.console->print(", rcpitch, ");
+		hal.console->print(rcpit);
+		hal.console->print(", rcroll, ");
+		hal.console->print(rcroll);
 		hal.console->print(",  rcyaw, ");
 		hal.console->print(rcyaw);
 		// hal.console->print(",  accelPitch, ");
@@ -301,6 +301,9 @@ void loop() {
 		// hal.console->print(roll_output);
 		// hal.console->print(", yaw_out: ");
 		// hal.console->print(yaw_output);
+
+		// hal.console->printf_P(PSTR("Accel pitch:%4.2f \t roll:%4.2f \t yaw:%4.2f \t Gyro pitch:%4.2f \t roll:%4.2f \t yaw:%4.2f\n"),
+		// 						  accelPitch, accelRoll, accelYaw,  gyroPitch, gyroRoll, gyroYaw);
 
 		// hal.console->print(", battery, ");
 		// hal.console->print(battery_mon.voltage());
@@ -333,9 +336,6 @@ void loop() {
 		// 	hal.console->print("THROTTLE_ASSIST");
 		// }
 
-		hal.console->printf_P(PSTR("Accel pitch:%4.2f \t roll:%4.2f \t yaw:%4.2f \t Gyro pitch:%4.2f \t roll:%4.2f \t yaw:%4.2f\n"),
-								  accelPitch, accelRoll, accelYaw,  gyroPitch, gyroRoll, gyroYaw);
-
 		// hal.console->print(", desired_heading: ");
 		// hal.console->print(desired_heading);
 		// hal.console->print(", current_heading: ");
@@ -345,7 +345,7 @@ void loop() {
 		// hal.console->print(", t, ");
 		// hal.console->print(hal.scheduler->millis());
 
-		// hal.console->println("");
+		hal.console->println("");
 	}
 }
 
