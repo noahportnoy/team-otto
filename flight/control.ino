@@ -84,7 +84,7 @@ void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 			rcthr = HOVER_THR;
 			ground_timer = hal.scheduler->micros();
 			throttle_modifier = 10;
-		} else if (hal.scheduler->micros() - ground_timer > 500000) {
+		} else if (hal.scheduler->micros() - ground_timer > 200000) {
 			//hal.console->println( "------------------------------------------ Ground ADJ ");
 			if (accelZ > -9.0) {
 				throttle_modifier = throttle_modifier + 10;
@@ -198,9 +198,9 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	autonomous_pitch_roll = yaw_rotation_m*lat_long_error;
 
 	//PID Feedback system for pitch and roll.
-	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -12, 12);
+	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -8, 8);
 	rcpit = -rcpit;		// flip rcpit for proper mapping (neg pitch is forward)
-	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -12, 12);
+	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -8, 8);
 
 	if (PRINT_DEBUG) {
 		// hal.console->print("Yaw Rotation Matrix:  ");
@@ -266,9 +266,9 @@ void controlGpsHold(long &rcpit, long &rcroll) {
 	autonomous_pitch_roll = yaw_rotation_m*lat_long_error;
 
 	//PID Feedback system for pitch and roll.
-	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -10, 10);
+	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -8, 8);
 	rcpit = -rcpit;		// flip rcpit for proper mapping (neg pitch is forward)
-	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -10, 10);
+	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -8, 8);
 }
 
 

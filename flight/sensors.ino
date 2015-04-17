@@ -35,27 +35,9 @@ void getAccel(float &accelPitch, float &accelRoll, float &accelYaw, float &accel
 	float trim_roll = -0.081;
 	float trim_pitch = 0.145;
 
-	// ins.update();
+	ins.update();
 
-	// ins.quaternion.to_euler(&accelRoll, &accelPitch, &accelYaw);		// Ask MPU6050 for orientation
-
-	// Matrix3f temp;
-	// temp.from_euler(accelRoll, accelPitch, accelYaw);
-	// temp.rotate(Vector3f(trim_roll, trim_pitch, 0));
-	// temp.to_euler(&accelRoll, &accelPitch, &accelYaw);
-
-	// accelPitch = ToDeg(accelPitch);
-	// accelRoll = ToDeg(accelRoll);
-	// accelYaw = ToDeg(accelYaw);
-
-	// Vector3f accel = ins.get_accel();
-	// accelZ = accel.z;
-
-	ahrs.update();
-
-	accelPitch = ahrs.pitch;
-	accelRoll = ahrs.roll;
-	accelYaw = ahrs.yaw;
+	ins.quaternion.to_euler(&accelRoll, &accelPitch, &accelYaw);		// Ask MPU6050 for orientation
 
 	Matrix3f temp;
 	temp.from_euler(accelRoll, accelPitch, accelYaw);
@@ -68,6 +50,24 @@ void getAccel(float &accelPitch, float &accelRoll, float &accelYaw, float &accel
 
 	Vector3f accel = ins.get_accel();
 	accelZ = accel.z;
+
+	// ahrs.update();
+
+	// accelPitch = ahrs.pitch;
+	// accelRoll = ahrs.roll;
+	// accelYaw = ahrs.yaw;
+
+	// Matrix3f temp;
+	// temp.from_euler(accelRoll, accelPitch, accelYaw);
+	// temp.rotate(Vector3f(trim_roll, trim_pitch, 0));
+	// temp.to_euler(&accelRoll, &accelPitch, &accelYaw);
+
+	// accelPitch = ToDeg(accelPitch);
+	// accelRoll = ToDeg(accelRoll);
+	// accelYaw = ToDeg(accelYaw);
+
+	// Vector3f accel = ins.get_accel();
+	// accelZ = accel.z;
 }
 
 void getGyro(float &gyroPitch, float &gyroRoll, float &gyroYaw) {
@@ -87,7 +87,7 @@ float getHeading() {
 	*/
 
 	//Use AHRS for Heading
-	// ahrs.update();
+	ahrs.update();
 	compass.read();
 	float heading = compass.calculate_heading(ahrs.get_dcm_matrix());
 	//Vector3f drift  = ahrs.get_gyro_drift();
