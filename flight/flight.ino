@@ -246,7 +246,7 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 #define GPS_TRACKING_TARGET FIXED
 
 // Choose whether GPS tracking should have heading TARGET or HOLD
-#define GPS_TRACKING_HEADING TARGET
+#define GPS_TRACKING_HEADING HOLD
 
 const int SEPERATION_DISTANCE = 10;
 
@@ -302,22 +302,24 @@ void loop() {
 	writeToMotors(rcthr, pitch_output, roll_output, yaw_output, yaw_target, accelYaw);
 
 	if (PRINT_DEBUG) {
-		hal.console->print("rcthr, ");
-		hal.console->print(rcthr);
-		hal.console->print(", hoverthr, ");
-		hal.console->print(HOVER_THR);
-		hal.console->print(", rcpitch, ");
-		hal.console->print(rcpit);
-		hal.console->print(", rcroll, ");
-		hal.console->print(rcroll);
-		hal.console->print(",  rcyaw, ");
-		hal.console->print(rcyaw);
-		// hal.console->print(",  accelPitch, ");
-		// hal.console->print(accelPitch);
-		// hal.console->print(",  accelRoll, ");
-		// hal.console->print(accelRoll);
-		// hal.console->print(",  accelYaw, ");
-		// hal.console->print(accelYaw);
+		// hal.console->print("rcthr, ");
+		// hal.console->print(rcthr);
+		// hal.console->print(", hoverthr, ");
+		// hal.console->print(HOVER_THR);
+		// hal.console->print(", rcpitch, ");
+		// hal.console->print(rcpit);
+		// hal.console->print(", rcroll, ");
+		// hal.console->print(rcroll);
+		// hal.console->print(",  rcyaw, ");
+		// hal.console->print(rcyaw);
+		hal.console->print(",  accelPitch, ");
+		hal.console->print(accelPitch);
+		hal.console->print(",  accelRoll, ");
+		hal.console->print(accelRoll);
+		hal.console->print(",  accelYaw, ");
+		hal.console->print(accelYaw);
+		hal.console->print(",  accelZ, ");
+		hal.console->print(accelZ);
 		// hal.console->print(", pitch_out: ");
 		// hal.console->print(pitch_output);
 		// hal.console->print(", roll_out: ");
@@ -333,31 +335,31 @@ void loop() {
 		// hal.console->print(", averaged battery voltage: ");
 		// hal.console->print(batteryVoltage);
 
-		hal.console->print(", switchState: ");
+		// hal.console->print(", switchState: ");
 
-		if (switchState == MANUAL) {
-			hal.console->print("MANUAL");
-		} else if (switchState == AUTO_TEST) {
-			hal.console->print("AUTO_TEST");
-		} else if (switchState == AUTO_PERFORMANCE) {
-			hal.console->print("AUTO_PERFORMANCE");
-		}
+		// if (switchState == MANUAL) {
+		// 	hal.console->print("MANUAL");
+		// } else if (switchState == AUTO_TEST) {
+		// 	hal.console->print("AUTO_TEST");
+		// } else if (switchState == AUTO_PERFORMANCE) {
+		// 	hal.console->print("AUTO_PERFORMANCE");
+		// }
 
-		hal.console->print(", autopilotState: ");
+		// hal.console->print(", autopilotState: ");
 
-		if (autopilotState == OFF) {
-			hal.console->print("OFF");
-		} else if(autopilotState == MANUAL_OVERRIDE) {
-			hal.console->print("MANUAL_OVERRIDE");
-		} else if (autopilotState == TAKEOFF) {
-			hal.console->print("TAKEOFF");
-		} else if (autopilotState == ALT_HOLD) {
-			hal.console->print("ALT_HOLD");
-		} else if (autopilotState == LAND) {
-			hal.console->print("LAND");
-		} else if (autopilotState == THROTTLE_ASSIST) {
-			hal.console->print("THROTTLE_ASSIST");
-		}
+		// if (autopilotState == OFF) {
+		// 	hal.console->print("OFF");
+		// } else if(autopilotState == MANUAL_OVERRIDE) {
+		// 	hal.console->print("MANUAL_OVERRIDE");
+		// } else if (autopilotState == TAKEOFF) {
+		// 	hal.console->print("TAKEOFF");
+		// } else if (autopilotState == ALT_HOLD) {
+		// 	hal.console->print("ALT_HOLD");
+		// } else if (autopilotState == LAND) {
+		// 	hal.console->print("LAND");
+		// } else if (autopilotState == THROTTLE_ASSIST) {
+		// 	hal.console->print("THROTTLE_ASSIST");
+		// }
 
 		hal.console->print(", desired_heading: ");
 		hal.console->print(desired_heading);

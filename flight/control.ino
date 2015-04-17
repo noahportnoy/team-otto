@@ -166,12 +166,12 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 		return;
 	}
 
-	int32_t offset_target_coordinates[] = {0, 0};
-	dynamicTargetUpdate(offset_target_coordinates);
+	// int32_t offset_target_coordinates[] = {0, 0};
+	// dynamicTargetUpdate(offset_target_coordinates);
 
 	//Get Lat and Long error
-	lat_long_error.x = (float)((offset_target_coordinates[0] - drone_coordinates[0])*INT_LONG_TO_METER);
-	lat_long_error.y = (float)((offset_target_coordinates[1] - drone_coordinates[1])*INT_LAT_TO_METER);
+	lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*INT_LONG_TO_METER);
+	lat_long_error.y = (float)((target_coordinates[1] - drone_coordinates[1])*INT_LAT_TO_METER);
 	lat_long_error.z = 0;
 
 	/*
@@ -194,9 +194,9 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	autonomous_pitch_roll = yaw_rotation_m*lat_long_error;
 
 	//PID Feedback system for pitch and roll.
-	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -5, 5);
+	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -10, 10);
 	rcpit = -rcpit;		// flip rcpit for proper mapping (neg pitch is forward)
-	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5);
+	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -10, 10);
 
 	if (PRINT_DEBUG) {
 		// hal.console->print("Yaw Rotation Matrix:  ");
@@ -262,9 +262,9 @@ void controlGpsHold(long &rcpit, long &rcroll) {
 	autonomous_pitch_roll = yaw_rotation_m*lat_long_error;
 
 	//PID Feedback system for pitch and roll.
-	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -5, 5);
+	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -10, 10);
 	rcpit = -rcpit;		// flip rcpit for proper mapping (neg pitch is forward)
-	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -5, 5);
+	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -10, 10);
 }
 
 
