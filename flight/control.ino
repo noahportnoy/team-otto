@@ -9,7 +9,10 @@ void runFlightControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float
 
 	if 	(switchState == AUTO_PERFORMANCE) {
 		if (autopilotState == TAKEOFF) 			{autonomousTakeoffMode(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt, alt_output, channels);}
-		else if (autopilotState == ALT_HOLD) 	{semiautonomousAltitudeHoldMode(rcthr, rcpit, rcroll, rcyaw, alt_output, channels);}
+		else if (autopilotState == ALT_HOLD) 	{
+			if (OUTDOORS)							{autonomousFollowMode(rcthr, rcpit, rcroll, rcyaw, alt_output);}
+			else 									{semiautonomousAltitudeHoldMode(rcthr, rcpit, rcroll, rcyaw, alt_output, channels);}
+		}
 		else if (autopilotState == LAND) 		{autonomousLandMode(rcthr, rcpit, rcroll, rcyaw, climb_rate, accelZ, channels);}
 	}
 
@@ -135,6 +138,7 @@ void semiautonomousAltitudeHoldMode(long &rcthr, long &rcpit, long &rcroll, long
 	rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
 	rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
 	controlHeadingHold(rcyaw);
+	//controlHeadingTracking(rcyaw);
 }
 
 void autonomousFollowMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
@@ -194,9 +198,9 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	autonomous_pitch_roll = yaw_rotation_m*lat_long_error;
 
 	//PID Feedback system for pitch and roll.
-	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -10, 10);
+	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -12, 12);
 	rcpit = -rcpit;		// flip rcpit for proper mapping (neg pitch is forward)
-	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -10, 10);
+	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -12, 12);
 
 	if (PRINT_DEBUG) {
 		// hal.console->print("Yaw Rotation Matrix:  ");

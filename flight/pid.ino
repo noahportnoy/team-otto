@@ -34,11 +34,11 @@ void setPidConstants(int config) {
 		pids[ALT_STAB].imax(20);
 
 		//Below are the PIDs for autonomous control
-		pids[PITCH_CMD].kP(0.8);
+		pids[PITCH_CMD].kP(0.85);
 		pids[PITCH_CMD].kI(0.0);
 		pids[PITCH_CMD].imax(50);
 
-		pids[ROLL_CMD].kP(0.8);
+		pids[ROLL_CMD].kP(0.85);
 		pids[ROLL_CMD].kI(0.0);
 		pids[ROLL_CMD].imax(50);
 

@@ -28,9 +28,13 @@ void updatePhoneCoordinates() {
 }
 
 void updateFixedCoordinates() {
+	// In the well-lit parking lot near the PVTA buses
+	target_coordinates[1] = 423939605;
+	target_coordinates[0] = -725323769;
+
 	// In the middle of the farther grassy area, in the engineering quad
-	target_coordinates[1] = 423935750;
-	target_coordinates[0] = -725293220;
+	// target_coordinates[1] = 423935750;
+	// target_coordinates[0] = -725293220;
 
 	// Quad coordinates
 	// target_coordinates[1] = 423935390;

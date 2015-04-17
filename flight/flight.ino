@@ -243,7 +243,7 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 #define OUTDOORS 1
 
 // Choose whether GPS tracking should follow the PHONE or a FIXED position
-#define GPS_TRACKING_TARGET FIXED
+#define GPS_TRACKING_TARGET PHONE
 
 // Choose whether GPS tracking should have heading TARGET or HOLD
 #define GPS_TRACKING_HEADING HOLD
@@ -285,7 +285,7 @@ void loop() {
 	updateState(channels, rcthr);
 	sendDataToPhone(alt, rcthr, accelZ);
 	distance_to_target = getDistanceToUser();
-	desired_alt = 1.0; //Hard code in desired_alt
+	desired_alt = 1.5; //Hard code in desired_alt
 
 	while((AVG_OFF_BUTTON_VALUE < 1.0) || (safety < 1500)) {			// Kill motors when [off switch] or [safety] is on
 		updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt,
@@ -302,24 +302,24 @@ void loop() {
 	writeToMotors(rcthr, pitch_output, roll_output, yaw_output, yaw_target, accelYaw);
 
 	if (PRINT_DEBUG) {
-		// hal.console->print("rcthr, ");
-		// hal.console->print(rcthr);
-		// hal.console->print(", hoverthr, ");
-		// hal.console->print(HOVER_THR);
-		// hal.console->print(", rcpitch, ");
-		// hal.console->print(rcpit);
-		// hal.console->print(", rcroll, ");
-		// hal.console->print(rcroll);
-		// hal.console->print(",  rcyaw, ");
-		// hal.console->print(rcyaw);
-		hal.console->print(",  accelPitch, ");
-		hal.console->print(accelPitch);
-		hal.console->print(",  accelRoll, ");
-		hal.console->print(accelRoll);
-		hal.console->print(",  accelYaw, ");
-		hal.console->print(accelYaw);
-		hal.console->print(",  accelZ, ");
-		hal.console->print(accelZ);
+		hal.console->print("rcthr, ");
+		hal.console->print(rcthr);
+		hal.console->print(", hoverthr, ");
+		hal.console->print(HOVER_THR);
+		hal.console->print(", rcpitch, ");
+		hal.console->print(rcpit);
+		hal.console->print(", rcroll, ");
+		hal.console->print(rcroll);
+		hal.console->print(",  rcyaw, ");
+		hal.console->print(rcyaw);
+		// hal.console->print(",  accelPitch, ");
+		// hal.console->print(accelPitch);
+		// hal.console->print(",  accelRoll, ");
+		// hal.console->print(accelRoll);
+		// hal.console->print(",  accelYaw, ");
+		// hal.console->print(accelYaw);
+		// hal.console->print(",  accelZ, ");
+		// hal.console->print(accelZ);
 		// hal.console->print(", pitch_out: ");
 		// hal.console->print(pitch_output);
 		// hal.console->print(", roll_out: ");
