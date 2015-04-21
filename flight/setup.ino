@@ -39,6 +39,13 @@ void setupOffButton() {
 	OFF_BUTTON_VALUE = hal.analogin->channel(OFF_BUTTON);
 }
 
+void setupLandTriggers(){
+	FRONT_LEFT_TRIGGER_VALUE = hal.analogin->channel( FRONT_LEFT_TRIGGER );
+	FRONT_RIGHT_TRIGGER_VALUE = hal.analogin->channel( FRONT_RIGHT_TRIGGER );
+	BACK_LEFT_TRIGGER_VALUE = hal.analogin->channel( BACK_LEFT_TRIGGER );
+	BACK_RIGHT_TRIGGER_VALUE = hal.analogin->channel( BACK_RIGHT_TRIGGER );
+}
+
 void setupCompass() {
 	if (!compass.init()) {
 		hal.console->println("compass initialization failed!");

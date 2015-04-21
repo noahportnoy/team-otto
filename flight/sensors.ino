@@ -2,7 +2,8 @@
 void updateReadings(uint16_t channels[], long &safety,
 					float &accelPitch, float &accelRoll, float &accelYaw,
 					float &gyroPitch, float &gyroRoll, float &gyroYaw,
-					float &alt, float &climb_rate, float &accelZ, float &AVG_OFF_BUTTON_VALUE) {
+					float &alt, float &climb_rate, float &accelZ, float &AVG_OFF_BUTTON_VALUE, float &AVG_FRONT_LEFT_TRIGGER_VALUE,
+					float &AVG_FRONT_RIGHT_TRIGGER_VALUE, float &AVG_BACK_LEFT_TRIGGER_VALUE, float &AVG_BACK_RIGHT_TRIGGER_VALUE) {
 
 	// Wait until new orientation data (normally 5ms max)
 	while(ins.num_samples_available() == 0);
@@ -15,7 +16,24 @@ void updateReadings(uint16_t channels[], long &safety,
 
 	hal.rcin->read(channels, 8);
 	safety = channels[4];
+	
 	AVG_OFF_BUTTON_VALUE = OFF_BUTTON_VALUE->voltage_average();
+	AVG_FRONT_LEFT_TRIGGER_VALUE = FRONT_LEFT_TRIGGER_VALUE->voltage_average();
+	AVG_FRONT_RIGHT_TRIGGER_VALUE = FRONT_RIGHT_TRIGGER_VALUE->voltage_average();
+	AVG_BACK_LEFT_TRIGGER_VALUE = BACK_LEFT_TRIGGER_VALUE->voltage_average();
+	AVG_BACK_RIGHT_TRIGGER_VALUE = BACK_RIGHT_TRIGGER_VALUE->voltage_average();
+
+	// hal.console->print( "FL value : ");
+	// hal.console->print( AVG_FRONT_LEFT_TRIGGER_VALUE );
+	// hal.console->print( "FR value : ");
+	// hal.console->print( AVG_FRONT_RIGHT_TRIGGER_VALUE );
+	// hal.console->print( "BL value : ");
+	// hal.console->print( AVG_BACK_LEFT_TRIGGER_VALUE );
+	// hal.console->print( "BR value : ");
+	// hal.console->println( AVG_BACK_RIGHT_TRIGGER_VALUE );
+	// hal.console->println("\n");
+	// hal.scheduler->delay(200);
+	
 	getAltitudeData(alt, climb_rate);
 	getAccel(accelPitch, accelRoll, accelYaw, accelZ);
 	getGyro(gyroPitch, gyroRoll, gyroYaw);
@@ -154,4 +172,21 @@ void getAltitudeData(float &alt, float &climb_rate) {
 			// battery_mon.current_total_mah());
 		}
 	}
+}
+
+int getGroundedTriggers( float AVG_FRONT_LEFT_TRIGGER_VALUE, float AVG_FRONT_RIGHT_TRIGGER_VALUE, 
+						float AVG_BACK_LEFT_TRIGGER_VALUE, float AVG_BACK_RIGHT_TRIGGER_VALUE ){
+							
+	unsigned int numGroundedTriggers = 0;
+	if( AVG_FRONT_LEFT_TRIGGER_VALUE < 4.0 )
+		numGroundedTriggers++;
+	if( AVG_FRONT_RIGHT_TRIGGER_VALUE < 4.0 )
+		numGroundedTriggers++;
+	if( AVG_BACK_LEFT_TRIGGER_VALUE < 4.0 )
+		numGroundedTriggers++;
+	if( AVG_BACK_RIGHT_TRIGGER_VALUE < 4.0 )
+		numGroundedTriggers++;
+							
+	return numGroundedTriggers;						
+	
 }

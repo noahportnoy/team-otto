@@ -3,7 +3,9 @@
 
 
 void runFlightControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float &desired_alt,
-					long alt_output, float alt, float climb_rate, float accelZ, uint16_t channels[]) {
+					long alt_output, float alt, float climb_rate, float accelZ, uint16_t channels[], 
+					float AVG_FRONT_LEFT_TRIGGER_VALUE, float AVG_FRONT_RIGHT_TRIGGER_VALUE,
+					float AVG_BACK_LEFT_TRIGGER_VALUE, float AVG_BACK_RIGHT_TRIGGER_VALUE) {
 
 	// TODO add switch functionality for autonomous land
 
@@ -13,7 +15,9 @@ void runFlightControl(long &rcthr, long &rcpit, long &rcroll, long &rcyaw, float
 			if (OUTDOORS)							{autonomousFollowMode(rcthr, rcpit, rcroll, rcyaw, alt_output);}
 			else 									{semiautonomousAltitudeHoldMode(rcthr, rcpit, rcroll, rcyaw, alt_output, channels);}
 		}
-		else if (autopilotState == LAND) 		{autonomousLandMode(rcthr, rcpit, rcroll, rcyaw, climb_rate, accelZ, channels);}
+		else if (autopilotState == LAND) 		{autonomousLandMode(rcthr, rcpit, rcroll, rcyaw, climb_rate, accelZ, channels,
+												AVG_FRONT_LEFT_TRIGGER_VALUE, AVG_FRONT_RIGHT_TRIGGER_VALUE, 
+												AVG_BACK_LEFT_TRIGGER_VALUE, AVG_BACK_RIGHT_TRIGGER_VALUE);}
 	}
 
 	else if (switchState == MANUAL) 			{manualFlightMode(rcthr, rcpit, rcroll, rcyaw, channels);}
@@ -67,7 +71,9 @@ void autonomousTakeoffMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 }
 
 void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
-						float climb_rate, float accelZ, uint16_t channels[]) {
+						float climb_rate, float accelZ, uint16_t channels[], float AVG_FRONT_LEFT_TRIGGER_VALUE,
+						float AVG_FRONT_RIGHT_TRIGGER_VALUE, float AVG_BACK_LEFT_TRIGGER_VALUE,
+						float AVG_BACK_RIGHT_TRIGGER_VALUE) {
 
 	if( throttle_modifier > 150 ){
 		rcthr = 1000;
@@ -75,22 +81,26 @@ void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 	} else {
 		rcthr = HOVER_THR - throttle_modifier;
 
-		// hal.console->print( "--------------------------------------------- Ground timer : ");
+		// hal.console->println( "LAND ");
 		// hal.console->print( hal.scheduler->micros() - ground_timer );
 		// hal.console->print( " , fall timer : " );
 		// hal.console->println( fall_timer );
 
-		if( climb_rate < -0.15 ){
+		if( (climb_rate < -0.10) && !ground_flag ){
 			rcthr = HOVER_THR;
 			ground_timer = hal.scheduler->micros();
 			throttle_modifier = 10;
-		} else if (hal.scheduler->micros() - ground_timer > 200000) {
-			//hal.console->println( "------------------------------------------ Ground ADJ ");
-			if (accelZ > -9.0) {
-				throttle_modifier = throttle_modifier + 10;
+		} 
+		
+		if ( getGroundedTriggers(AVG_FRONT_LEFT_TRIGGER_VALUE, AVG_FRONT_RIGHT_TRIGGER_VALUE, 
+												AVG_BACK_LEFT_TRIGGER_VALUE, AVG_BACK_RIGHT_TRIGGER_VALUE) > 1 ) {
+			
+			//hal.console->println( "------------------------------------------ Grounded ");
+			
+				throttle_modifier = throttle_modifier + 100;
 				ground_timer = hal.scheduler->micros();
 				ground_flag == true;
-			}
+			
 		}
 
 		// if (hal.scheduler->micros() - fall_timer > 500000) {
@@ -102,7 +112,7 @@ void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 
 
 
-		if (hal.scheduler->micros() - land_timer > land_interval) {
+		if ( ground_flag ) {
 			land_total += accelZ;
 			land_counter++;
 			land_average = (land_total / land_counter);

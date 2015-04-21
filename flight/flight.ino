@@ -51,6 +51,11 @@
 
 #define OFF_BUTTON 0
 
+#define FRONT_LEFT_TRIGGER 5
+#define FRONT_RIGHT_TRIGGER 6
+#define BACK_LEFT_TRIGGER 7
+#define BACK_RIGHT_TRIGGER 8
+
 // PID array (10 pids, two for each axis, 1 for altitude, 3 for AUTONOMOUS commands)
 PID pids[10];
 #define PID_PITCH_RATE 	0
@@ -133,6 +138,11 @@ AP_Baro_MS5611 baro(&AP_Baro_MS5611::spi);
 AP_AHRS_MPU6000  ahrs(&ins, gps);		// only works with APM2
 
 AP_HAL::AnalogSource* OFF_BUTTON_VALUE;
+
+AP_HAL::AnalogSource* FRONT_LEFT_TRIGGER_VALUE;
+AP_HAL::AnalogSource* FRONT_RIGHT_TRIGGER_VALUE;
+AP_HAL::AnalogSource* BACK_LEFT_TRIGGER_VALUE;
+AP_HAL::AnalogSource* BACK_RIGHT_TRIGGER_VALUE;
 
 //Initialize the HMC5843 compass.
 AP_Compass_HMC5843 compass;
@@ -243,7 +253,7 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 #define OUTDOORS 1
 
 // Choose whether GPS tracking should follow the PHONE or a FIXED position
-#define GPS_TRACKING_TARGET PHONE
+#define GPS_TRACKING_TARGET FIXED
 
 // Choose whether GPS tracking should have heading TARGET or HOLD
 #define GPS_TRACKING_HEADING HOLD
@@ -256,6 +266,7 @@ void setup() {
 	setPidConstants(DEFAULT);
 	setupMPU();
 	setupOffButton();
+	setupLandTriggers();
 	setupCompass();
 	setupTiming();
 	setupRpi();
@@ -279,9 +290,12 @@ void loop() {
 	static long pitch_output, roll_output, yaw_output, alt_output;
 	static uint16_t channels[8];  // array for raw channel values
 	static float AVG_OFF_BUTTON_VALUE;
+	static float AVG_FRONT_LEFT_TRIGGER_VALUE, AVG_FRONT_RIGHT_TRIGGER_VALUE,
+		AVG_BACK_LEFT_TRIGGER_VALUE, AVG_BACK_RIGHT_TRIGGER_VALUE;
 
 	updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt,
-		climb_rate, accelZ, AVG_OFF_BUTTON_VALUE);
+			climb_rate, accelZ, AVG_OFF_BUTTON_VALUE, AVG_FRONT_LEFT_TRIGGER_VALUE, AVG_FRONT_RIGHT_TRIGGER_VALUE,
+			AVG_BACK_LEFT_TRIGGER_VALUE, AVG_BACK_RIGHT_TRIGGER_VALUE);
 	updateState(channels, rcthr);
 	sendDataToPhone(alt, rcthr, accelZ);
 	distance_to_target = getDistanceToUser();
@@ -289,7 +303,8 @@ void loop() {
 
 	while((AVG_OFF_BUTTON_VALUE < 1.0) || (safety < 1500)) {			// Kill motors when [off switch] or [safety] is on
 		updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt,
-			climb_rate, accelZ, AVG_OFF_BUTTON_VALUE);
+			climb_rate, accelZ, AVG_OFF_BUTTON_VALUE, AVG_FRONT_LEFT_TRIGGER_VALUE, AVG_FRONT_RIGHT_TRIGGER_VALUE,
+			AVG_BACK_LEFT_TRIGGER_VALUE, AVG_BACK_RIGHT_TRIGGER_VALUE);
 		updateState(channels, rcthr);
 		sendDataToPhone(alt, rcthr, accelZ);
 		autopilotState = OFF;
@@ -297,7 +312,9 @@ void loop() {
 		yaw_target = accelYaw;											// reset yaw target so we maintain this on takeoff
 	}
 
-	runFlightControl(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt_output, alt, climb_rate, accelZ, channels);
+	runFlightControl(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt_output, alt, climb_rate, accelZ, channels,
+					AVG_FRONT_LEFT_TRIGGER_VALUE, AVG_FRONT_RIGHT_TRIGGER_VALUE, 
+					AVG_BACK_LEFT_TRIGGER_VALUE, AVG_BACK_RIGHT_TRIGGER_VALUE);
 	runPidFeedback(pitch_output, roll_output, yaw_output, alt_output, yaw_target, rcpit, rcroll, rcyaw, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt, desired_alt);
 	writeToMotors(rcthr, pitch_output, roll_output, yaw_output, yaw_target, accelYaw);
 
