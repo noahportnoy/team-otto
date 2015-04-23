@@ -237,13 +237,13 @@ const float INT_LONG_TO_METER = 0.00823380;
 unsigned int HOVER_THR = Static_HOVER_THR;
 
 // Debug ON/OFF
-#define PRINT_DEBUG 0
+#define PRINT_DEBUG 1
 
 // Control whether to perform GPS lock on startup
-#define OUTDOORS 0
+#define OUTDOORS 1
 
 // Choose whether GPS tracking should follow the PHONE or a FIXED position
-#define GPS_TRACKING_TARGET PHONE
+#define GPS_TRACKING_TARGET FIXED
 
 // Choose whether GPS tracking should have heading TARGET or HOLD
 #define GPS_TRACKING_HEADING HOLD
@@ -345,26 +345,26 @@ void loop() {
 		// 	hal.console->print("AUTO_PERFORMANCE");
 		// }
 
-		// hal.console->print(", autopilotState: ");
+		hal.console->print(", autopilotState: ");
 
-		// if (autopilotState == OFF) {
-		// 	hal.console->print("OFF");
-		// } else if(autopilotState == MANUAL_OVERRIDE) {
-		// 	hal.console->print("MANUAL_OVERRIDE");
-		// } else if (autopilotState == TAKEOFF) {
-		// 	hal.console->print("TAKEOFF");
-		// } else if (autopilotState == ALT_HOLD) {
-		// 	hal.console->print("ALT_HOLD");
-		// } else if (autopilotState == LAND) {
-		// 	hal.console->print("LAND");
-		// } else if (autopilotState == THROTTLE_ASSIST) {
-		// 	hal.console->print("THROTTLE_ASSIST");
-		// }
+		if (autopilotState == OFF) {
+			hal.console->print("OFF");
+		} else if(autopilotState == MANUAL_OVERRIDE) {
+			hal.console->print("MANUAL_OVERRIDE");
+		} else if (autopilotState == TAKEOFF) {
+			hal.console->print("TAKEOFF");
+		} else if (autopilotState == ALT_HOLD) {
+			hal.console->print("ALT_HOLD");
+		} else if (autopilotState == LAND) {
+			hal.console->print("LAND");
+		} else if (autopilotState == THROTTLE_ASSIST) {
+			hal.console->print("THROTTLE_ASSIST");
+		}
 
-		hal.console->print(", desired_heading: ");
-		hal.console->print(desired_heading);
-		hal.console->print(", current_heading: ");
-		hal.console->print(current_heading);
+		// hal.console->print(", desired_heading: ");
+		// hal.console->print(desired_heading);
+		// hal.console->print(", current_heading: ");
+		// hal.console->print(current_heading);
 		// hal.console->print(", distance, ");
 		// hal.console->print(distance_to_target);
 		// hal.console->print(", t, ");
