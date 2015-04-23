@@ -88,7 +88,7 @@ float getBearing() {
 	float bearing;
 
 	if (gps->status() < 2) {
-		// Force the drone to north if there is a GPS loss
+		// Force the drone to current heading
 		bearing = current_heading;
 		return bearing;
 	}
@@ -102,7 +102,6 @@ float getBearing() {
 	struct Location drone = {0};
 	drone.lat = drone_coordinates[1];
 	drone.lng = drone_coordinates[0];
-
 	struct Location user = {0};
 	user.lat = target_coordinates[1];
 	user.lng = target_coordinates[0];
@@ -110,15 +109,20 @@ float getBearing() {
 	kalmanFilter(drone.lat, drone.lng);
 
 	//Function returns bearing in centi-degrees
-	bearing = -0.01 * get_bearing_cd(&drone_filtered, &user);
+
+	// bearing = -0.01 * get_bearing_cd(&drone_filtered, &user);					//This is with filtered 
+	// bearing = wrap_180(bearing);
+	float bearing2 = -0.01 * get_bearing_cd(&drone, &user);
+	bearing2 = wrap_180(bearing2);
 
 	if(PRINT_DEBUG) {
-		// hal.console->printf(", k_lat, %ld, k_lng, %ld, ",drone_filtered.lat, drone_filtered.lng);
+		// hal.console->printf(", lat, %ld, lng, %ld, ",drone.lat, drone.lng);
 		// hal.console->printf(", target_lat, %ld, target_lng, %ld, ", user.lat, user.lng);
-		// hal.console->printf(" Drone bearing: %f", bearing);
+		// hal.console->printf(" Drone bearing1: %f", bearing);
+		// hal.console->printf(" Drone bearing2: %f", bearing2);
 	}
 
-	return wrap_180(bearing);
+	return wrap_180(bearing2);
 }
 
 float getDistanceToUser(){

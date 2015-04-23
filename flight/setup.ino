@@ -47,9 +47,24 @@ void setupCompass() {
 
 	compass.set_orientation(ROTATION_ROLL_180);							// set compass's orientation on aircraft.
 
-	//These offsets came from the ARDU_PILOT Compass calibratio
-	compass.set_offsets(-42.642, 16.306, 18.598);							// set offsets to account for surrounding interference
-	//compass.set_offsets(-37, 7, 18);									// noah's offsets from mission planner
+	//These offsets came from the ARDU_PILOT Compass calibration
+	// compass.set_offsets(-42.642, 16.306, 18.598);			//Original but off from bearing
+	
+	//Cal in Engin quad on 4/19/2015
+	// compass.set_offsets(-39.888, 9.952, -11.112);			//Off from bearing
+
+	//Cal in Engin quad on 4/19/2015
+	// compass.set_offsets(-43.586, 14.188, -5.152);			//Off from bearing by about 10
+
+	// set offsets to account for surrounding interference
+	// compass.set_offsets(-37, 7, 18);									// noah's offsets from mission planner //Off from bearing by about 20
+
+	//Cal in Engin quad on 4/19/2015
+	compass.set_offsets(-43.502, 25.224, -6.290);
+
+	//Try this: https://www.youtube.com/watch?v=-_mjfPlHL9o
+	//Try to get rid of declination for bearing...
+
 	compass.set_declination(ToRad(-14.167));								// set local difference between magnetic north and true north
 
 	//Otto uses the HMC5883L Compass
