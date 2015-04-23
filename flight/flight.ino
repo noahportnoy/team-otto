@@ -156,7 +156,7 @@ float desired_heading = 0;
 float climb_rate = 0;
 float distance_to_target = 0;
 int switchState = 0;
-int autopilotState = 0;
+int autopilotState = OFF;
 long rcthrAtSwitch = 0;
 float batteryVoltage = 10.9;
 
@@ -240,7 +240,7 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 #define PRINT_DEBUG 0
 
 // Control whether to perform GPS lock on startup
-#define OUTDOORS 1
+#define OUTDOORS 0
 
 // Choose whether GPS tracking should follow the PHONE or a FIXED position
 #define GPS_TRACKING_TARGET PHONE
