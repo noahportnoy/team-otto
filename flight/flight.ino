@@ -259,8 +259,8 @@ const float DESIRED_ALTITUDE = 1.5;
 //Set the desired seperation distance in meter
 const int SEPERATION_DISTANCE = 15;
 
-
-
+// Set the constraint on autonomous pitch and roll
+const int PITCH_ROLL_CMD_CONSTRAINT = 8;
 
 
 /*---------------------------------------------------- SETUP ----------------------------------------------*/
@@ -379,7 +379,7 @@ void loop() {
 		hal.console->print(desired_heading);
 		// hal.console->print(", accuracy: ");
 		// hal.console->print(gps->horizontal_accuracy);
-		
+
 		hal.console->print(", current_heading: ");
 		hal.console->print(current_heading);
 		hal.console->print(", distance, ");

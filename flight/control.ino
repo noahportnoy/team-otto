@@ -124,7 +124,7 @@ void semiautonomousAltitudeHoldMode(long &rcthr, long &rcpit, long &rcroll, long
 	controlAltitudeHold(rcthr, alt_output);
 	rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
 	rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
-	controlHeadingTracking(rcyaw);
+	controlHeadingHold(rcyaw);
 }
 
 void autonomousFollowMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
@@ -185,9 +185,9 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	autonomous_pitch_roll = yaw_rotation_m*lat_long_error;
 
 	//PID Feedback system for pitch and roll.
-	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -12, 12);
+	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -PITCH_ROLL_CMD_CONSTRAINT, PITCH_ROLL_CMD_CONSTRAINT);
 	rcpit = -rcpit;		// flip rcpit for proper mapping (neg pitch is forward)
-	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -12, 12);
+	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -PITCH_ROLL_CMD_CONSTRAINT, PITCH_ROLL_CMD_CONSTRAINT);
 
 	if (PRINT_DEBUG) {
 		// hal.console->print("Yaw Rotation Matrix:  ");
@@ -255,9 +255,9 @@ void controlGpsHold(long &rcpit, long &rcroll) {
 	autonomous_pitch_roll = yaw_rotation_m*lat_long_error;
 
 	//PID Feedback system for pitch and roll.
-	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -8, 8);
+	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -PITCH_ROLL_CMD_CONSTRAINT, PITCH_ROLL_CMD_CONSTRAINT);
 	rcpit = -rcpit;		// flip rcpit for proper mapping (neg pitch is forward)
-	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -8, 8);
+	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -PITCH_ROLL_CMD_CONSTRAINT, PITCH_ROLL_CMD_CONSTRAINT);
 }
 
 
