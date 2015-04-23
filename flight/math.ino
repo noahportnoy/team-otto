@@ -21,3 +21,16 @@ int wrap_180(float x) {
 	else if(x > 180) 	{return (x - 360);}
 	else 				{return x;}
 }
+
+void integrate( float accel, float &velocity  ){
+	
+	
+	if( accel > -0.11 && accel < 0.11 )
+		accel = 0;
+		
+		
+	velocity = velocity - (accel* ( ((float)(hal.scheduler->micros() - integral_timer)) / 1000000) );
+		
+	
+	integral_timer = hal.scheduler->micros();
+}

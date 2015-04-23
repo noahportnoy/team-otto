@@ -45,6 +45,11 @@ void setPidConstants(int config) {
 		pids[YAW_CMD].kP(0.7);
 		pids[YAW_CMD].kI(0.1);
 		pids[YAW_CMD].imax(50);
+		
+		pids[LAND].kP(0.6);
+		pids[LAND].kI(0.1);
+		pids[LAND].imax(50);
+		
 	} else {
 		hal.console->print("Error: PID constants not set for provided configuration");
 		hal.console->println(config);

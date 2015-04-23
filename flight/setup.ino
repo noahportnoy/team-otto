@@ -62,6 +62,7 @@ void setupTiming() {
 	send_to_phone_timer = timer;
 	heading_timer = timer;
 	hover_thr_timer = timer;
+	integral_timer = timer;
 }
 
 void setupRpi() {

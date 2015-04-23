@@ -24,12 +24,12 @@ void updateState(uint16_t channels[], long rcthr) {
 			// autopilotState = ALT_HOLD;
 			// state_change = true;
 
-		} else if (switchState == MANUAL || switchState == AUTO_PERFORMANCE) {				// If switching to AUTO_TEST
-			autopilotState = ALT_HOLD;
+		} else if (switchState == MANUAL ){ //|| switchState == AUTO_PERFORMANCE) {				// If switching to AUTO_TEST
+			autopilotState = LAND;
 			state_change = true;
 		}
 
-		switchState = AUTO_TEST;
+		switchState = AUTO_PERFORMANCE;
 
 	} else if (channels[5] < 1200) {
 

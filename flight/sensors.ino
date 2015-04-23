@@ -49,7 +49,22 @@ void getAccel(float &accelPitch, float &accelRoll, float &accelYaw, float &accel
 	accelYaw = ToDeg(accelYaw);
 
 	Vector3f accel = ins.get_accel();
-	accelZ = accel.z;
+	
+	
+	hal.console->print( "Z : " );
+	hal.console->print(  accel.z );
+	hal.console->print( " , roll : " );
+	hal.console->print( accelRoll );
+	hal.console->print( " , pitch : " );
+	hal.console->print(  accelPitch );
+	
+	hal.scheduler->delay(20);
+	
+	accelZ = (accel.z) / ((cos(ToRad(accelPitch))*cos(ToRad(accelRoll))));
+	accelZ = accelZ + 9.80532;
+	
+	hal.console->print( ", new Z : " );
+	hal.console->print(  accelZ );
 
 	// ahrs.update();
 

@@ -69,65 +69,24 @@ void autonomousTakeoffMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 						float climb_rate, float accelZ, uint16_t channels[]) {
 
-	if( throttle_modifier > 150 ){
-		rcthr = 1000;
-
-	} else {
-		rcthr = HOVER_THR - throttle_modifier;
-
-		// hal.console->print( "--------------------------------------------- Ground timer : ");
-		// hal.console->print( hal.scheduler->micros() - ground_timer );
-		// hal.console->print( " , fall timer : " );
-		// hal.console->println( fall_timer );
-
-		if( climb_rate < -0.15 ){
-			rcthr = HOVER_THR;
-			ground_timer = hal.scheduler->micros();
-			throttle_modifier = 10;
-		} else if (hal.scheduler->micros() - ground_timer > 200000) {
-			//hal.console->println( "------------------------------------------ Ground ADJ ");
-			if (accelZ > -9.0) {
-				throttle_modifier = throttle_modifier + 10;
-				ground_timer = hal.scheduler->micros();
-				ground_flag == true;
-			}
-		}
-
-		// if (hal.scheduler->micros() - fall_timer > 500000) {
-			// //hal.console->println( "------------------------------------------ Fall ADJ ");
-			// if (climb_rate < -0.15) {
-				// rcthr = HOVER_THR;
-			// }
-		// }
-
-
-
-		if (hal.scheduler->micros() - land_timer > land_interval) {
-			land_total += accelZ;
-			land_counter++;
-			land_average = (land_total / land_counter);
-
-			if( land_counter > 25 && (land_average >= (-9.82) && land_average <= (-9.79)) && ground_flag ) {
-				throttle_modifier = throttle_modifier + 15;
-
-				land_total = 0;
-				land_counter = 0;
-				land_average = 0;
-				land_timer = hal.scheduler->micros();
-				land_interval = 1000000;
-			}
-
-			if (land_counter > 50) {
-				land_total = 0;
-				land_counter = 0;
-				land_average = 0;
-			}
-		}
-	}
-
-	// rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
-	// rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
-	controlGpsHold(rcpit, rcroll);
+	long land_output;
+	float desired_velocity = -0.15;	
+	
+	land_output =  (long)constrain(pids[LAND].get_pid( 100*desired_velocity - 100*velocityZ , 1), -15, 15);
+	rcthr = HOVER_THR + land_output;
+	
+	hal.console->print( ", Land output : " );
+	hal.console->print(  land_output );
+	hal.console->print( " , rcthr : " );
+	hal.console->print( rcthr );
+	hal.console->print( " , velocity : " );
+	hal.console->println(  velocityZ );
+	
+	// hal.scheduler->delay(20);
+	
+	rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
+	rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
+	//controlGpsHold(rcpit, rcroll);
 	controlHeadingHold(rcyaw);
 }
 

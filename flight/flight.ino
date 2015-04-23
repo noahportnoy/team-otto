@@ -52,7 +52,7 @@
 #define OFF_BUTTON 0
 
 // PID array (10 pids, two for each axis, 1 for altitude, 3 for AUTONOMOUS commands)
-PID pids[10];
+PID pids[11];
 #define PID_PITCH_RATE 	0
 #define PID_ROLL_RATE 	1
 #define PID_PITCH_STAB 	2
@@ -63,6 +63,7 @@ PID pids[10];
 #define YAW_CMD 		7
 #define PITCH_CMD 		8
 #define ROLL_CMD 		9
+#define YAW 			10
 
 // switchState
 #define MANUAL 				0
@@ -144,12 +145,9 @@ uint32_t hover_thr_timer;
 uint32_t land_timer;
 uint32_t ground_timer;
 uint32_t fall_timer;
+uint32_t integral_timer;
 
-float land_average = 0;
-float land_total = 0;
-unsigned int land_counter = 0;
-int throttle_modifier = 10;
-uint32_t land_interval = 2000000;
+float velocityZ = 0;
 
 float current_heading = 0;
 float desired_heading = 0;
@@ -240,7 +238,7 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 #define PRINT_DEBUG 0
 
 // Control whether to perform GPS lock on startup
-#define OUTDOORS 1
+#define OUTDOORS 0
 
 // Choose whether GPS tracking should follow the PHONE or a FIXED position
 #define GPS_TRACKING_TARGET PHONE
@@ -297,6 +295,11 @@ void loop() {
 		yaw_target = accelYaw;											// reset yaw target so we maintain this on takeoff
 	}
 
+	integrate( accelZ , velocityZ );
+	// hal.console->print( "Velocity : ");
+	// hal.console->println( velocityZ );
+	// hal.scheduler->delay(20);
+	
 	runFlightControl(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt_output, alt, climb_rate, accelZ, channels);
 	runPidFeedback(pitch_output, roll_output, yaw_output, alt_output, yaw_target, rcpit, rcroll, rcyaw, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt, desired_alt);
 	writeToMotors(rcthr, pitch_output, roll_output, yaw_output, yaw_target, accelYaw);
