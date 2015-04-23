@@ -146,8 +146,14 @@ uint32_t land_timer;
 uint32_t ground_timer;
 uint32_t fall_timer;
 uint32_t integral_timer;
+uint32_t land_interval;
 
 float velocityZ = 0;
+
+int land_total = 0;
+int land_counter = 0;
+int land_average = 0;
+int throttle_modifier = 10;
 
 float current_heading = 0;
 float desired_heading = 0;
@@ -302,6 +308,13 @@ void loop() {
 	
 	runFlightControl(rcthr, rcpit, rcroll, rcyaw, desired_alt, alt_output, alt, climb_rate, accelZ, channels);
 	runPidFeedback(pitch_output, roll_output, yaw_output, alt_output, yaw_target, rcpit, rcroll, rcyaw, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt, desired_alt);
+	
+	// hal.console->print( "Throttle : ");
+	// hal.console->println( rcthr );
+	// hal.console->print( ", accel z : ");
+	// hal.console->print( accelZ );
+	// hal.scheduler->delay(50);	
+	
 	writeToMotors(rcthr, pitch_output, roll_output, yaw_output, yaw_target, accelYaw);
 
 	if (PRINT_DEBUG) {

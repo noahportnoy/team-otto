@@ -45,7 +45,8 @@ void updateState(uint16_t channels[], long rcthr) {
 			uartMessaging.resetTakeOff();										// reset the isTakeoff boolean
 			state_change = true;
 
-		} else if (autopilotState == ALT_HOLD && uartMessaging.isLand()) {		// If user requests land from phone and drone was last in autopilot ALT_HOLD state
+		} else if (autopilotState == OFF && uartMessaging.isLand()) {		// If user requests land from phone and drone was last in autopilot ALT_HOLD state
+			hal.console->println( "----------------------------------- LAND ");
 			autopilotState = LAND;
 			updateDroneCoordinatesToHold();
 			uartMessaging.resetLand();											// reset the isLand boolean
@@ -53,6 +54,7 @@ void updateState(uint16_t channels[], long rcthr) {
 			ground_timer = land_timer;
 			fall_timer = land_timer;
 			state_change = true;
+			uartMessaging.resetLand();
 		}
 
 		switchState = AUTO_PERFORMANCE;
