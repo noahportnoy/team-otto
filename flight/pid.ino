@@ -35,11 +35,13 @@ void setPidConstants(int config) {
 
 		//Below are the PIDs for autonomous control
 		pids[PITCH_CMD].kP(0.6);
-		pids[PITCH_CMD].kI(0.6);
+		pids[PITCH_CMD].kI(0.3);
+		// TODO add the D?
 		pids[PITCH_CMD].imax(8);
 
 		pids[ROLL_CMD].kP(0.6);
-		pids[ROLL_CMD].kI(0.6);
+		pids[ROLL_CMD].kI(0.3);
+		// TODO add the D?
 		pids[ROLL_CMD].imax(8);
 
 		pids[YAW_CMD].kP(2.2);

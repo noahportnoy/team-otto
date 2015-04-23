@@ -2,11 +2,13 @@
 //Coordinate Arrays: [latitude, longitude]
 void updateDroneCoordinates() {
 	gps->update();
-	if ((gps->new_data) && (gps->status() >= 2)) {
+	if ((gps->new_data) && (gps->status() >= 3)) {
 		drone_coordinates[1] = gps->latitude;
 		drone_coordinates[0] = gps->longitude;
 		gps->new_data = false;
 	}
+
+	// TODO can use gps accuracy or manually filter out ridiculous values
 }
 
 void updateDroneCoordinatesToHold() {
@@ -110,7 +112,7 @@ float getBearing() {
 
 	//Function returns bearing in centi-degrees
 
-	// bearing = -0.01 * get_bearing_cd(&drone_filtered, &user);					//This is with filtered 
+	// bearing = -0.01 * get_bearing_cd(&drone_filtered, &user);					//This is with filtered
 	// bearing = wrap_180(bearing);
 	float bearing2 = -0.01 * get_bearing_cd(&drone, &user);
 	bearing2 = wrap_180(bearing2);

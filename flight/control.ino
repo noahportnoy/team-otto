@@ -196,8 +196,8 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 
 		// hal.console->printf(", gps status: %d", gps->status());
 		// hal.console->printf(", currheading, %f, ", current_heading);
-		hal.console->print(", output here, ");
-		hal.console->print(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1));
+		// hal.console->print(", output here, ");
+		// hal.console->print(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1));
 		// hal.console->print(", i here, ");
 		// hal.console->print(pids[PITCH_CMD].get_pi(autonomous_pitch_roll.y, 1));
 		// hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);

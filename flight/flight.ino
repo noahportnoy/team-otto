@@ -260,7 +260,7 @@ const float DESIRED_ALTITUDE = 1.5;
 const int SEPERATION_DISTANCE = 15;
 
 // Set the constraint on autonomous pitch and roll
-const int PITCH_ROLL_CMD_CONSTRAINT = 8;
+const int PITCH_ROLL_CMD_CONSTRAINT = 16;
 
 
 /*---------------------------------------------------- SETUP ----------------------------------------------*/
@@ -320,10 +320,14 @@ void loop() {
 		// hal.console->print(rcthr);
 		// hal.console->print(", hoverthr, ");
 		// hal.console->print(HOVER_THR);
-		hal.console->print(", rcpitch, ");
+		hal.console->print("rcpitch, ");
 		hal.console->print(rcpit);
-		hal.console->print(", rcroll, ");
+		// hal.console->print(", ");
+		// hal.console->print(pids[PITCH_CMD].get_integrator());
+		hal.console->print(",  rcroll, ");
 		hal.console->print(rcroll);
+		// hal.console->print(", ");
+		// hal.console->print(pids[PITCH_CMD].get_integrator());
 		hal.console->print(",  rcyaw, ");
 		hal.console->print(rcyaw);
 		// hal.console->print(",  accelPitch, ");
