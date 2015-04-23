@@ -137,8 +137,7 @@ void semiautonomousAltitudeHoldMode(long &rcthr, long &rcpit, long &rcroll, long
 	controlAltitudeHold(rcthr, alt_output);
 	rcpit = map(channels[0], RC_ROL_MIN, RC_ROL_MAX, 45, -45);
 	rcroll = map(channels[1], RC_PIT_MIN, RC_PIT_MAX, 45, -45);
-	controlHeadingHold(rcyaw);
-	//controlHeadingTracking(rcyaw);
+	controlHeadingTracking(rcyaw);
 }
 
 void autonomousFollowMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
@@ -170,12 +169,13 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 		return;
 	}
 
-	// int32_t offset_target_coordinates[] = {0, 0};
-	// dynamicTargetUpdate(offset_target_coordinates);
+	int32_t offset_target_coordinates[] = {0, 0};
+	dynamicTargetUpdate(offset_target_coordinates);
+	// fixedTargetUpdate(offset_target_coordinates);
 
 	//Get Lat and Long error
-	lat_long_error.x = (float)((target_coordinates[0] - drone_coordinates[0])*INT_LONG_TO_METER);
-	lat_long_error.y = (float)((target_coordinates[1] - drone_coordinates[1])*INT_LAT_TO_METER);
+	lat_long_error.x = (float)((offset_target_coordinates[0] - drone_coordinates[0])*INT_LONG_TO_METER);
+	lat_long_error.y = (float)((offset_target_coordinates[1] - drone_coordinates[1])*INT_LAT_TO_METER);
 	lat_long_error.z = 0;
 
 	/*
@@ -198,9 +198,9 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 	autonomous_pitch_roll = yaw_rotation_m*lat_long_error;
 
 	//PID Feedback system for pitch and roll.
-	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -8, 8);
+	rcpit = constrain(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1), -12, 12);
 	rcpit = -rcpit;		// flip rcpit for proper mapping (neg pitch is forward)
-	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -8, 8);
+	rcroll = constrain(pids[ROLL_CMD].get_pid(autonomous_pitch_roll.x, 1), -12, 12);
 
 	if (PRINT_DEBUG) {
 		// hal.console->print("Yaw Rotation Matrix:  ");
@@ -209,8 +209,10 @@ void controlGpsTracking(long &rcpit, long &rcroll) {
 
 		// hal.console->printf(", gps status: %d", gps->status());
 		// hal.console->printf(", currheading, %f, ", current_heading);
-		// hal.console->print(", desired_heading, ");
-		// hal.console->print(desired_heading);
+		hal.console->print(", output here, ");
+		hal.console->print(pids[PITCH_CMD].get_pid(autonomous_pitch_roll.y, 1));
+		// hal.console->print(", i here, ");
+		// hal.console->print(pids[PITCH_CMD].get_pi(autonomous_pitch_roll.y, 1));
 		// hal.console->printf(",  drone_long, %ld, drone_lat, %ld, ", drone_coordinates[0], drone_coordinates[1]);
 		// hal.console->printf(", target_long, %ld, target_lat, %ld, ", target_coordinates[0], target_coordinates[1]);
 		// hal.console->printf(",  diff_long, %f, diff_lat, %f, ", lat_long_error.x, lat_long_error.y);
@@ -283,17 +285,14 @@ void maintainDistance(long &rcpit, float &desired_distance){
 }
 
 //Sends drone to a fixed distance from "target"
-void fixedTargetUpdate(){
-	int32_t offset = SEPERATION_DISTANCE * INT_LAT_TO_METER * 1.0e7;
-	int32_t offset_drone_coordinate = drone_coordinates[1] + offset;
+void fixedTargetUpdate(int32_t* offset_target_coordinates){
+	int32_t offset = SEPERATION_DISTANCE / INT_LAT_TO_METER;
 
-	//SET OFFSET_DRONE_COORDINATES HERE...
-	// offset_drone_coordinate[0] = drone_coordinates[0];
-	// offset_drone_coordinate[1] = offset_drone_coordinate[1];
-
+	offset_target_coordinates[0] = target_coordinates[0];
+	offset_target_coordinates[1] = target_coordinates[1] + offset;
 
 	if (PRINT_DEBUG){
-		hal.console->printf(", offset, %ld, drone_coord, %ld, offset_coor, %ld, ", offset, drone_coordinates[1], offset_drone_coordinate);
+		// hal.console->printf(", offset, %ld, drone_coord, %ld, offset_coor, %ld, ", offset, drone_coordinates[1], offset_drone_coordinate);
 	}
 }
 
@@ -390,7 +389,7 @@ void controlHeadingTracking(long &rcyaw) {
 
 	//Calculate the Heading error and use the PID feedback loop to translate that into a yaw input
 	float heading_error = wrap_180(desired_heading - current_heading);
-	rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -10, 10);
+	rcyaw = constrain(pids[YAW_CMD].get_pid(heading_error, 1), -25, 25);
 	rcyaw = rcyaw * -1;
 }
 

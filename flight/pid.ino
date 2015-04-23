@@ -42,7 +42,7 @@ void setPidConstants(int config) {
 		pids[ROLL_CMD].kI(0.0);
 		pids[ROLL_CMD].imax(50);
 
-		pids[YAW_CMD].kP(0.7);
+		pids[YAW_CMD].kP(2.2);
 		pids[YAW_CMD].kI(0.1);
 		pids[YAW_CMD].imax(50);
 	} else {

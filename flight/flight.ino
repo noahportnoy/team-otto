@@ -236,6 +236,11 @@ const float INT_LONG_TO_METER = 0.00823380;
 #define ADJ_THR_MAX_CONSTRAINT		Static_HOVER_THR+50
 unsigned int HOVER_THR = Static_HOVER_THR;
 
+
+
+
+/*-------------------------------------- PRE-FLIGHT CHECKLIST ---------------------------------------*/
+
 // Debug ON/OFF
 #define PRINT_DEBUG 0
 
@@ -246,9 +251,17 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 #define GPS_TRACKING_TARGET PHONE
 
 // Choose whether GPS tracking should have heading TARGET or HOLD
-#define GPS_TRACKING_HEADING HOLD
+#define GPS_TRACKING_HEADING TARGET
 
-const int SEPERATION_DISTANCE = 10;
+//Set the desired altitude in meters
+const float DESIRED_ALTITUDE = 1.5;
+
+//Set the desired seperation distance in meter
+const int SEPERATION_DISTANCE = 15;
+
+
+
+
 
 /*---------------------------------------------------- SETUP ----------------------------------------------*/
 void setup() {
@@ -285,7 +298,8 @@ void loop() {
 	updateState(channels, rcthr);
 	sendDataToPhone(alt, rcthr, accelZ);
 	distance_to_target = getDistanceToUser();
-	desired_alt = 1.5; //Hard code in desired_alt
+
+	desired_alt = DESIRED_ALTITUDE; //Hard code in desired_alt
 
 	while((AVG_OFF_BUTTON_VALUE < 1.0) || (safety < 1500)) {			// Kill motors when [off switch] or [safety] is on
 		updateReadings(channels, safety, accelPitch, accelRoll, accelYaw, gyroPitch, gyroRoll, gyroYaw, alt,
@@ -302,10 +316,10 @@ void loop() {
 	writeToMotors(rcthr, pitch_output, roll_output, yaw_output, yaw_target, accelYaw);
 
 	if (PRINT_DEBUG) {
-		hal.console->print("rcthr, ");
-		hal.console->print(rcthr);
-		hal.console->print(", hoverthr, ");
-		hal.console->print(HOVER_THR);
+		// hal.console->print("rcthr, ");
+		// hal.console->print(rcthr);
+		// hal.console->print(", hoverthr, ");
+		// hal.console->print(HOVER_THR);
 		hal.console->print(", rcpitch, ");
 		hal.console->print(rcpit);
 		hal.console->print(", rcroll, ");
@@ -363,10 +377,13 @@ void loop() {
 
 		hal.console->print(", desired_heading: ");
 		hal.console->print(desired_heading);
+		// hal.console->print(", accuracy: ");
+		// hal.console->print(gps->horizontal_accuracy);
+		
 		hal.console->print(", current_heading: ");
 		hal.console->print(current_heading);
-		// hal.console->print(", distance, ");
-		// hal.console->print(distance_to_target);
+		hal.console->print(", distance, ");
+		hal.console->print(distance_to_target);
 		// hal.console->print(", t, ");
 		// hal.console->print(hal.scheduler->millis());
 
