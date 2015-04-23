@@ -86,7 +86,7 @@ void autonomousLandMode(long &rcthr, long &rcpit, long &rcroll, long &rcyaw,
 			throttle_modifier = 10;
 		} else if (hal.scheduler->micros() - ground_timer > 200000) {
 			//hal.console->println( "------------------------------------------ Ground ADJ ");
-			if (accelZ > -9.0) {
+			if (accelZ > -8.75) {
 				throttle_modifier = throttle_modifier + 10;
 				ground_timer = hal.scheduler->micros();
 				ground_flag == true;
