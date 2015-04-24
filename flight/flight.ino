@@ -242,7 +242,7 @@ unsigned int HOVER_THR = Static_HOVER_THR;
 /*-------------------------------------- PRE-FLIGHT CHECKLIST ---------------------------------------*/
 
 // Debug ON/OFF
-#define PRINT_DEBUG 1
+#define PRINT_DEBUG 0
 
 // Control whether to perform GPS lock on startup
 #define OUTDOORS 1
